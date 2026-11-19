@@ -111,7 +111,7 @@ function expandedAnchors(origin: Map<string, Pose>, members: readonly string[], 
     const p = origin.get(id)!
     x += p.x / members.length; y += p.y / members.length; z += p.z / members.length
   }
-  const targets = new Map<string, { x: number; y: number; z: number }>(origin)
+  const targets = new Map<string, { x: number; y: number; z: number }>()
   if (rings) {
     // Neighboring rings differ by one step. Chords on each ring are at least one step long.
     const step = spacing * spread
@@ -125,7 +125,7 @@ function expandedAnchors(origin: Map<string, Pose>, members: readonly string[], 
       }
       start += count
     }
-    return (node: GraphNode) => targets.get(node.id)
+    return (node: GraphNode) => targets.get(node.id) ?? origin.get(node.id)
   }
   members.forEach((id, index) => {
     const p = origin.get(id)!, dx = p.x - x, dy = p.y - y, dz = p.z - z
@@ -134,7 +134,7 @@ function expandedAnchors(origin: Map<string, Pose>, members: readonly string[], 
     targets.set(id, { x: p.x + push * (distance ? dx / distance : Math.cos(angle)),
       y: p.y + push * (distance ? dy / distance : Math.sin(angle)), z: p.z + push * (distance ? dz / distance : 0) })
   })
-  return (node: GraphNode) => targets.get(node.id)
+  return (node: GraphNode) => targets.get(node.id) ?? origin.get(node.id)
 }
 
 /** A headless controller. Bind one live renderer at a time and remount it only when snapshot.data changes. */
@@ -229,6 +229,7 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
       selected: parent.selected !== null && (action === 'expand' || visible.has(parent.selected)) ? parent.selected : null }
     if (action === 'expand') {
       const origin = parent.poses!
+      scope.ids = parent.ids
       scope.expansion = { members: [...visible].sort(), origin }
     }
     const inPlace = action === 'expand' && !!live()

@@ -30,6 +30,10 @@ try {
       }
     })
   }
+  const drillPage = await context.newPage()
+  drillPage.setDefaultTimeout(20000)
+  const drilldown = await studioDrilldown(drillPage, url)
+  await drillPage.close()
   const page = await context.newPage()
   page.setDefaultTimeout(20000)
   const failures = []
@@ -71,10 +75,6 @@ try {
   }, { live: Boolean(liveURL), expected: process.env.GITHUB_SHA })
   assert.deepEqual(packageHeader, [0x1f, 0x8b], 'Studio should serve the installable npm archive')
   await configPage.close()
-  const drillPage = await context.newPage()
-  drillPage.setDefaultTimeout(20000)
-  const drilldown = await studioDrilldown(drillPage, url)
-  await drillPage.close()
   const loadPage = await context.newPage()
   loadPage.setDefaultTimeout(18000)
   const workload = await studioLoad(loadPage, url)

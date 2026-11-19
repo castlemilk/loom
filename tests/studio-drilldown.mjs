@@ -41,6 +41,8 @@ export async function studioDrilldown(page, url) {
     return ['transfer','shared'].includes(document.getElementById('transport').textContent) && Number(document.getElementById('ticks').textContent) > 0
   })
   await page.waitForFunction((d) => document.querySelector('[data-taxonomy="section"][data-bubble="Optics"]').getAttribute('d') !== d, overview)
+  await page.locator('#studio-controls').evaluate((el) => { el.scrollTop = 0 })
+  await capture('atlas-desktop-expanded')
   await details('Drilldown settings')
   await control('member-spacing').press('ArrowRight')
   await control('member-arrangement').selectOption('radial')

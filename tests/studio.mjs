@@ -66,7 +66,7 @@ export async function studio(page, url) {
   await byId('kind').selectOption('lab')
   await byId('shape').selectOption('circle')
   await byId('kind-color').fill('#be45ab')
-  const lab = byId('legend').locator('span').filter({ hasText: 'lab' }).locator('i')
+  const lab = byId('legend').locator(':scope > :is(button,span)').filter({ hasText: 'lab' }).locator('i[data-shape]')
   check(
     (await lab.getAttribute('data-shape')) === 'circle' &&
       (await lab.evaluate((el) => el.style.getPropertyValue('--kind'))) === '#be45ab',
