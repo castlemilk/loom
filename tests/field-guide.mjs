@@ -22,11 +22,25 @@ export async function fieldGuide(context, home) {
     assert.deepEqual(overflow, [], 'Overflow at ' + page.url() + ': ' + overflow.join(', '))
   }
   async function capture(name) {
-    await page.evaluate(async () => {
-      await document.fonts.ready
-      for (const img of document.querySelectorAll('img')) { img.scrollIntoView({ block: 'nearest' }); await img.decode() }
-      scrollTo(0, 0)
-    })
+    await page.evaluate(() => document.fonts.ready.then(() => true))
+    for (const image of await page.locator('img').all()) {
+      await image.scrollIntoViewIfNeeded()
+      const element = await image.elementHandle()
+      try {
+        // A viewport change can replace the responsive candidate during decode.
+        await page.waitForFunction(async (img) => {
+          if (!img.complete || !img.naturalWidth) return false
+          const source = img.currentSrc
+          try { await img.decode(); return img.currentSrc === source } catch { return false }
+        }, element, { timeout: 10000 })
+      } catch (cause) {
+        const source = await image.evaluate((img) => img.currentSrc || img.src)
+        throw new Error('Could not decode ' + source + ' for ' + name, { cause })
+      } finally {
+        await element.dispose()
+      }
+    }
+    await page.evaluate(() => scrollTo(0, 0))
     await page.screenshot({ path: fileURLToPath(new URL(name + '.png', shots)), fullPage: true, animations: 'disabled' })
   }
   const response = await page.goto(home)

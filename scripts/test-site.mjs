@@ -38,11 +38,12 @@ async function siteContext(options = {}) {
 }
 try {
   const context = await siteContext()
-  const guide = await fieldGuide(context, home)
   const desktopMenu = await studioMenu(context, url)
   const mobile = await siteContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
   const mobileMenu = await studioMenu(mobile, url, true)
   await mobile.close()
+  console.log({ desktopMenu, mobileMenu })
+  const guide = await fieldGuide(context, home)
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)
   const drilldown = await studioDrilldown(drillPage, url)
@@ -91,7 +92,7 @@ try {
   const loadPage = await context.newPage()
   loadPage.setDefaultTimeout(18000)
   const workload = await studioLoad(loadPage, url)
-  console.log({ guide, desktopMenu, mobileMenu, ...result, worker, snapshotRequests: snapshots, configuration, drilldown, workload })
+  console.log({ guide, ...result, worker, snapshotRequests: snapshots, configuration, drilldown, workload })
 } finally {
   await browser.close()
 }
