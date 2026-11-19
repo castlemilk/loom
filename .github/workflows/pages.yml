@@ -9,11 +9,15 @@ permissions:
 
 concurrency:
   group: loom-pages
-  cancel-in-progress: false
+  cancel-in-progress: true
+
+env:
+  LOOM_BROWSER_CHANNEL: chrome
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,7 +33,6 @@ jobs:
       - run: npm run site:build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
-      - run: npx playwright install --with-deps chromium
       - run: npm run test:site
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -54,6 +57,7 @@ jobs:
   verify:
     needs: deploy
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,7 +65,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - run: npm run test:site -- "$PAGES_URL"
         env:
           PAGES_URL: ${{ needs.deploy.outputs.url }}

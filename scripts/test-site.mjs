@@ -8,7 +8,10 @@ const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
 const url = liveURL || 'https://loom.test' + base
 const root = fileURLToPath(new URL('../web/out/', import.meta.url))
-const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader'] })
+const browser = await chromium.launch({
+  channel: process.env.LOOM_BROWSER_CHANNEL,
+  args: ['--enable-unsafe-swiftshader'],
+})
 try {
   const context = await browser.newContext({ viewport: { width: 1160, height: 760 }, reducedMotion: 'reduce' })
   if (!liveURL) {
@@ -25,6 +28,7 @@ try {
     })
   }
   const page = await context.newPage()
+  page.setDefaultTimeout(20000)
   const failures = []
   let snapshots = 0
   page.on('response', (res) => {
@@ -37,10 +41,14 @@ try {
   await page.locator('#dataset').selectOption('full')
   await page.getByText('508 nodes · 746 links', { exact: true }).waitFor()
   assert.equal(snapshots, 1, 'Full graph should be fetched once per session')
+  await page.locator('#blend').focus()
+  await page.locator('#blend').press('Home')
   await page.locator('#physics').selectOption('worker')
+  await page.locator('#graph').scrollIntoViewIfNeeded()
   await page.waitForFunction(() => {
     document.getElementById('refresh').click()
-    return ['transfer', 'shared'].includes(document.getElementById('transport').textContent)
+    return ['transfer', 'shared'].includes(document.getElementById('transport').textContent) &&
+      Number(document.getElementById('ticks').textContent) > 0
   })
   assert.deepEqual(failures, [])
   console.log({ ...result, worker: await page.locator('#transport').textContent(), snapshotRequests: snapshots })
