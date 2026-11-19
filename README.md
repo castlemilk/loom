@@ -121,7 +121,7 @@ npm install "https://castlemilk.github.io/loom/packages/$revision/loom-core-0.1.
 | `getPosition(id)`, `pin(id, position?)`, `unpin(id)` | Read visible world coordinates and pin status, fix a node at its current or supplied coordinates, or return it to its layout. |
 | `select(id)`, `select(null)` | Highlight the node, its incident wires and its immediate neighbours, or clear the selection. |
 | `focus(id)`, `fit()`, `reset()` | Centre a node, fit the graph bounds, or clear selection and restore the fitted camera. |
-| `on(event, callback)` | Subscribe to `select`, `hover`, `open`, `modechange` or `destroy`. The return value unsubscribes. Selection and hover deliver a node ID or `null`. |
+| `on(event, callback)` | Subscribe to `select`, `nodeclick`, `backgroundclick`, `hover`, `open`, `modechange` or `destroy`. Selection and hover deliver a node ID or `null`. `nodeclick` reports each completed pick, including a second pick on the same node to draw a loop. The return value unsubscribes. |
 | `getFrame()`, `onFrame(callback)` | Read projected points synchronously, including while paused, or subscribe to paints for a custom overlay. Screen positions and radii use CSS pixels in input node order. Copy the borrowed points to retain them across updates. |
 | `pause()`, `resume()`, `resize()` | Control scheduling and refresh the backing size. Resize and intersection observers handle ordinary layout changes. |
 | `stats()`, `destroy()` | Read frame, tick, label, transport and submission counters, or release listeners, workers, textures, buffers and programs. |

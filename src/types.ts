@@ -122,6 +122,8 @@ export interface WireProgram {
 }
 export interface GraphEvents {
   select: string | null
+  /** A click or tap on a node or its label, including repeated clicks on the current selection. */
+  nodeclick: string
   hover: string | null
   open: string
   /** A clean click on empty graph space, in canvas CSS pixels. Nodes and labels take precedence. */

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { homeURL } from '../site'
 import { InspectorSection, InspectorSummary } from './fields'
 
@@ -88,18 +88,19 @@ function Endpoint({ name, value, onChange, nodes }) {
   </>
 }
 
-function LinkForm({ model, selectedId, link, run, onEndpoints }) {
+function LinkForm({ model, selectedId, graph, link, run, onEndpoints }) {
   const [source, setSource] = useState(link?.source ?? selectedId ?? ''), [target, setTarget] = useState(link?.target ?? '')
   const [kind, setKind] = useState(link?.kind ?? ''), [weight, setWeight] = useState(link?.weight?.toString() ?? '')
   const previous = useRef(selectedId)
   useEffect(() => { onEndpoints({ source, target }) }, [source, target, onEndpoints])
+  const pick = useEffectEvent((id) => { if (source) setTarget(id); else setSource(id) })
   useEffect(() => {
-    if (!link && selectedId && selectedId !== previous.current) {
-      if (!source) setSource(selectedId)
-      else setTarget(selectedId)
-    }
+    if (!link && graph) return graph.on('nodeclick', (id) => { previous.current = id; pick(id) })
+  }, [link, graph])
+  useEffect(() => {
+    if (!link && selectedId && selectedId !== previous.current) pick(selectedId)
     previous.current = selectedId
-  }, [selectedId, source, link])
+  }, [selectedId, link])
   return <form onSubmit={(event) => {
     event.preventDefault()
     const editor = model.editor(), fields = { source, target, kind: kind.trim(), ...(weight !== '' && { weight: Number(weight) }) }
@@ -152,7 +153,7 @@ export function downloadGraph(data) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-export function DocumentComposer({ tool, model, selectedId, link, run, close, point, clearPoint, onEndpoints }) {
+export function DocumentComposer({ tool, model, selectedId, graph, link, run, close, point, clearPoint, onEndpoints }) {
   const ref = useRef(null)
   useEffect(() => {
     if (tool) ref.current?.querySelector('input, textarea')?.focus()
@@ -162,7 +163,7 @@ export function DocumentComposer({ tool, model, selectedId, link, run, close, po
     onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); close() } }}>
     <div className="composer-heading"><h2>{{ node: 'New node', link: link ? 'Connection properties' : 'New connection', json: 'JSON commands' }[tool]}</h2>
       <button type="button" aria-label="Close document editor" onClick={close}>×</button></div>
-    {tool === 'node' ? <NodeForm model={model} run={run} point={point} clearPoint={clearPoint}/> : tool === 'link' ? <LinkForm key={link?.id ?? 'new'} model={model} selectedId={selectedId} link={link} run={run} onEndpoints={onEndpoints}/> : <JsonForm model={model} run={run}/>}
+    {tool === 'node' ? <NodeForm model={model} run={run} point={point} clearPoint={clearPoint}/> : tool === 'link' ? <LinkForm key={link?.id ?? 'new'} model={model} selectedId={selectedId} graph={graph} link={link} run={run} onEndpoints={onEndpoints}/> : <JsonForm model={model} run={run}/>}
   </section>
 }
 

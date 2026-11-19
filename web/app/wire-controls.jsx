@@ -20,7 +20,7 @@ export function WireControls({ effects, setEffects, route }) {
         </svg><span>{label}</span>
       </label>)}</div>
     </fieldset>
-    {effects.direction !== 'none' && <Select id="wire-scope" label="Show direction on" options={scopes} value={effects.scope} onChange={(v) => set('scope', v)}/>}
+    {effects.direction !== 'none' && <Select id="wire-scope" label="Show on" options={scopes} value={effects.scope} onChange={(v) => set('scope', v)}/>}
     <Range id="wire-separation" label="Parallel spacing" min={separation.minimum} max={separation.maximum} value={effects.separation} format={(v) => v + ' px'}
       onChange={(v) => set('separation', v)}/>
     {effects.direction === 'flow' && <>

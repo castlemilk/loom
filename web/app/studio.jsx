@@ -395,7 +395,7 @@ function Workbench({ sample }) {
       <Splitter />
       <SettingsTabs>
         <DocumentComposer tool={tool} link={editingLink} model={model} point={placementPoint} clearPoint={() => setPlacementPoint(null)}
-          selectedId={view.selected} run={editDocument} close={closeTool} onEndpoints={setWireEnds}/>
+          selectedId={view.selected} graph={view.instance} run={editDocument} close={closeTool} onEndpoints={setWireEnds}/>
         {editNotice && <output className="document-status" aria-live="polite">{editNotice}</output>}
         {selected && <section className="selection" aria-label="Selected node">
           <InspectorSection key={selected.id} title={<span id="selection" aria-live="polite">{description?.title ?? selected.id}</span>} value={view.pinned ? 'Pinned' : selected.kind || 'Node'} initialOpen className="selected-object">

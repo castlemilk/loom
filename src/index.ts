@@ -184,7 +184,10 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
         repaint()
       }
     },
-    select: choose,
+    select(i) {
+      choose(i)
+      if (i >= 0) emit('nodeclick', options.nodes[i].id)
+    },
     open(i = selected, point) {
       const id = options.nodes[i]?.id
       if (id !== undefined) emit('open', id)
