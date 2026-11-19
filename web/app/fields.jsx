@@ -38,7 +38,11 @@ export function InspectorSection({ title, value, reveal, initialOpen = false, cl
     previous.current = reveal
   }, [reveal])
   return <details ref={ref} className={'inspector-section ' + className} open={initialOpen || undefined}>
-    <summary><span>{title}</span>{value !== undefined && <small>{value}</small>}<i aria-hidden="true" /></summary>
+    <InspectorSummary title={title} value={value}/>
     <div className="inspector-body">{children}</div>
   </details>
+}
+
+export function InspectorSummary({ title, value }) {
+  return <summary><span>{title}</span>{value !== undefined && <small>{value}</small>}<i aria-hidden="true" /></summary>
 }

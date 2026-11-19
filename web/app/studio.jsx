@@ -396,7 +396,7 @@ function Workbench({ sample }) {
           {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
             {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
               <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Close' : 'Open'} {g.label}</button>)}</div>}
-          <NodeProperties key={JSON.stringify([selected.id, selected.label, selected.kind])} node={selected} model={model} run={editDocument} editLink={(link) => chooseTool('link', link)}/>
+          <NodeProperties key={JSON.stringify([selected.id, selected.label, selected.kind])} node={selected} connectionsLabel={description?.connections} model={model} run={editDocument} editLink={(link) => chooseTool('link', link)}/>
           {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
             'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
             ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
@@ -464,14 +464,14 @@ function Workbench({ sample }) {
         <WorkloadControls data={source} active={stress || dataset === 'custom'} draft={workloadDraft} edit={editWorkload}
           onGenerate={(config, next) => { setWorkload({ config, data: next }); switchDataset('stress') }}
           onLoad={(next, name) => { setCustom({ data: next, name }); switchDataset('custom') }} />
-        <details className="diagnostics"><summary>Simulation &amp; diagnostics</summary>
+        <InspectorSection className="diagnostics" title="Simulation &amp; diagnostics" value={stats?.transport ?? physics}>
           <Select id="physics" label="Simulation" options={stress ? [...simulations, ...positioned] : simulations} value={physics} onChange={setPhysics} />
           <dl><dt>First draw submission</dt><dd id="first">{stats ? stats.firstSubmitMs.toFixed(2) + ' ms' : '—'}</dd>
             <dt>Draw calls</dt><dd id="draws">{stats?.drawCalls ?? '—'}</dd>
             <dt>Layout ticks</dt><dd id="ticks">{stats?.simTicks ?? '—'}</dd>
             <dt>Transport</dt><dd id="transport">{stats?.transport ?? '—'}</dd></dl>
           <button id="refresh" onClick={view.refresh}>Refresh counters</button>
-        </details>
+        </InspectorSection>
       </SettingsTabs>
     </main>
     <footer className="shrink-0 flex-wrap gap-x-3 gap-y-1 py-1">

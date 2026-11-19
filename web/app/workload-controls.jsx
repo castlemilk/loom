@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { downloadGraph } from './editor-tools'
 import { presets, importWorkload, buildWorkload, mergeWorkload, maxNodes } from './workload.mjs'
-import { Select } from './fields'
+import { InspectorSummary, Select } from './fields'
 
 export function WorkloadControls({ data, active, draft, edit, onGenerate, onLoad }) {
   const [open, expand] = useState(active), [notice, setNotice] = useState(null)
@@ -40,8 +40,8 @@ export function WorkloadControls({ data, active, draft, edit, onGenerate, onLoad
       report('Loaded ' + item.name + '.')
     } catch (error) { if (ticket === read.current) report(error.message) }
   }
-  return <details className="workload-panel" open={open} onToggle={(e) => expand(e.currentTarget.open)}>
-    <summary>Test data</summary>
+  return <details className="workload-panel inspector-section" open={open} onToggle={(e) => expand(e.currentTarget.open)}>
+    <InspectorSummary title="Test data" value={data.nodes.length.toLocaleString() + ' nodes'}/>
     <Select id="workload-preset" label="Preset" options={Object.entries(presets).map(([k, v]) => [k, v.label])}
       value={preset} onChange={(key) => { edit({ ...presets[key], seed: draft.seed }); report('') }} />
     <div className="workload-numbers">

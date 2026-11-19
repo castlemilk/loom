@@ -82,7 +82,7 @@ export function useGrouping(source, data, theme, packed) {
 }
 
 function Language({ group }) {
-  return <details><summary>Display language</summary>
+  return <InspectorSection title="Display language" value={group.words.plural}>
     <form onSubmit={(event) => {
       event.preventDefault()
       const entries = new FormData(event.currentTarget)
@@ -92,7 +92,7 @@ function Language({ group }) {
         <label className="field" key={key}>{label}<input name={key} required defaultValue={group.words[key]} /></label>)}
       <button>Apply language</button>
     </form>
-  </details>
+  </InspectorSection>
 }
 
 function DefinitionEditor({ group }) {
@@ -104,7 +104,7 @@ function DefinitionEditor({ group }) {
       report('Definition applied.')
     } catch (error) { report(error.message) }
   }
-  return <details className="definition"><summary>Define a taxonomy</summary>
+  return <InspectorSection className="definition" title="Define a taxonomy" value="JSON">
     <label htmlFor="taxonomy-json">JSON definition</label>
     <textarea id="taxonomy-json" spellCheck={false} rows={8} value={draft} onChange={(e) => { setDraft(e.target.value); report('') }} />
     <div className="flex flex-wrap gap-1.5">
@@ -113,7 +113,7 @@ function DefinitionEditor({ group }) {
       {group.custom.some((r) => r.id === group.active.id) && <button onClick={group.remove}>Remove override</button>}
     </div>
     <p role="status" className="text-xs">{message}</p>
-  </details>
+  </InspectorSection>
 }
 
 export function Grouping({ level, group, packed, setPacked, gap, setGap, openTerm }) {

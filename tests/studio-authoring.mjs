@@ -59,6 +59,23 @@ export async function studioAuthoring(context, url, touch = false) {
   assert.equal(await button('JSON commands').evaluate((el) => el === document.activeElement), true)
   await pick(button('Connect nodes'))
   await form.getByLabel('From', {exact:true}).fill('signal-lens')
+  if (!touch) {
+    const graph = page.locator('#graph')
+    const point = await graph.evaluate((canvas) => {
+      const box = canvas.getBoundingClientRect()
+      for (let y = box.height * .2; y < box.height * .8; y += 6) {
+        for (let x = box.width * .15; x < box.width * .85; x += 6) {
+          const clientX = box.x + x, clientY = box.y + y
+          if (document.elementFromPoint(clientX, clientY) !== canvas) continue
+          canvas.dispatchEvent(new PointerEvent('pointermove', {clientX,clientY}))
+          if (canvas.hasAttribute('data-node')) return { x, y }
+        }
+      }
+    })
+    assert.ok(point, 'The canvas exposes a selectable endpoint')
+    await graph.click({position:point})
+    await page.waitForFunction(() => document.getElementById('endpoint-To')?.value)
+  }
   await form.getByLabel('To', {exact:true}).fill('receiver')
   await form.getByLabel('Relationship').fill('feeds')
   await form.getByLabel('Weight').fill('4')

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { homeURL } from '../site'
-import { InspectorSection } from './fields'
+import { InspectorSection, InspectorSummary } from './fields'
 
 const paths = {
   select: 'M5 3.5 20 13l-7 .8-3.1 6.4L5 3.5Z',
@@ -81,8 +81,11 @@ function Endpoint({ name, value, onChange, nodes }) {
     if (n.id.toLowerCase().includes(query) || n.label?.toLowerCase().includes(query)) matches.push(n)
     if (matches.length === 8) break
   }
-  return <label>{name}<input list={'ends-' + name} value={value} onChange={(e) => onChange(e.target.value)} required placeholder="Node ID" />
-    <datalist id={'ends-' + name}>{matches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}</datalist></label>
+  return <>
+    <label htmlFor={'endpoint-' + name}>{name}<input id={'endpoint-' + name} list={'ends-' + name} value={value}
+      onChange={(e) => onChange(e.target.value)} required placeholder="Node ID" /></label>
+    <datalist id={'ends-' + name}>{matches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}</datalist>
+  </>
 }
 
 function LinkForm({ model, selectedId, link, run }) {
@@ -162,7 +165,7 @@ export function DocumentComposer({ tool, model, selectedId, link, run, close, po
   </section>
 }
 
-export function NodeProperties({ node, model, run, editLink }) {
+export function NodeProperties({ node, connectionsLabel, model, run, editLink }) {
   const [name, setName] = useState(node.label ?? node.id), [kind, setKind] = useState(node.kind ?? '')
   const [connections, list] = useState(false), [offset, setOffset] = useState(0)
   const page = connections ? model.editor().query({ entity:'link', incidentTo:node.id, offset, limit:6 }) : null
@@ -179,7 +182,7 @@ export function NodeProperties({ node, model, run, editLink }) {
       </form>
     </InspectorSection>
     <details className="inspector-section" onToggle={(e) => list(e.currentTarget.open)}>
-      <summary><span>Connections</span>{page && <small>{page.total}</small>}<i aria-hidden="true"/></summary>
+      <InspectorSummary title="Connections" value={page?.total ?? connectionsLabel}/>
       {page && <div className="incident-list">{page.items.map((edge) => <button type="button" key={edge.id} title={edge.id}
         onClick={() => editLink(model.editor().getLink(edge.id))}><span>{edge.source === node.id ? '→ ' + edge.target : '← ' + edge.source}</span><small>{edge.kind || 'Link'}</small></button>)}
         {!page.total && <p>No incident connections.</p>}
