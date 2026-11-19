@@ -25,7 +25,7 @@ export async function studioMenu(context, url, touch = false) {
     const box = await control.boundingBox()
     const menuBox = await menu.boundingBox()
     assert.ok(box.y >= menuBox.y + menuBox.height - 1 && box.y + box.height <= page.viewportSize().height,
-      name + ' must expose its first control below the menu')
+      name + ' must expose its first control below the menu ' + JSON.stringify({ control: box, menu: menuBox, viewport: page.viewportSize() }))
   }
 
   async function pick(name) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { artURL, settingsSections } from '../site'
 
 const ActiveSection = createContext('explore')
@@ -8,22 +8,37 @@ const ActiveSection = createContext('explore')
 export function SettingsTabs({ children }) {
   const [active, setActive] = useState('explore')
   const controls = useRef(null)
+  const requestedPanel = useRef(null)
 
-  function revealControls() {
+  function revealControls(id) {
     const aside = controls.current
-    aside.scrollTop = 0
-    if (window.matchMedia('(max-width: 700px)').matches) aside.scrollIntoView({ block: 'start' })
+    const panel = document.getElementById('panel-' + id)
+    if (!panel || panel.hidden) return
+    const menu = aside.querySelector('[role="tablist"]')
+    const top = panel.getBoundingClientRect().top - menu.getBoundingClientRect().height
+    if (window.matchMedia('(max-width: 700px)').matches) window.scrollBy({ top, behavior: 'instant' })
+    else aside.scrollTop += top - aside.getBoundingClientRect().top
+    requestedPanel.current = null
   }
+
+  function show(id, scroll) {
+    requestedPanel.current = scroll ? id : null
+    setActive(id)
+    if (scroll) revealControls(id)
+  }
+
+  useLayoutEffect(() => {
+    if (requestedPanel.current === active) revealControls(active)
+  }, [active])
 
   useEffect(() => {
     function readLocation(event) {
       const section = settingsSections.find(({ id }) => location.hash === '#settings-' + id)
       const id = section?.id ?? 'explore'
-      setActive(id)
+      show(id, !!section)
       if (event && controls.current.contains(document.activeElement)) {
         document.getElementById('tab-' + id).focus({ preventScroll: true })
       }
-      if (section) revealControls()
     }
     readLocation()
     window.addEventListener('hashchange', readLocation)
@@ -34,8 +49,7 @@ export function SettingsTabs({ children }) {
     const hash = '#settings-' + id
     if (id !== active) controls.current.querySelector('details.selected-object')?.removeAttribute('open')
     if (location.hash !== hash) history.pushState(history.state, '', hash)
-    setActive(id)
-    revealControls()
+    show(id, true)
   }
 
   function move(event, index) {

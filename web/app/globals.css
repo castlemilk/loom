@@ -30,7 +30,7 @@
 ::selection { color: var(--control-surface); background: var(--accent); }
 input, textarea { caret-color: var(--accent); }
 .wordmark { letter-spacing: -.04em; }
-#studio-controls { scrollbar-gutter: stable; }
+#studio-controls { scrollbar-gutter: stable; overflow-anchor: none; }
 #studio-controls > section { padding-block: 19px; }
 #studio-controls h2 { font-size: 17px; margin-bottom: 12px; letter-spacing: -.03em; }
 #studio-controls .drill-controls { padding-top: 21px; }
