@@ -199,36 +199,38 @@ export async function studioConfiguration(page, url) {
   assert.equal(await control('cluster-layout').isChecked(), false)
   showcase.searchParams.set('example', 'drilldown')
   showcase.searchParams.set('group', 'Optics')
-  await page.goto(showcase.href)
-  await control('totals').getByText('8 nodes · 14 links', { exact: true }).waitFor()
-  await control('cluster-layout').uncheck()
-  await control('taxonomy').selectOption('identity')
-  await open('Group bubbles')
-  await control('all-bubbles').check()
-  await control('taxonomy').selectOption('section')
-  await control('perf-toggle').click()
-  await page.locator('#perf-panel[data-state="Idle"]').waitFor()
-  await control('perf-toggle').click()
-  await control('pause').click()
-  const members = await page.locator('[data-member]').evaluateAll((buttons) => buttons.map((b) => [b.dataset.member, b.querySelector('span').textContent]))
-  assert.equal(members.length, 8)
+  const canvasPicks = []
   for (const size of [{ width: 1160, height: 760 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(size)
-    await paint()
+    await page.goto(showcase.href)
+    await control('totals').getByText('8 nodes · 14 links', { exact: true }).waitFor()
+    await control('cluster-layout').uncheck()
+    await control('taxonomy').selectOption('identity')
+    await open('Group bubbles')
+    await control('all-bubbles').check()
+    await control('taxonomy').selectOption('section')
+    await control('graph').scrollIntoViewIfNeeded()
+    await control('perf-toggle').click()
+    await page.locator('#perf-panel[data-state="Idle"]').waitFor()
+    await control('perf-toggle').click()
+    // Each viewport gets a fresh, settled Orbit. Hold that frame so picking a node cannot recenter the next target.
+    await control('pause').click()
+    const members = await page.locator('[data-member]').evaluateAll((buttons) => buttons.map((b) => [b.dataset.member, b.querySelector('span').textContent]))
+    const points = await page.locator('path[data-taxonomy="identity"]').evaluateAll((paths) => Object.fromEntries(paths.map((path) => {
+      const b = path.getBBox()
+      return [path.dataset.bubble, { x: b.x + b.width / 2, y: b.y + b.height / 2 }]
+    })))
+    assert.equal(members.length, 8)
+    assert.equal(Object.keys(points).length, members.length)
+    await master.uncheck()
+    assert.equal(await page.locator('.graph-boundaries path').count(), 0)
     for (const [id, name] of members) {
-      await control('graph').scrollIntoViewIfNeeded()
-      const box = await control('graph').boundingBox()
-      const point = await centre(page.locator('path[data-taxonomy="identity"][data-bubble="' + id + '"]'))
-      await master.uncheck()
-      assert.equal(await page.locator('.graph-boundaries path').count(), 0)
-      await control('graph').scrollIntoViewIfNeeded()
-      const visibleBox = await control('graph').boundingBox()
-      await page.mouse.click(visibleBox.x + point.x - box.x, visibleBox.y + point.y - box.y)
-      await control('selection').getByText(name, { exact: true }).waitFor()
-      await master.check()
+      await control('graph').click({ position: points[id] })
+      assert.equal(await control('selection').textContent(), name, 'Canvas hit for ' + id + ' at ' + size.width + 'px')
     }
+    canvasPicks.push(members.length)
   }
   assert.deepEqual(errors, [])
   return { desktopWidth: [initial, narrow], mobileHeight: height, defaultOrbit: hub, defaultRadius, selectedRadius,
-    atlasSections: 4, atlasComponents: 2, desktopCanvasPicks: members.length, mobileCanvasPicks: members.length }
+    atlasSections: 4, atlasComponents: 2, desktopCanvasPicks: canvasPicks[0], mobileCanvasPicks: canvasPicks[1] }
 }
