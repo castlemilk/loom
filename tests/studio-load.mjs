@@ -30,6 +30,7 @@ export async function studioLoad(page, url) {
   await page.getByRole('heading', { name: 'Performance' }).waitFor()
   await waitValue('Atlas tiles', '4 / 4')
   const graph = byId('graph')
+  await page.getByRole('tab', { name: 'Layout' }).click()
   await page.getByRole('button', { name: 'Cloud', exact: true }).click()
   await byId('cloud-rotate').uncheck()
   await byId('blend').focus(); await byId('blend').press('End')

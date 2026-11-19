@@ -7,6 +7,7 @@ import { studioConfiguration } from '../tests/studio-config.mjs'
 import { studioLoad } from '../tests/studio-load.mjs'
 import { studioDrilldown } from '../tests/studio-drilldown.mjs'
 import { fieldGuide } from '../tests/field-guide.mjs'
+import { studioMenu } from '../tests/studio-menu.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
@@ -17,8 +18,8 @@ const browser = await chromium.launch({
   channel: process.env.LOOM_BROWSER_CHANNEL,
   args: ['--enable-unsafe-swiftshader'],
 })
-try {
-  const context = await browser.newContext({ viewport: { width: 1160, height: 760 }, reducedMotion: 'reduce' })
+async function siteContext(options = {}) {
+  const context = await browser.newContext({ viewport: { width: 1160, height: 760 }, reducedMotion: 'reduce', ...options })
   if (!liveURL) {
     await context.route('**/*', async (route) => {
       const request = new URL(route.request().url())
@@ -33,7 +34,15 @@ try {
       }
     })
   }
+  return context
+}
+try {
+  const context = await siteContext()
   const guide = await fieldGuide(context, home)
+  const desktopMenu = await studioMenu(context, url)
+  const mobile = await siteContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+  const mobileMenu = await studioMenu(mobile, url, true)
+  await mobile.close()
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)
   const drilldown = await studioDrilldown(drillPage, url)
@@ -47,7 +56,7 @@ try {
     if (resource.endsWith('/graphs/knowledge.json')) snapshots++
     if (res.status() >= 400) failures.push(res.status() + ' ' + resource)
   })
-  const result = await studio(page, url)
+  const result = await studio(page, url, (name) => page.getByRole('tab', { name, exact: true }).click())
   await page.locator('#dataset').selectOption('sample')
   await page.locator('#dataset').selectOption('full')
   await page.getByText('508 nodes · 746 links', { exact: true }).waitFor()
@@ -82,7 +91,7 @@ try {
   const loadPage = await context.newPage()
   loadPage.setDefaultTimeout(18000)
   const workload = await studioLoad(loadPage, url)
-  console.log({ guide, ...result, worker, snapshotRequests: snapshots, configuration, drilldown, workload })
+  console.log({ guide, desktopMenu, mobileMenu, ...result, worker, snapshotRequests: snapshots, configuration, drilldown, workload })
 } finally {
   await browser.close()
 }

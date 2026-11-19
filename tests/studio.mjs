@@ -1,4 +1,5 @@
-export async function studio(page, url) {
+// The standalone HTML demo keeps its controls in a single scrolling panel.
+export async function studio(page, url, openSettings = () => {}) {
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
   const byId = (id) => page.locator('#' + id)
@@ -8,6 +9,7 @@ export async function studio(page, url) {
   await page.goto(url)
   await page.locator('#graph[tabindex="0"]').waitFor()
   await byId('totals').getByText('25 nodes · 30 links', { exact: true }).waitFor()
+  await openSettings('Layout')
   await byId('blend').focus()
   await byId('blend').press('End')
   check((await byId('blend-value').textContent()) === '100%', 'Structure slider failed')
@@ -62,6 +64,7 @@ export async function studio(page, url) {
   await byId('lane-gap').focus()
   await byId('lane-gap').press('ArrowRight')
   check((await byId('lane-gap-value').textContent()) === '176', 'Lane spacing control failed')
+  await openSettings('Style')
   await page.getByText('Style controls', { exact: true }).click()
   await byId('kind').selectOption('lab')
   await byId('shape').selectOption('circle')
@@ -92,6 +95,7 @@ export async function studio(page, url) {
   await byId('theme').selectOption('parchment')
   await page.getByText('Simulation & diagnostics', { exact: true }).click()
   await byId('physics').selectOption('fixed')
+  await openSettings('Layout')
   await page.getByRole('button', { name: 'Cloud', exact: true }).click()
   await byId('refresh').click()
   check((await byId('ticks').textContent()) === '0', 'Explicit positions ran physics')

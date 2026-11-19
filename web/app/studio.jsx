@@ -17,7 +17,8 @@ import { useGraph } from './use-graph'
 import { Grouping, useGrouping } from './grouping'
 import { Splitter } from './splitter'
 import { DrillControls, DrillTrail, detailOptions, navigationDefaults } from './drilldown-controls'
-import { artURL, fetchGraphFile, homeURL, modelURL, settingsSections } from '../site'
+import { artURL, fetchGraphFile, homeURL, modelURL } from '../site'
+import { SettingsPanel, SettingsTabs } from './settings-tabs'
 import { wireAnchor, wireForces, wireModelStyle } from './wire-study'
 
 const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas'], ['model', 'Wire model'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
@@ -32,14 +33,6 @@ const labels = [['auto', 'Automatic'], ['focus', 'Focus only'], ['none', 'Hidden
 const formatCount = new Intl.NumberFormat('en')
 const percent = (value) => value + '%'
 const times = (value) => value + '×'
-
-function SettingsNav() {
-  return <nav className="settings-nav" aria-label="Graph settings">
-    {settingsSections.map(({ id, label }) => <a key={id} href={'#settings-' + id}>
-      <img className="settings-art" src={artURL(id + '.webp')} width="35" height="35" alt="" />{label}
-    </a>)}
-  </nav>
-}
 
 export default function Studio({ sample }) {
   const [client] = useState(() => new QueryClient())
@@ -299,26 +292,14 @@ function Workbench({ sample }) {
         <p id="error" role="alert" hidden={!view.error}>{view.error}</p>
       </section>
       <Splitter />
-      <aside id="studio-controls" aria-label="Graph controls" className="min-w-0 min-[701px]:overscroll-contain">
-        <SettingsNav />
-        <DrillControls dataset={dataset} snapshot={snapshot} config={navigation} setView={drill.setGroupView}
-          inspect={(id, fromSearch) => { drill.inspect(id); if (fromSearch) view.canvas.current?.focus({ preventScroll: true }) }}
-          select={(id) => { drill.select(id); view.canvas.current?.focus({ preventScroll: true }) }} change={(key, value) => setNavigation((old) => ({ ...old, [key]: value }))} />
-        <section className="selection" aria-label="Selected node" hidden={!selected}>
-          <h2 id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</h2>
-          <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
-          <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
-            <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
-          {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
-            {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
-              <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Close' : 'Open'} {g.label}</button>)}</div>}
-          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
-            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
-            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
-          {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
-          {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
-        </section>
-        <section><h2 id="settings-layout" tabIndex={-1}>{level.kind === 'overview' ? 'Layout' : 'Overview layout'}</h2>
+      <SettingsTabs>
+        <SettingsPanel id="explore">
+          <DrillControls dataset={dataset} snapshot={snapshot} config={navigation} setView={drill.setGroupView}
+            inspect={(id, fromSearch) => { drill.inspect(id); if (fromSearch) view.canvas.current?.focus({ preventScroll: true }) }}
+            select={(id) => { drill.select(id); view.canvas.current?.focus({ preventScroll: true }) }} change={(key, value) => setNavigation((old) => ({ ...old, [key]: value }))} />
+        </SettingsPanel>
+        <SettingsPanel id="layout"><section>
+          <h2 id="settings-layout" tabIndex={-1}>{level.kind === 'overview' ? 'Layout' : 'Overview layout'}</h2>
           <Range id="blend" label="Structure" min={0} max={100} value={Math.round(settings.blend * 100)} format={percent} onChange={(v) => adjust('blend', v / 100)} />
           <div className="range-ends"><span>Force directed</span><span>Node graph</span></div>
           <div className="modes" role="group" aria-label="Force mode">{modes.map((name) =>
@@ -341,9 +322,12 @@ function Workbench({ sample }) {
             <Range id="spring" label="Spring strength" min={0} max={4} step={0.05} value={settings.springStrength} format={times} onChange={(v) => adjust('springStrength', v)} />
             <Range id="repulsion" label="Repulsion" min={0} max={4} step={0.05} value={settings.repulsion} format={times} onChange={(v) => adjust('repulsion', v)} />
           </details>
-        </section>
-        <Grouping level={level} group={grouping} packed={packed} setPacked={enableClusters} gap={gap} setGap={setGap} openTerm={groupEnabled ? openTerm : undefined} />
-        <section><h2 id="settings-style" tabIndex={-1}>Appearance</h2>
+        </section></SettingsPanel>
+        <SettingsPanel id="groups">
+          <Grouping level={level} group={grouping} packed={packed} setPacked={enableClusters} gap={gap} setGap={setGap} openTerm={groupEnabled ? openTerm : undefined} />
+        </SettingsPanel>
+        <SettingsPanel id="style"><section>
+          <h2 id="settings-style" tabIndex={-1}>Appearance</h2>
           <Select id="theme" label="Theme" options={palettes} value={style.name} onChange={(v) => setStyle(preset(v))} />
           <Select id="route" label="Wires" options={routes} value={style.route} onChange={(v) => paint('route', v)} />
           <Select id="wire-pattern" label="Wire stroke" options={patterns} value={style.pattern} onChange={(v) => paint('pattern', v)} />
@@ -365,6 +349,20 @@ function Workbench({ sample }) {
               <Check id="guides" label="Lane guides" checked={settings.guides} onChange={(v) => adjust('guides', v)} />
               <Check id="grid" label="Grid" checked={style.grid} onChange={(v) => paint('grid', v)} /></div>
           </details>
+        </section></SettingsPanel>
+        <section className="selection" aria-label="Selected node" hidden={!selected}>
+          <h2 id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</h2>
+          <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
+          <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
+            <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
+          {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
+            {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
+              <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Close' : 'Open'} {g.label}</button>)}</div>}
+          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
+            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
+            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+          {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
+          {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
         </section>
         <WorkloadControls data={source} active={stress || dataset === 'custom'} draft={workloadDraft} edit={editWorkload}
           onGenerate={(config, next) => { setWorkload({ config, data: next }); switchDataset('stress') }}
@@ -377,7 +375,7 @@ function Workbench({ sample }) {
             <dt>Transport</dt><dd id="transport">{stats?.transport ?? '—'}</dd></dl>
           <button id="refresh" onClick={view.refresh}>Refresh counters</button>
         </details>
-      </aside>
+      </SettingsTabs>
     </main>
     <footer className="shrink-0 flex-wrap gap-x-3 gap-y-1 py-1">
       <span id="totals" className="whitespace-nowrap tabular-nums">{formatCount.format(data.nodes.length)} {data.nodes.length === 1 ? 'node' : 'nodes'} · {formatCount.format(data.links.length)} {data.links.length === 1 ? 'link' : 'links'}</span>

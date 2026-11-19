@@ -16,7 +16,7 @@ Open the [Section atlas](https://castlemilk.github.io/loom/studio/?example=clust
 
 In **Taxonomies**, choose **Category** and open **Group bubbles** to outline a single knowledge category. Outlines from several taxonomies can be visible together. **Define a taxonomy** accepts JSON field or relationship mappings, and **Display language** edits the connection and unassigned-lane labels. Applied definitions and language are saved in this browser. Drag the separator to change the graph width, or its height on a narrow screen. The arrow keys adjust the separator and Enter restores its starting size.
 
-Use the illustrated **Groups** shortcut and switch off **Show group bubbles** to hide every boundary. Switch it on to restore the chosen groups. Layout clustering, lane labels and group navigation work with either setting. Add `bubbles=off` to a studio URL to start with boundaries hidden.
+The illustrated **Explore**, **Layout**, **Groups** and **Style** tabs switch the editor panel and preserve your edits. Use the arrow keys to change tabs and Tab to enter the controls. A link ending in `#settings-groups` opens **Groups** directly. Switch off **Show group bubbles** there to hide every boundary. Switch it on to restore the chosen groups. Layout clustering, lane labels and group navigation work with either setting. Add `bubbles=off` to a studio URL to start with boundaries hidden.
 
 Open **Test data**, choose **Image atlas**, then **Generate graph** to draw 1,024 image-bearing nodes. Select **Cloud** and drag the background to orbit. Open **Perf** to watch frame intervals and artwork decoding while you zoom or pull a node.
 

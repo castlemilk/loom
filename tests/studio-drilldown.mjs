@@ -8,6 +8,8 @@ export async function studioDrilldown(page, url) {
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
   const control = (id) => page.locator('#' + id)
+  const nav = page.getByRole('tablist', { name: 'Graph settings' })
+  const tab = (name) => nav.getByRole('tab', { name, exact: true })
   const trail = page.getByRole('navigation', { name: 'Graph drilldown' })
   const group = page.locator('#legend button[data-group="Optics"]')
   const bubble = page.locator('.graph-boundaries [data-taxonomy="section"][data-bubble="Optics"]')
@@ -36,6 +38,7 @@ export async function studioDrilldown(page, url) {
   await capture('atlas-desktop')
   await details('Simulation & diagnostics')
   await control('physics').selectOption('worker')
+  await tab('Layout').click()
   await control('blend').focus()
   await control('blend').press('End')
   const overview = await bubble.getAttribute('d')
@@ -50,7 +53,7 @@ export async function studioDrilldown(page, url) {
     return ['transfer','shared'].includes(document.getElementById('transport').textContent) && Number(document.getElementById('ticks').textContent) > 0
   })
   await page.waitForFunction((d) => document.querySelector('[data-taxonomy="section"][data-bubble="Optics"]').getAttribute('d') !== d, overview)
-  await page.locator('#studio-controls').evaluate((el) => { el.scrollTop = 0 })
+  await tab('Explore').click()
   await capture('atlas-desktop-expanded')
   await details('Drilldown settings')
   await control('member-spacing').press('ArrowRight')
@@ -113,8 +116,7 @@ export async function studioDrilldown(page, url) {
   const roster = page.getByRole('list', { name: 'Optics members' })
   const names = ['Optics', 'Prism spectrum', 'Focal plane', 'Interference fringes', 'Beam waist', 'Diffraction limit', 'Grating orders', 'Polarisation']
   assert.deepEqual(await roster.locator('button > span').allTextContents(), names)
-  const nav = page.getByRole('navigation', { name: 'Graph settings' })
-  assert.deepEqual(await nav.getByRole('link').allTextContents(), ['Explore', 'Layout', 'Groups', 'Style'])
+  assert.deepEqual(await nav.getByRole('tab').allTextContents(), ['Explore', 'Layout', 'Groups', 'Style'])
   const settingsArt = await nav.locator('img').evaluateAll(async (images) => Promise.all(images.map(async (img) => {
     await img.decode()
     return [new URL(img.src).pathname.split('/').at(-1), img.naturalWidth, img.naturalHeight]
@@ -122,14 +124,14 @@ export async function studioDrilldown(page, url) {
   assert.deepEqual(settingsArt, ['explore','layout','groups','style'].map((id) => [id + '.webp',224,224]))
   await capture('atlas-optics-members', 8)
   const bubbles = page.getByRole('switch', { name: 'Show group bubbles' })
-  await nav.getByRole('link', { name: 'Groups' }).click()
-  assert.equal(await page.evaluate(() => document.activeElement.id), 'settings-groups')
+  await tab('Groups').click()
+  await page.getByRole('tabpanel', { name: 'Groups' }).waitFor()
   assert.equal(await bubbles.isChecked(), false)
   assert.equal(await page.locator('.graph-boundaries path').count(), 0)
   await bubbles.check()
   await bubble.waitFor({ state: 'attached' })
   await bubbles.uncheck()
-  await nav.getByRole('link', { name: 'Explore' }).click()
+  await tab('Explore').click()
   for (const name of names) {
     const row = roster.getByRole('button', { name, exact: false }).first()
     await row.click()
@@ -145,7 +147,9 @@ export async function studioDrilldown(page, url) {
   await control('selection').getByText('Polarisation', { exact: true }).waitFor()
   await trail.getByRole('button', { name: 'Back one level' }).click()
   await totals('45 nodes · 88 links')
+  await tab('Groups').click()
   assert.equal(await bubbles.isChecked(), false)
+  await tab('Explore').click()
   await page.locator('#legend [data-group="Materials"]').click()
   const materials = page.getByRole('list', { name: 'Materials members' })
   assert.equal(await materials.getByRole('button').count(), 8)

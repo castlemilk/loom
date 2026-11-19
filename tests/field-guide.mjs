@@ -94,7 +94,10 @@ export async function fieldGuide(context, home) {
       await page.locator('[data-lane="Optics"]').waitFor({ state: 'attached' })
       assert.equal(await page.locator('[data-lane]').count(), 4)
     }
-    if (name === 'Weighted connections') assert.equal(await page.locator('#width-by').inputValue(), 'weight')
+    if (name === 'Weighted connections') {
+      await page.getByRole('tab', { name: 'Style' }).click()
+      assert.equal(await page.locator('#width-by').inputValue(), 'weight')
+    }
   }
   const old = new URL('?example=drilldown&group=Optics&bubbles=off#settings-groups', home)
   await page.goto(old.href)

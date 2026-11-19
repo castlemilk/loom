@@ -33,7 +33,7 @@ Use the existing Inter/system sans stack for navigation, object names and contro
 
 ## Interaction
 
-The sidebar opens with four illustrated links to Explore, Layout, Groups and Style. Each link pairs its own drawing with a text label and lands keyboard focus on its heading. The global bubble switch is the first control under Taxonomies. It preserves the per-group choices. On small screens the controls follow the graph in document flow. The splitter resizes graph height there.
+The sidebar opens on Explore. Its four illustrated tabs switch the visible settings panel. A copper underline marks the active tab. Left and right arrow keys move between tabs, Home and End reach the ends, and Tab enters the selected panel. The URL keeps the selected panel so bookmarks and browser history reopen it. The global bubble switch is the first control under Taxonomies. It preserves the per-group choices. On small screens the controls follow the graph in document flow. The splitter resizes graph height there.
 
 Explore lists every member of an open group in source order. The two view buttons change how much of the graph is visible. The list keeps eight rows per page for large groups, and a name or ID search reaches every member. A member button selects the corresponding marker and inspector even when the canvas label is omitted.
 
