@@ -30,6 +30,15 @@ const labels = [['auto', 'Automatic'], ['focus', 'Focus only'], ['none', 'Hidden
 const formatCount = new Intl.NumberFormat('en')
 const percent = (value) => value + '%'
 const times = (value) => value + '×'
+const settingsSections = [['explore', 'Explore'], ['layout', 'Layout'], ['groups', 'Groups'], ['style', 'Style']]
+
+function SettingsNav() {
+  return <nav className="settings-nav" aria-label="Graph settings" style={{ '--settings-art': 'url("' + process.env.NEXT_PUBLIC_BASE_PATH + '/settings-guide.webp")' }}>
+    {settingsSections.map(([id, label]) => <a key={id} href={'#settings-' + id}>
+      <span aria-hidden="true" className={'settings-art art-' + id} />{label}
+    </a>)}
+  </nav>
+}
 
 async function fetchKnowledge({ signal }) {
   const response = await fetch(process.env.NEXT_PUBLIC_BASE_PATH + '/graphs/knowledge.json', { signal })
@@ -92,7 +101,10 @@ function Workbench({ sample }) {
     const term = grouping.index.primary(node.id, grouping.active.id)
     return term && drilldownGroup(term, data.nodes)
   }, [grouping.index, grouping.active.id, data.nodes])
-  const openTerm = useCallback((term) => drill.openGroup(drilldownGroup(term, data.nodes)), [drill, data.nodes])
+  const openTerm = useCallback((term) => {
+    if (level.kind === 'group' && term.id === level.id && term.taxonomy === level.taxonomy) return drill.back()
+    return drill.openGroup(drilldownGroup(term, data.nodes))
+  }, [drill, data.nodes, level])
   useEffect(() => {
     drill.setOptions({ selectAction: navigation.selectAction, openAction: navigation.openAction,
       groupAction: navigation.groupAction, groupFor, detail: detailOptions(navigation.detail),
@@ -124,7 +136,9 @@ function Workbench({ sample }) {
   const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill)
   const lastRoute = useRef(null)
   useEffect(() => {
-    if (lastRoute.current?.drill === drill && lastRoute.current.path !== snapshot.path) view.canvas.current?.focus({ preventScroll: true })
+    if (lastRoute.current?.drill === drill && lastRoute.current.path !== snapshot.path && !document.activeElement?.closest('.member-views')) {
+      view.canvas.current?.focus({ preventScroll: true })
+    }
     lastRoute.current = { drill, path: snapshot.path }
   }, [drill, snapshot.path, view.canvas])
   const kinds = useMemo(() => {
@@ -171,9 +185,24 @@ function Workbench({ sample }) {
     else if (value === 'stress') editWorkload(workload.config)
     switchDataset(value)
   }
+  const requestedGroup = useRef(null)
   useEffect(() => {
-    if (['clusters', 'drilldown'].includes(new URLSearchParams(location.search).get('example'))) pickGraph('sections')
+    const params = new URLSearchParams(location.search)
+    if (['clusters', 'drilldown'].includes(params.get('example'))) {
+      if (params.get('example') === 'drilldown') requestedGroup.current = params.get('group')
+      pickGraph('sections')
+    }
+    if (params.get('bubbles') === 'off') grouping.setBubblesVisible(false)
   }, [])
+  useEffect(() => {
+    if (!requestedGroup.current || dataset !== 'sections' || grouping.active.id !== 'section') return
+    const term = grouping.groups.find((group) => group.id === requestedGroup.current)
+    requestedGroup.current = null
+    if (term) {
+      setNavigation((old) => ({ ...old, detail: 'orbit' }))
+      drill.openGroup(drilldownGroup(term, data.nodes), 'isolate')
+    }
+  }, [dataset, grouping.active.id, grouping.groups, drill, data.nodes])
   function enableClusters(on) {
     setPacked(on)
     if (on) {
@@ -220,10 +249,10 @@ function Workbench({ sample }) {
           {grouping.groups.length > 0 && <span className="legend-title">{grouping.active.label}</span>}
           {grouping.groups.slice(0, 12).map((term) => {
             const item = grouping.displayStyle(term)
-            const expanded = level.kind === 'group' && level.action === 'expand' && level.id === term.id && level.taxonomy === term.taxonomy
+            const expanded = level.kind === 'group' && level.id === term.id && level.taxonomy === term.taxonomy
             const content = <><i data-shape={item.shape ?? 'circle'} style={{ '--kind': item.color }} /><span className="legend-name">{term.label}</span><small>{term.members.length}</small></>
             return groupEnabled ? <button type="button" key={term.key} data-group={term.id} onClick={() => openTerm(term)}
-              aria-description={term.members.length + ' members'} aria-expanded={navigation.groupAction === 'expand' ? expanded : undefined} aria-label={(expanded ? 'Collapse ' : 'Open ') + term.label + ' group'}>{content}<i className="group-indicator" aria-hidden="true" /></button> :
+              aria-description={term.members.length + ' members'} aria-expanded={expanded} aria-label={(expanded ? 'Close ' : 'Open ') + term.label + ' group'}>{content}<i className="group-indicator" aria-hidden="true" /></button> :
               <span key={term.key}>{content}</span>
           })}
           {grouping.groups.length > 12 && <span>+{grouping.groups.length - 12} groups</span>}
@@ -244,7 +273,10 @@ function Workbench({ sample }) {
       </section>
       <Splitter />
       <aside id="studio-controls" aria-label="Graph controls" className="min-w-0 min-[701px]:overscroll-contain">
-        <DrillControls data={data} config={navigation} select={(id) => { drill.select(id); view.canvas.current?.focus({ preventScroll: true }) }} change={(key, value) => setNavigation((old) => ({ ...old, [key]: value }))} />
+        <SettingsNav />
+        <DrillControls dataset={dataset} snapshot={snapshot} config={navigation} setView={drill.setGroupView}
+          inspect={(id, fromSearch) => { drill.inspect(id); if (fromSearch) view.canvas.current?.focus({ preventScroll: true }) }}
+          select={(id) => { drill.select(id); view.canvas.current?.focus({ preventScroll: true }) }} change={(key, value) => setNavigation((old) => ({ ...old, [key]: value }))} />
         <section className="selection" aria-label="Selected node" hidden={!selected}>
           <h2 id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</h2>
           <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
@@ -252,14 +284,14 @@ function Workbench({ sample }) {
             <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
           {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
             {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
-              <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.action === 'expand' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Collapse' : 'Open'} {g.label}</button>)}</div>}
+              <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Close' : 'Open'} {g.label}</button>)}</div>}
           {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
             'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
             ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
           {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
           {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
         </section>
-        <section><h2>{level.kind === 'overview' ? 'Layout' : 'Overview layout'}</h2>
+        <section><h2 id="settings-layout" tabIndex={-1}>{level.kind === 'overview' ? 'Layout' : 'Overview layout'}</h2>
           <Range id="blend" label="Structure" min={0} max={100} value={Math.round(settings.blend * 100)} format={percent} onChange={(v) => adjust('blend', v / 100)} />
           <div className="range-ends"><span>Force directed</span><span>Node graph</span></div>
           <div className="modes" role="group" aria-label="Force mode">{modes.map((name) =>
@@ -284,7 +316,7 @@ function Workbench({ sample }) {
           </details>
         </section>
         <Grouping level={level} group={grouping} packed={packed} setPacked={enableClusters} gap={gap} setGap={setGap} openTerm={groupEnabled ? openTerm : undefined} />
-        <section><h2>Appearance</h2>
+        <section><h2 id="settings-style" tabIndex={-1}>Appearance</h2>
           <Select id="theme" label="Theme" options={palettes} value={style.name} onChange={(v) => setStyle(preset(v))} />
           <Select id="route" label="Wires" options={routes} value={style.route} onChange={(v) => paint('route', v)} />
           <Select id="wire-pattern" label="Wire stroke" options={patterns} value={style.pattern} onChange={(v) => paint('pattern', v)} />
@@ -322,7 +354,7 @@ function Workbench({ sample }) {
     <footer className="shrink-0 flex-wrap gap-x-3 gap-y-1 py-1">
       <span id="totals" className="whitespace-nowrap tabular-nums">{formatCount.format(data.nodes.length)} {data.nodes.length === 1 ? 'node' : 'nodes'} · {formatCount.format(data.links.length)} {data.links.length === 1 ? 'link' : 'links'}</span>
       <span>{level.kind === 'group' && level.action === 'expand' ? 'Drag a member to pull its neighbors. Back collapses the group.' :
-        groupEnabled && navigation.groupGesture !== 'controls' && Object.values(grouping.annotations.bubbles).some((terms) => terms === true || terms.length) ? (navigation.groupGesture === 'click' ? 'Click' : 'Double-click') + ' inside a bubble to open its group. Drag a node to move it.' :
+        groupEnabled && grouping.annotations.bubblesVisible && navigation.groupGesture !== 'controls' && Object.values(grouping.annotations.bubbles).some((terms) => terms === true || terms.length) ? (navigation.groupGesture === 'click' ? 'Click' : 'Double-click') + ' inside a bubble to open its group. Drag a node to move it.' :
         'Drag a node to pull its neighbors. Enter activates the selection.'}</span>
       <a className="underline underline-offset-2" href="https://github.com/castlemilk/loom#drilldowns-and-group-interactions">TypeScript API</a>
     </footer>

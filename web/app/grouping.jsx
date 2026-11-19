@@ -26,6 +26,7 @@ export function useGrouping(source, data, theme, packed) {
   const [custom, setCustom] = useState([])
   const [activeId, setActive] = useState('kind')
   const [bubbles, setBubbles] = useState({})
+  const [bubblesVisible, setBubblesVisible] = useState(true)
   const [tooltips, setTooltips] = useState(true)
   const [boundary, setBoundary] = useState({ shape: 'hull', padding: 12, pattern: 'solid', fillOpacity: 0.09 })
   const [words, setWords] = useState(defaultWords)
@@ -55,8 +56,8 @@ export function useGrouping(source, data, theme, packed) {
   const displayStyle = useCallback((term) => term.taxonomy === 'kind' && kindStyles ? marker(theme, term.id) : term, [kindStyles, theme])
   const annotations = useMemo(() => ({
     bubbles: packed && !Object.hasOwn(bubbles, active.id) ? { ...bubbles, [active.id]: groups.length <= 12 ? true : groups.slice(0, 8).map((g) => g.id) } : bubbles,
-    boundary, tooltips, laneTaxonomy: active.id, colorFor: (group) => displayStyle(group).color,
-  }), [bubbles, packed, groups, boundary, tooltips, active.id, displayStyle])
+    bubblesVisible, boundary, tooltips, laneTaxonomy: active.id, colorFor: (group) => displayStyle(group).color,
+  }), [bubbles, bubblesVisible, packed, groups, boundary, tooltips, active.id, displayStyle])
   function save(next) {
     setCustom(next)
     try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* Edits still apply in this tab. */ }
@@ -76,7 +77,7 @@ export function useGrouping(source, data, theme, packed) {
   }
   return { definitions, custom, index, active, groups, laneBy, laneOrder, annotations, setActive, apply, remove,
     words, language, displayStyle, nativeMarkers: kindStyles && active.id === 'kind',
-    setTooltips, setBoundary: (patch) => setBoundary((old) => ({ ...old, ...patch })),
+    setTooltips, setBubblesVisible, setBoundary: (patch) => setBoundary((old) => ({ ...old, ...patch })),
     setVisible: (visible, taxonomy = active.id) => setBubbles((old) => ({ ...old, [taxonomy]: visible })) }
 }
 
@@ -117,7 +118,7 @@ function DefinitionEditor({ group }) {
 
 export function Grouping({ level, group, packed, setPacked, gap, setGap, openTerm }) {
   const [filter, setFilter] = useState('')
-  const groupVerb = (term) => level.kind === 'group' && level.action === 'expand' && level.id === term.id && level.taxonomy === term.taxonomy ? 'Collapse' : 'Open'
+  const groupVerb = (term) => level.kind === 'group' && level.id === term.id && level.taxonomy === term.taxonomy ? 'Close' : 'Open'
   const list = group.groups
   const visible = Object.hasOwn(group.annotations.bubbles, group.active.id) ? group.annotations.bubbles[group.active.id] : []
   const checked = (id) => visible === true || visible.includes(id)
@@ -129,7 +130,12 @@ export function Grouping({ level, group, packed, setPacked, gap, setGap, openTer
     else ids.delete(id)
     group.setVisible([...ids])
   }
-  return <section className="grouping"><h2>Taxonomies</h2>
+  return <section className="grouping"><h2 id="settings-groups" tabIndex={-1}>Taxonomies</h2>
+    <label className="bubble-master" htmlFor="group-bubbles">
+      <span>Show group bubbles<small>Boundaries around the chosen groups</small></span>
+      <input id="group-bubbles" type="checkbox" role="switch" aria-label="Show group bubbles"
+        checked={group.annotations.bubblesVisible} onChange={(e) => group.setBubblesVisible(e.target.checked)} />
+    </label>
     <Select id="taxonomy" label="Group by" options={group.definitions.map((d) => [d.id, d.label])}
       value={group.active.id} onChange={(id) => { setFilter(''); group.setActive(id) }} />
     <Check id="cluster-layout" label="Cluster groups together" checked={packed} onChange={setPacked} />

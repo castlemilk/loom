@@ -88,6 +88,13 @@ export async function studioConfiguration(page, url) {
   const lane = page.locator('[data-lane="bench"]')
   await lane.getByText('Research laboratory').waitFor()
   await page.locator('[data-lane=""]').getByText('Unclassified').waitFor()
+  const master = page.getByRole('switch', { name: 'Show group bubbles' })
+  const chosen = await page.locator('.graph-boundaries path').count()
+  await master.uncheck()
+  assert.equal(await page.locator('.graph-boundaries path').count(), 0)
+  await lane.getByRole('button', { name: 'Open group Research laboratory' }).waitFor()
+  await master.check()
+  assert.equal(await page.locator('.graph-boundaries path').count(), chosen)
   const lab = 'lab:polarisation'
   for (const [direction, axis] of [['horizontal', 'x'], ['vertical', 'y']]) {
     await control('direction').selectOption(direction)
@@ -190,6 +197,30 @@ export async function studioConfiguration(page, url) {
   assert.equal(await page.locator('path[data-taxonomy="component"][data-shape="hull"]').count(), 2)
   await page.getByRole('button', { name: 'Orbit', exact: true }).click()
   assert.equal(await control('cluster-layout').isChecked(), false)
+  showcase.searchParams.set('example', 'drilldown')
+  showcase.searchParams.set('group', 'Optics')
+  await page.goto(showcase.href)
+  await control('totals').getByText('8 nodes · 14 links', { exact: true }).waitFor()
+  await control('cluster-layout').uncheck()
+  await control('taxonomy').selectOption('identity')
+  await open('Group bubbles')
+  await control('all-bubbles').check()
+  await control('taxonomy').selectOption('section')
+  await control('perf-toggle').click()
+  await page.locator('#perf-panel[data-state="Idle"]').waitFor()
+  await control('perf-toggle').click()
+  await control('pause').click()
+  const members = await page.locator('[data-member]').evaluateAll((buttons) => buttons.map((b) => [b.dataset.member, b.querySelector('span').textContent]))
+  assert.equal(members.length, 8)
+  for (const [id, name] of members) {
+    const point = await centre(page.locator('path[data-taxonomy="identity"][data-bubble="' + id + '"]'))
+    await master.uncheck()
+    assert.equal(await page.locator('.graph-boundaries path').count(), 0)
+    await page.mouse.click(point.x, point.y)
+    await control('selection').getByText(name, { exact: true }).waitFor()
+    await master.check()
+  }
   assert.deepEqual(errors, [])
-  return { desktopWidth: [initial, narrow], mobileHeight: height, defaultOrbit: hub, defaultRadius, selectedRadius, atlasSections: 4, atlasComponents: 2 }
+  return { desktopWidth: [initial, narrow], mobileHeight: height, defaultOrbit: hub, defaultRadius, selectedRadius,
+    atlasSections: 4, atlasComponents: 2, canvasPickedMembers: members.length }
 }

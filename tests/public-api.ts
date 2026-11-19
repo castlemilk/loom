@@ -1,6 +1,6 @@
 import { createGraph, ink, type GraphNode, type GraphData, type GraphLink } from 'loom-core'
 import { compileTaxonomies, attachAnnotations, scopeTaxonomies, type TaxonomyConfig } from 'loom-core/taxonomy'
-import { createDrilldown, drilldownGroup, type DrilldownOptions } from 'loom-core/drilldown'
+import { createDrilldown, drilldownGroup, type DrilldownOptions, type GroupView } from 'loom-core/drilldown'
 import { observePerformance, type PerformanceSample } from 'loom-core/performance'
 import { clusterLayout, connectedComponents } from 'loom-core/clusters'
 import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
@@ -42,7 +42,7 @@ export function mountCatalogue(canvas: HTMLCanvasElement, layer: HTMLElement, da
     boundaryFor: (group) => group.id === 'physics' ? { pattern: 'dashed', width: 2 } : undefined })
   const stop = observePerformance(graph, (s: PerformanceSample) => { void [s.gpuMs, s.heapBytes, s.frameIntervals] })
   stop()
-  annotations.setOptions({ tooltips: false })
+  annotations.setOptions({ tooltips: false, bubblesVisible: false })
   graph.onFrame(({ width, height, points }) => { void [width, height, points[0]] })
   return graph
 }
@@ -61,7 +61,11 @@ export function mountDrilldown(canvas: HTMLCanvasElement, underlay: HTMLElement,
   attachAnnotations(graph, overlay, index, { underlay, bubbles: { subject: true }, groupGesture: 'click',
     onOpenGroup: (term) => controller.openGroup(drilldownGroup(term, snapshot.data.nodes)),
     activeGroup: { id: 'physics', taxonomy: 'subject', boundary: 'outline' } })
-  return { controller, graph }
+  return { controller, graph,
+    setGroupView: (view: GroupView) => controller.setGroupView(view),
+    memberYears: () => controller.getSnapshot().groupMembers.map((paper) => paper.year),
+    inspectMember: (id: string) => controller.inspect(id),
+  }
 }
 
 // @ts-expect-error A numeric field needs a classifier converting its value into a group id.

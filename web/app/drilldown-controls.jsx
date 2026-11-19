@@ -16,26 +16,77 @@ export function detailOptions(value) {
   return { mode: value === 'force' ? 'drift' : value, layout: { anchor: null, blend: 0, guides: false } }
 }
 
-export function DrillControls({ data, config, change, select }) {
+export const opticsExample = (process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/?example=drilldown&group=Optics&bubbles=off'
+
+const pageSize = 8
+const matches = (node, term) => (node.label ?? '').toLowerCase().includes(term) || node.id.toLowerCase().includes(term)
+
+function GroupMembers({ level, members, selected, term, inspect, setView }) {
+  const [page, setPage] = useState(0)
+  const filtered = useMemo(() => term ? members.filter((n) => matches(n, term)) : members, [members, term])
+  const last = Math.max(0, Math.ceil(filtered.length / pageSize) - 1)
+  const current = Math.min(last, page)
+  const start = current * pageSize
+  return <div className="member-browser">
+    <div className="member-heading"><h3>{level.label}</h3><span>{members.length.toLocaleString()} {members.length === 1 ? 'member' : 'members'}</span></div>
+    <div className="member-views" role="group" aria-label="Group view">
+      <button type="button" aria-pressed={level.action === 'expand'} onClick={() => setView('expand')}>
+        <svg aria-hidden="true" viewBox="0 0 20 18"><path d="m2 4 7 5 8-6m-8 6 6 6"/><circle cx="9" cy="9" r="3"/><circle cx="2" cy="4" r="1"/><circle cx="17" cy="3" r="1"/><circle cx="15" cy="15" r="1"/></svg>In context</button>
+      <button type="button" aria-pressed={level.action === 'isolate'} onClick={() => setView('isolate')}>
+        <svg aria-hidden="true" viewBox="0 0 20 18"><path d="M6 2H2v4m12-4h4v4M2 12v4h4m12-4v4h-4m-9-6 4-5 5 5"/><circle cx="5" cy="10" r="1.5"/><circle cx="9" cy="5" r="1.5"/><circle cx="14" cy="10" r="1.5"/></svg>Members only</button>
+    </div>
+    <ul aria-label={level.label + ' members'} className="member-list">{filtered.slice(start, start + pageSize).map((node) =>
+      <li key={node.id}><button type="button" data-member={node.id} data-result={term ? node.id : undefined}
+        aria-pressed={selected === node.id} onClick={() => inspect(node.id)}>
+        <i aria-hidden="true" data-kind={node.kind}/><span>{node.label || node.id}</span><small>{node.kind}</small>
+      </button></li>)}</ul>
+    {!filtered.length && <p role="status">No matching members.</p>}
+    {last > 0 && <div className="member-pages">
+      <button type="button" aria-label="Previous members" disabled={!current} onClick={() => setPage(current - 1)}>←</button>
+      <output aria-live="polite">{start + 1}–{Math.min(start + pageSize, filtered.length)} of {filtered.length.toLocaleString()}</output>
+      <button type="button" aria-label="Next members" disabled={current === last} onClick={() => setPage(current + 1)}>→</button>
+    </div>}
+  </div>
+}
+
+function NodeBrowser({ snapshot, select, inspect, setView }) {
   const [query, setQuery] = useState('')
+  const { data, groupMembers, selected } = snapshot
+  const level = snapshot.path.at(-1)
+  const inGroup = level.kind === 'group'
+  const term = query.trim().toLowerCase()
+  const memberIds = useMemo(() => inGroup && level.action === 'expand' ? new Set(groupMembers.map((n) => n.id)) : null,
+    [groupMembers, inGroup, level.action])
   const results = useMemo(() => {
-    const term = query.trim().toLowerCase()
-    if (!term) return []
+    if (!term || level.action === 'isolate') return []
     const hits = []
     for (const node of data.nodes) {
-      if ((node.label ?? '').toLowerCase().includes(term) || node.id.toLowerCase().includes(term)) hits.push(node)
+      if (!memberIds?.has(node.id) && matches(node, term)) hits.push(node)
       if (hits.length === 12) break
     }
     return hits
-  }, [query, data.nodes])
-  return <section className="drill-controls"><h2>Explore</h2>
+  }, [term, data.nodes, level.action, memberIds])
+  return <><div className="explore-heading"><h2 id="settings-explore" tabIndex={-1}>Explore</h2>
+    {level.kind === 'overview' && <a className="example-link" href={opticsExample}>Try Optics <span aria-hidden="true">↗</span></a>}
+    </div>
     <label className="sr-only" htmlFor="find-node">Find a node in this view</label>
-    <input id="find-node" type="search" autoComplete="off" placeholder="Find a node by name or ID" value={query} onChange={(e) => setQuery(e.target.value)} />
-    {query.trim() && <div className="node-results" aria-label="Matching nodes">
+    <input id="find-node" type="search" autoComplete="off" placeholder={level.action === 'isolate' ? 'Filter members by name or ID' : 'Find a node by name or ID'} value={query} onChange={(e) => setQuery(e.target.value)} />
+    {inGroup && <GroupMembers key={term} level={level} members={groupMembers} selected={selected} term={term}
+      setView={setView} inspect={(id) => { inspect(id, !!term); if (term) setQuery('') }} />}
+    {term && (!inGroup || results.length > 0) && <div className="node-results" aria-label="Matching nodes">
+      {inGroup && <p>Elsewhere in this view</p>}
       {results.map((node) => <button type="button" data-result={node.id} key={node.id}
         onClick={() => { select(node.id); setQuery('') }}>{node.label || node.id}<small>{node.kind}</small></button>)}
       {!results.length && <p role="status">No matching nodes in this view.</p>}
     </div>}
+  </>
+}
+
+export function DrillControls({ dataset, snapshot, config, change, select, inspect, setView }) {
+  const level = snapshot.path.at(-1)
+  return <section className="drill-controls">
+    <NodeBrowser key={JSON.stringify([dataset, level.kind, level.taxonomy, level.id])}
+      snapshot={snapshot} select={select} inspect={inspect} setView={setView} />
     <Select id="group-action" label="Open a group" options={groupActions} value={config.groupAction} onChange={(v) => change('groupAction', v)} />
     <details><summary>Drilldown settings</summary>
       <Select id="select-action" label="Select a node" options={actions} value={config.selectAction} onChange={(v) => change('selectAction', v)} />
@@ -68,6 +119,9 @@ export function DrillTrail({ snapshot, drill }) {
     <button type="button" className="drill-back" aria-label="Back one level" onClick={drill.back}><i aria-hidden="true" />Back</button>
     <ol id="drill-location">{snapshot.path.map((level, i) => <li key={i}>{i === snapshot.path.length - 1 ?
       <span aria-current="page">{level.label}</span> : <button onClick={() => drill.goTo(i)}>{level.label}</button>}</li>)}</ol>
-    {level.kind === 'group' && <small>{level.memberCount} {level.memberCount === 1 ? 'member' : 'members'}</small>}
+    {level.kind === 'group' && (level.action === 'expand' ?
+      <button type="button" className="trail-members" aria-label={'Show only ' + level.memberCount + ' members'}
+        onClick={() => drill.setGroupView('isolate')}>{level.memberCount} {level.memberCount === 1 ? 'member' : 'members'} <span aria-hidden="true">↗</span></button> :
+      <small>{level.memberCount} {level.memberCount === 1 ? 'member' : 'members'}</small>)}
   </nav>
 }

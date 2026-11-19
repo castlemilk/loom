@@ -2,7 +2,8 @@ import type { GraphData, GraphLink, GraphNode, LayoutOptions, LoomGraph, Mode } 
 import type { TaxonGroup } from './taxonomy.js'
 
 export type NodeAction = 'inspect' | 'focus' | 'neighbors' | 'group'
-export type GroupAction = 'isolate' | 'expand' | 'none'
+export type GroupView = 'isolate' | 'expand'
+export type GroupAction = GroupView | 'none'
 export type LinkDirection = 'both' | 'incoming' | 'outgoing'
 export interface DrilldownGroup {
   taxonomy: string
@@ -35,11 +36,13 @@ export interface DrilldownOptions<N extends GraphNode = GraphNode, E extends Gra
 export type DrilldownLevel =
   | { kind: 'overview'; label: string }
   | { kind: 'node'; id: string; label: string; hops: number; direction: LinkDirection }
-  | { kind: 'group'; taxonomy: string; id: string; label: string; memberCount: number; action: 'isolate' | 'expand' }
+  | { kind: 'group'; taxonomy: string; id: string; label: string; memberCount: number; action: GroupView }
 export interface DrilldownSnapshot<N extends GraphNode, E extends GraphLink> {
   /** Directly mountable, in source order. Only a scope change replaces this object. */
   readonly data: GraphData<N, E>
   readonly path: readonly DrilldownLevel[]
+  /** All members of the current group in parent source order, empty at other levels. */
+  readonly groupMembers: readonly N[]
   readonly selected: string | null
   readonly options: Readonly<DrilldownOptions<N, E>>
 }
@@ -58,6 +61,8 @@ interface Scope<N extends GraphNode, E extends GraphLink> {
   ids?: Map<string, N>
   poses?: Map<string, Pose>
   expansion?: Expansion
+  members?: readonly N[]
+  contextPoses?: ReadonlyMap<string, Pose>
   filter?: Neighborhood<E>['includeLink']
 }
 
@@ -157,14 +162,15 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
   const listeners = new Set<() => void>()
   // A pin or explicit release follows its node across independently saved scope positions.
   const pins = new Map<string, Pose | null>()
-  let snapshot: DrilldownSnapshot<N, E> = { data: source, selected: null, path: [current().level], options }
+  const noMembers: readonly N[] = Object.freeze([])
+  let snapshot: DrilldownSnapshot<N, E> = { data: source, selected: null, path: [current().level], groupMembers: noMembers, options }
   let binding: { graph: GraphPort; data: GraphData<N, E>; detach: () => void } | undefined
   let syncing = false
   let yaw = 0, pitch = 0
   let anchorCache: { scope: Scope<N, E>; spread: number; spacing: number; rings: boolean; cloud: boolean; anchor: ReturnType<typeof expandedAnchors> } | undefined
 
   function publish() {
-    snapshot = { ...snapshot, selected: current().selected, options }
+    snapshot = { ...snapshot, selected: current().selected, groupMembers: current().members ?? noMembers, options }
     for (const listener of [...listeners]) listener()
   }
   function live() { return binding?.data === snapshot.data ? binding.graph : undefined }
@@ -187,7 +193,7 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
       return { ...n, ...pose, pinned: pin === null ? false : pose.pinned,
         z: n.z === undefined && pose.z === 0 && !pose.pinned ? undefined : pose.z }
     })
-    snapshot = { data: { nodes, links: scope.source.links }, path: stack.map((entry) => entry.level), selected: scope.selected, options }
+    snapshot = { ...snapshot, data: { nodes, links: scope.source.links }, path: stack.map((entry) => entry.level) }
     anchorCache = undefined
     publish()
   }
@@ -221,6 +227,34 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
     show(parent.poses)
     return true
   }
+  function groupScope(parent: Scope<N, E>, level: Extract<DrilldownLevel, { kind: 'group' }>, members: readonly N[], selected: string | null): Scope<N, E> {
+    const memberIds = new Set(members.map((node) => node.id))
+    if (level.action === 'isolate') {
+      return { level, members, selected: selected !== null && memberIds.has(selected) ? selected : null,
+        source: { nodes: members, links: parent.source.links.filter((e) => memberIds.has(e.source) && memberIds.has(e.target)) } }
+    }
+    return { level, members, source: parent.source, ids: parent.ids, selected,
+      expansion: { members: [...memberIds].sort(), origin: parent.poses!, yaw: live() ? yaw : 0, pitch: live() ? pitch : 0 } }
+  }
+  /** Switch the current group's presentation in one navigation update, at the same breadcrumb depth. */
+  function setGroupView(action: GroupView) {
+    if (action !== 'isolate' && action !== 'expand') throw new RangeError('Invalid group view')
+    const scope = current(), level = scope.level
+    if (level.kind !== 'group' || level.action === action) return false
+    capture()
+    const parent = stack[stack.length - 2]
+    const next = groupScope(parent, { ...level, action }, scope.members!, scope.selected)
+    let seeds = scope.poses!
+    if (action === 'isolate') next.contextPoses = seeds
+    else {
+      const context = new Map(scope.contextPoses ?? parent.poses)
+      for (const [id, pose] of seeds) context.set(id, pose)
+      seeds = context
+    }
+    stack[stack.length - 1] = next
+    show(seeds)
+    return true
+  }
   function openGroup(group: DrilldownGroup, override?: GroupAction) {
     const action = override ?? (typeof options.groupAction === 'function' ? options.groupAction(group) : options.groupAction) ?? 'expand'
     if (action === 'none') return false
@@ -229,18 +263,12 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
     if (level.kind === 'group' && level.taxonomy === group.taxonomy && level.id === group.id && level.action === action) {
       return action === 'expand' && goTo(stack.length - 2)
     }
-    const visible = new Set(group.members.filter((id) => ids().has(id)))
-    if (!visible.size) return false
+    const requested = new Set(group.members)
+    const members = parent.source.nodes.filter((node) => requested.has(node.id))
+    if (!members.length) return false
     capture()
-    const data = action === 'expand' ? parent.source : { nodes: parent.source.nodes.filter((n) => visible.has(n.id)),
-      links: parent.source.links.filter((e) => visible.has(e.source) && visible.has(e.target)) }
-    const scope: Scope<N, E> = { source: data, level: { kind: 'group', id: group.id, taxonomy: group.taxonomy, label: group.label ?? group.id, memberCount: visible.size, action },
-      selected: parent.selected !== null && (action === 'expand' || visible.has(parent.selected)) ? parent.selected : null }
-    if (action === 'expand') {
-      const origin = parent.poses!
-      scope.ids = parent.ids
-      scope.expansion = { members: [...visible].sort(), origin, yaw: live() ? yaw : 0, pitch: live() ? pitch : 0 }
-    }
+    const scope = groupScope(parent, { kind: 'group', id: group.id, taxonomy: group.taxonomy, label: group.label ?? group.id,
+      memberCount: members.length, action }, members, parent.selected)
     const inPlace = action === 'expand' && !!live()
     stack.push(scope)
     if (inPlace) {
@@ -278,7 +306,9 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
       options = next
       publish()
     },
-    select, activate, openNeighborhood, openGroup, goTo,
+    select, activate, openNeighborhood, openGroup, setGroupView, goTo,
+    /** Select for inspection without running the configured canvas gesture. */
+    inspect: mark,
     back: () => goTo(stack.length - 2),
     resolveLayout(mode: Mode, layout: LayoutOptions<N> = {}): { mode: Mode; layout: LayoutOptions<N> } {
       if (stack.length === 1) return { mode, layout }

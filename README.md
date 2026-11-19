@@ -14,6 +14,8 @@ Open the [Section atlas](https://castlemilk.github.io/loom/?example=clusters) to
 
 In **Taxonomies**, choose **Category** and open **Group bubbles** to outline a single knowledge category. Outlines from several taxonomies can be visible together. **Define a taxonomy** accepts JSON field or relationship mappings, and **Display language** edits the connection and unassigned-lane labels. Applied definitions and language are saved in this browser. Drag the separator to change the graph width, or its height on a narrow screen. The arrow keys adjust the separator and Enter restores its starting size.
 
+Use the illustrated **Groups** shortcut and switch off **Show group bubbles** to hide every boundary. Switch it on to restore the chosen groups. Layout clustering, lane labels and group navigation work with either setting. Add `bubbles=off` to a studio URL to start with clear boundaries.
+
 Open **Test data**, choose **Image atlas**, then **Generate graph** to draw 1,024 image-bearing nodes. Select **Cloud** and drag the background to orbit. Open **Perf** to watch frame intervals and artwork decoding while you zoom or pull a node.
 
 The **Node size** control in the header scales every marker from 0.30× to 16×. Drag the slider for fine adjustments, use **−** and **+** for larger steps, or click the multiplier to restore the theme size. Scroll or pinch over the canvas to zoom the camera independently.
@@ -197,6 +199,7 @@ export function mountCatalogue(host: HTMLElement) {
   return {
     graph,
     legend: terms.legend('subject'),
+    showBoundaries(visible: boolean) { annotations.setOptions({ bubblesVisible: visible }) },
     showAllSubjects() { annotations.setOptions({ bubbles: { subject: true, category: ['physics'] } }) },
     destroy() { graph.destroy(); canvas.remove(); overlay.remove() },
   }
@@ -205,20 +208,25 @@ export function mountCatalogue(host: HTMLElement) {
 
 `by` accepts a string-valued field, an array-valued field, a relationship endpoint, or a typed classifier such as `(node, context) => context.linksFor(node.id).length ? 'connected' : 'isolated'`. Relationship groups include their hub and its incident members. `remap` translates raw values to one or more term IDs. Multiple memberships are deduplicated. All apply to bubbles and tooltips, and the first determines exclusive lane placement. Unassigned nodes get their own lane. Term labels, descriptions and colours are independent of the raw IDs.
 
-`legend(id)` returns ordered groups, display properties and member indices. `describe(nodeId)` returns the title, formatted count and full membership. For custom tooltip content, supply `language.tooltip(node, description)` returning `{ title, lines }`. Text renders literally. Outlines and lane captions follow the camera, node drags and canvas resizes on the engine's existing paint cycle. `setOptions({ bubbles: {} })` hides every outline. Destroying the graph also releases its annotations.
+`legend(id)` returns ordered groups, display properties and member indices. `describe(nodeId)` returns the title, formatted count and full membership. For custom tooltip content, supply `language.tooltip(node, description)` returning `{ title, lines }`. Text renders literally. Outlines and lane captions follow the camera, node drags and canvas resizes on the engine's existing paint cycle. `setOptions({ bubblesVisible: false })` hides every outline and its hit area. Visibility defaults to true. `setOptions({ bubbles: {} })` clears the group choices. Destroying the graph also releases its annotations.
 
 ## Drilldowns and group interactions
 
 Open **Optics** in the legend or click the space between its nodes in the [Section atlas](https://castlemilk.github.io/loom/?example=drilldown). Its eight members spread out while its links to other sections stay visible. Click the same legend entry to collapse it. A click on a child selects it. Double-click or press Enter on a selection to explore its neighbors. Use Back, an ancestor breadcrumb or Escape on the canvas to return.
 
+The [Optics members demo](https://castlemilk.github.io/loom/?example=drilldown&group=Optics&bubbles=off) opens the notebook hub and its seven child nodes in Orbit, with 14 internal links. Select a name under **Explore** to inspect that node. **In context** brings back the surrounding atlas. **Members only** isolates the same group again. Both views share a breadcrumb and the full member list. Larger groups show eight rows per page and search matches names and IDs across every page. The `group` parameter accepts the Section atlas term ID, including `Materials`, `Tides` and `Acoustics`.
+
 In **Explore**, **Open a group** switches between in-place expansion, an isolated group with its internal links, and disabled navigation. **Drilldown settings** lets you choose the node actions, bubble gesture, open boundary, member arrangement, spacing, expansion strength and detail layout. The group buttons also work with a keyboard. Search finds nodes in the current view.
 
-The release includes captures from the same browser interaction tests. [Desktop overview](https://castlemilk.github.io/loom/previews/atlas-desktop.png) · [Expanded desktop group](https://castlemilk.github.io/loom/previews/atlas-desktop-expanded.png) · [Expanded mobile group](https://castlemilk.github.io/loom/previews/atlas-mobile-expanded.png)
+The release includes captures from the same browser interaction tests. [Desktop overview](https://castlemilk.github.io/loom/previews/atlas-desktop.png) · [Expanded desktop group](https://castlemilk.github.io/loom/previews/atlas-desktop-expanded.png) · [Optics members](https://castlemilk.github.io/loom/previews/atlas-optics-members.png) · [Mobile members](https://castlemilk.github.io/loom/previews/atlas-mobile-members.png)
 
 | Library option | Behavior |
 | --- | --- |
 | `selectAction`, `openAction` | Choose `inspect`, `focus`, `neighbors` or `group`, globally or per node. Supply `groupFor(node)` for the group action. |
 | `groupAction` | Set `expand`, `isolate` or `none`, or return one per taxonomy or term from a callback. |
+| `setGroupView('isolate' \| 'expand')` | Switch the current group's view with one update. Links and outside nodes come from its parent scope. Returns false at a node, at the overview or when already in that view. |
+| `getSnapshot().groupMembers` | The complete typed member nodes in parent source order, deduplicated by ID. The same array survives selections and view switches. Empty outside a group. |
+| `inspect(id)` | Select a node for an inspector independently of the configured canvas gesture. Pass null to clear. |
 | `arrangement`, `memberSpacing`, `spread` | Rings place coincident nodes on spaced targets in the camera-facing plane captured when a Cloud group opens. You can orbit those targets afterwards. Radial expansion follows previous directions. Default ring targets are 28 world units × 2 apart. The studio scales spacing with node size. |
 | `expansionBlend` | Defaults to 0.7. Intermediate values let springs and repulsion respond to dragging. At 1, movable nodes use the exact targets. Pinned nodes keep their positions. |
 | `neighborhood`, `detail` | Set hop count, direction and a typed link filter. Each drilldown stays inside its parent view. Isolated detail uses free Drift by default. Pass an empty detail object to inherit the overview layout. |

@@ -16,6 +16,8 @@ export interface BoundaryStyle {
 export interface AnnotationOptions {
   /** Taxonomy id to all its groups, or an explicit list of term ids. */
   bubbles?: Readonly<Record<string, true | readonly string[]>>
+  /** Hide every boundary and its canvas hit area while retaining per-taxonomy choices. Defaults to true. */
+  bubblesVisible?: boolean
   padding?: number
   laneTaxonomy?: string
   tooltips?: boolean
@@ -39,6 +41,7 @@ const ns = 'http://www.w3.org/2000/svg'
 const badge = 'position:absolute;box-sizing:border-box;background:var(--loom-overlay-bg,#242824);color:var(--loom-overlay-ink,#f4f4eb);font:12px/1.4 var(--loom-overlay-font,system-ui,sans-serif);border:1px solid #8887;border-radius:5px;'
 
 function validate(options: AnnotationOptions) {
+  if (options.bubblesVisible !== undefined && typeof options.bubblesVisible !== 'boolean') throw new TypeError('bubblesVisible must be a boolean')
   const padding = options.padding ?? 9
   if (!Number.isFinite(padding) || padding < 0) throw new RangeError('Invalid bubble padding.')
   if (options.groupGesture !== undefined && !['click', 'double-click', 'controls'].includes(options.groupGesture)) throw new RangeError('Invalid group gesture')
@@ -153,7 +156,7 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
     const nextPaths: typeof paths = []
     const existing = new Map(paths.map((entry) => [entry.group, entry]))
     const styles: { group: TaxonGroup; policy: 'outline' | 'fade' | 'keep'; style: BoundaryStyle; color: string }[] = []
-    for (const group of index.groups) {
+    for (const group of options.bubblesVisible === false ? [] : index.groups) {
       const active = options.bubbles && Object.hasOwn(options.bubbles, group.taxonomy) && options.bubbles[group.taxonomy]
       if (active !== true && !(active && active.includes(group.id))) continue
       const opened = options.activeGroup
@@ -224,7 +227,7 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
       showTooltip()
       if (frame) positionTooltip(frame)
     }), graph.on('backgroundclick', ({ x, y, clicks }) => {
-      if (!options.onOpenGroup || options.groupGesture === 'controls' || clicks !== (options.groupGesture === 'click' ? 1 : 2)) return
+      if (!paths.length || !options.onOpenGroup || options.groupGesture === 'controls' || clicks !== (options.groupGesture === 'click' ? 1 : 2)) return
       const point = svg.createSVGPoint()
       point.x = x
       point.y = y
