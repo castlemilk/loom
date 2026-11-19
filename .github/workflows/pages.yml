@@ -102,3 +102,11 @@ jobs:
           echo "Timed out waiting for $GITHUB_SHA at $PAGES_URL" >&2
           exit 1
       - run: npm run test:site -- "$PAGES_URL"
+      - name: Install the published archive and typecheck a consumer
+        run: |
+          consumer_dir=$(mktemp -d)
+          cp tests/public-api.ts "$consumer_dir/consumer.mts"
+          npm install --prefix "$consumer_dir" --ignore-scripts --no-audit --no-fund "${PAGES_URL%/}/packages/$GITHUB_SHA/loom-core-0.1.0.tgz"
+          node_modules/.bin/tsc --strict --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext "$consumer_dir/consumer.mts"
+          cd "$consumer_dir"
+          node --input-type=module -e "import { createGraph } from 'loom-core'; import { compileTaxonomies } from 'loom-core/taxonomy'; if (typeof createGraph !== 'function' || !compileTaxonomies({ nodes: [], links: [] }, { taxonomies: [] }).legend) process.exit(1)"
