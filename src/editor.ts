@@ -5,12 +5,16 @@ export { editorSchema }
 
 export type EditorNode = Readonly<GraphNode & Record<string, unknown>>
 export type EditorLink = Readonly<GraphLink & { id: string } & Record<string, unknown>>
-export interface EditorData extends GraphData<EditorNode, EditorLink> { readonly [field: string]: unknown }
+export interface EditorData extends GraphData<EditorNode, EditorLink> {
+  readonly nodes: readonly EditorNode[]
+  readonly links: readonly EditorLink[]
+  readonly [field: string]: unknown
+}
 type Patch<T> = { changes: Partial<T> & Record<string, unknown> & { id?: never }; unset?: readonly string[] } |
   { changes?: never; unset: readonly string[] }
 export type EditorOperation =
-  | { op: 'node.add'; value: EditorNode }
-  | { op: 'link.add'; value: EditorLink }
+  | { op: 'node.add'; value: GraphNode | EditorNode }
+  | { op: 'link.add'; value: (GraphLink & { id: string }) | EditorLink }
   | ({ op: 'node.update'; id: string } & Patch<GraphNode>)
   | ({ op: 'link.update'; id: string } & Patch<GraphLink>)
   | { op: 'node.remove'; id: string; cascade?: boolean }
@@ -128,8 +132,13 @@ function edit(current: Version, input: unknown, revision: number, documentId: st
     if ('value' in op && prev) reject('duplicate_id', path + '/value/id', 'ID already exists: ' + id)
     if (!('value' in op) && !prev) reject('not_found', path + '/id', 'Unknown ID: ' + id)
     switch (op.op) {
-      case 'node.add': nodes.set(id, op.value); break
-      case 'link.add': requireEndpoints(op.value, nodes, path + '/value'); links.set(id, op.value); break
+      case 'node.add': nodes.set(id, op.value as EditorNode); break
+      case 'link.add': {
+        const edge = op.value as EditorLink
+        requireEndpoints(edge, nodes, path + '/value')
+        links.set(id, edge)
+        break
+      }
       case 'node.update':
       case 'link.update': {
         const fields = op.changes ?? {}, unset = op.unset ?? []

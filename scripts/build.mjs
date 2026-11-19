@@ -49,8 +49,11 @@ const options = {
 }
 const core = await build({ ...options, write: false, entryPoints: { index: 'src/index.ts', 'layout-worker': 'src/sim/worker.ts' } })
 await mkdir(options.outdir, { recursive: true })
+// These methods and fields are internal to a single compiled renderer or worker.
+// Keep public options, user records, GPU names and posted message keys intact.
+const internals = /^(?:targetZoom|resetAngle|zoomAt|unproject|project|basis|focal|pan|pickLabel|labelCount|projected|rebuild|draggingNode|startX|startY|advance|configure|settling|needsFrame|wake|suspend|paint)$/
 await Promise.all(core.outputFiles.map(async (file) => {
-  const result = await minify(file.text, { ecma: 2022, module: true, compress: { passes: 3 } })
+  const result = await minify(file.text, { ecma: 2022, module: true, compress: { passes: 3 }, mangle: { properties: { regex: internals } } })
   await writeFile(file.path, result.code)
 }))
 await build({ ...options, entryPoints: ['src/console.ts'], external: ['./index.js'] })

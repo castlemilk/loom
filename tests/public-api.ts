@@ -88,3 +88,6 @@ export function authorCatalogue(data: GraphData<Paper, Citation>) {
   const restored = restoreEditor(editor.checkpoint())
   return { schema: editorSchema, record: restored.getNode('p2'), links: restored.query({ entity: 'link', incidentTo: 'p2' }) }
 }
+
+export const addPaper = (doc: ReturnType<typeof createEditor>, paper: Paper) =>
+  doc.transact([{ op: 'node.add', value: paper }])

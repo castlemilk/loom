@@ -345,8 +345,10 @@ function Workbench({ sample }) {
     <main className="studio-workspace min-w-0">
       <section id="studio-stage" className="stage isolate" data-editor-tool={tool} data-member-detail={singleGroupView || undefined} aria-label="Graph viewport" style={{ backgroundColor: theme.bg }}
         onPointerUp={view.syncPin} onPointerCancel={view.syncPin} onKeyDownCapture={(event) => {
-          if (event.key === 'Escape' && event.target === view.canvas.current && snapshot.path.length > 1) {
-            event.preventDefault(); event.stopPropagation(); drill.back()
+          if (event.key === 'Escape' && event.target === view.canvas.current && (tool || snapshot.path.length > 1)) {
+            event.preventDefault(); event.stopPropagation()
+            if (tool) closeTool()
+            else drill.back()
           }
         }}>
         <div className="graph-surface">
