@@ -34,30 +34,54 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: '1'
       - run: npm run test:site
-      - uses: actions/upload-pages-artifact@v3
+      - run: printf '%s\n' "$GITHUB_SHA" > web/out/revision.txt
+      - uses: actions/upload-artifact@v4
         with:
+          name: studio-export
           path: web/out
+          include-hidden-files: true
+          retention-days: 1
 
   deploy:
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     outputs:
-      url: ${{ steps.publish.outputs.page_url }}
+      url: ${{ steps.publish.outputs.url }}
     permissions:
+      contents: write
       pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.publish.outputs.page_url }}
     steps:
-      - name: Publish studio
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: published
+      - uses: actions/download-artifact@v4
+        with:
+          name: studio-export
+          path: export
+      - name: Publish the tested export from gh-pages
         id: publish
-        uses: actions/deploy-pages@v4
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rsync -a --delete --exclude=.git export/ published/
+          git -C published add --all
+          if ! git -C published diff --cached --quiet; then
+            git -C published -c user.name=github-actions[bot] -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -m "Publish studio from $GITHUB_SHA"
+            git -C published push origin HEAD:gh-pages
+          fi
+          endpoint="repos/$GITHUB_REPOSITORY/pages"
+          gh api --method POST "$endpoint/builds" --silent
+          url=$(gh api "$endpoint" --jq .html_url)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
   verify:
     needs: deploy
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 7
+    env:
+      PAGES_URL: ${{ needs.deploy.outputs.url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -65,6 +89,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Wait for this revision on the public site
+        run: |
+          for attempt in {1..36}; do
+            if [[ "$(curl -fsSL --max-time 8 "${PAGES_URL%/}/revision.txt?sha=$GITHUB_SHA")" == "$GITHUB_SHA" ]]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for $GITHUB_SHA at $PAGES_URL" >&2
+          exit 1
       - run: npm run test:site -- "$PAGES_URL"
-        env:
-          PAGES_URL: ${{ needs.deploy.outputs.url }}
