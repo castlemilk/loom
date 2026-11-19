@@ -22,7 +22,8 @@ export function makeTheme(style) {
   for (const [kind, rule] of Object.entries(style.wires)) byKind[kind] = { ...byKind[kind], ...rule }
   return {
     ...base,
-    nodes: { ...base.nodes, scale: style.nodeScale, artwork: style.artwork, byKind: { ...base.nodes?.byKind, ...style.nodes } },
+    nodes: { ...base.nodes, scale: style.nodeScale, artwork: style.artwork, fill: style.fill ?? base.nodes?.fill,
+      byKind: { ...base.nodes?.byKind, ...style.nodes } },
     wires: { ...wires, byKind, routing: style.route, opacity: style.opacity, pattern: style.pattern },
     labels: { ...base.labels, visibility: style.labels },
     grid: style.grid ? (base.grid ?? { spacing: 32, opacity: 0.18 }) : undefined,

@@ -44,14 +44,20 @@ export interface DrilldownSnapshot<N extends GraphNode, E extends GraphLink> {
   readonly options: Readonly<DrilldownOptions<N, E>>
 }
 type Pose = ReturnType<LoomGraph['getPosition']>
-type GraphPort = Pick<LoomGraph, 'on' | 'getPosition' | 'select' | 'focus'>
+type GraphPort = Pick<LoomGraph, 'on' | 'getPosition' | 'select' | 'focus'> & Partial<Pick<LoomGraph, 'onFrame'>>
+interface Expansion {
+  members: readonly string[]
+  origin: Map<string, Pose>
+  yaw: number
+  pitch: number
+}
 interface Scope<N extends GraphNode, E extends GraphLink> {
   source: GraphData<N, E>
   level: DrilldownLevel
   selected: string | null
   ids?: Map<string, N>
   poses?: Map<string, Pose>
-  expansion?: { members: readonly string[]; origin: Map<string, Pose> }
+  expansion?: Expansion
   filter?: Neighborhood<E>['includeLink']
 }
 
@@ -105,7 +111,7 @@ function initialPose(node: GraphNode, index: number): Pose {
   return { x: node.x ?? radius * Math.cos(angle), y: node.y ?? radius * Math.sin(angle), z: node.z ?? 0,
     pinned: node.pinned ?? (node.x !== undefined && node.y !== undefined) }
 }
-function expandedAnchors(origin: Map<string, Pose>, members: readonly string[], spread: number, spacing: number, rings: boolean) {
+function expandedAnchors({ origin, members, yaw, pitch }: Expansion, spread: number, spacing: number, rings: boolean, cloud: boolean) {
   let x = 0, y = 0, z = 0
   for (const id of members) {
     const p = origin.get(id)!
@@ -114,14 +120,16 @@ function expandedAnchors(origin: Map<string, Pose>, members: readonly string[], 
   const targets = new Map<string, { x: number; y: number; z: number }>()
   if (rings) {
     // Neighboring rings differ by one step. Chords on each ring are at least one step long.
-    const step = spacing * spread
+    const step = spacing * spread, cy = cloud ? Math.cos(yaw) : 1, sy = cloud ? Math.sin(yaw) : 0
+    const cp = cloud ? Math.cos(pitch) : 1, sp = cloud ? Math.sin(pitch) : 0
     targets.set(members[0], { x, y, z })
     for (let start = 1, ring = 1; start < members.length; ring++) {
       const count = Math.min(members.length - start, Math.floor(Math.PI / Math.asin(0.5 / ring) + 1e-9))
       for (let j = 0; j < count; j++) {
         const id = members[start + j], angle = 2 * Math.PI * j / count + ring * 2.39996323
-        targets.set(id, { x: x + ring * step * Math.cos(angle), y: y + ring * step * Math.sin(angle),
-          z: z + (origin.get(id)!.z - z) * spread })
+        const u = ring * step * Math.cos(angle), v = ring * step * Math.sin(angle)
+        // Inverse camera rotation at constant depth, fixed at opening so the user can orbit the result.
+        targets.set(id, { x: x + cy*u + sy*sp*v, y: y + cp*v, z: z + sy*u - cy*sp*v })
       }
       start += count
     }
@@ -152,7 +160,8 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
   let snapshot: DrilldownSnapshot<N, E> = { data: source, selected: null, path: [current().level], options }
   let binding: { graph: GraphPort; data: GraphData<N, E>; detach: () => void } | undefined
   let syncing = false
-  let anchorCache: { scope: Scope<N, E>; spread: number; spacing: number; rings: boolean; anchor: ReturnType<typeof expandedAnchors> } | undefined
+  let yaw = 0, pitch = 0
+  let anchorCache: { scope: Scope<N, E>; spread: number; spacing: number; rings: boolean; cloud: boolean; anchor: ReturnType<typeof expandedAnchors> } | undefined
 
   function publish() {
     snapshot = { ...snapshot, selected: current().selected, options }
@@ -230,7 +239,7 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
     if (action === 'expand') {
       const origin = parent.poses!
       scope.ids = parent.ids
-      scope.expansion = { members: [...visible].sort(), origin }
+      scope.expansion = { members: [...visible].sort(), origin, yaw: live() ? yaw : 0, pitch: live() ? pitch : 0 }
     }
     const inPlace = action === 'expand' && !!live()
     stack.push(scope)
@@ -276,15 +285,15 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
       const scope = current()
       const detail = options.detail ?? { mode: 'drift', layout: { blend: 0, anchor: null, guides: false } }
       if (scope.expansion) {
-        const spread = options.spread ?? 2, spacing = options.memberSpacing ?? 28, rings = options.arrangement !== 'radial'
-        if (anchorCache?.scope !== scope || anchorCache.spread !== spread || anchorCache.spacing !== spacing || anchorCache.rings !== rings) {
-          anchorCache = { scope, spread, spacing, rings, anchor: expandedAnchors(scope.expansion.origin, scope.expansion.members, spread, spacing, rings) }
-        }
         if (stack.some((entry) => entry.level.kind !== 'overview' && !entry.expansion)) {
           mode = detail.mode ?? mode
           layout = { ...layout, ...detail.layout }
         }
-        return { mode: mode === 'cloud' ? 'cloud' : 'drift',
+        const spread = options.spread ?? 2, spacing = options.memberSpacing ?? 28, rings = options.arrangement !== 'radial', cloud = mode === 'cloud'
+        if (anchorCache?.scope !== scope || anchorCache.spread !== spread || anchorCache.spacing !== spacing || anchorCache.rings !== rings || anchorCache.cloud !== cloud) {
+          anchorCache = { scope, spread, spacing, rings, cloud, anchor: expandedAnchors(scope.expansion, spread, spacing, rings, cloud) }
+        }
+        return { mode: cloud ? 'cloud' : 'drift',
           layout: { ...layout, anchor: anchorCache.anchor, blend: options.expansionBlend ?? 0.7, guides: false } }
       }
       return { mode: detail.mode ?? mode, layout: { ...layout, ...detail.layout } }
@@ -296,6 +305,11 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
       graph.select(snapshot.selected)
       const off = [graph.on('select', (id) => { if (!syncing && snapshot.data === boundData) select(id) }),
         graph.on('open', (id) => { if (snapshot.data === boundData) activate(id) }), graph.on('destroy', () => detach())]
+      yaw = pitch = 0
+      if (graph.onFrame) off.push(graph.onFrame((frame) => {
+        yaw = frame.mode === 'cloud' ? frame.yaw : 0
+        pitch = frame.mode === 'cloud' ? frame.pitch : 0
+      }))
       function detach() {
         for (const remove of off) remove()
         if (binding?.detach === detach) binding = undefined

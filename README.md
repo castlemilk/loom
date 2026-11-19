@@ -219,10 +219,10 @@ The release includes captures from the same browser interaction tests. [Desktop 
 | --- | --- |
 | `selectAction`, `openAction` | Choose `inspect`, `focus`, `neighbors` or `group`, globally or per node. Supply `groupFor(node)` for the group action. |
 | `groupAction` | Set `expand`, `isolate` or `none`, or return one per taxonomy or term from a callback. |
-| `arrangement`, `memberSpacing`, `spread` | Rings handle coincident nodes with deterministic, spaced targets. Radial expansion follows previous directions. Default ring targets are 28 world units × 2 apart. The studio scales spacing with node size. |
+| `arrangement`, `memberSpacing`, `spread` | Rings place coincident nodes on spaced targets in the camera-facing plane captured when a Cloud group opens. You can orbit those targets afterwards. Radial expansion follows previous directions. Default ring targets are 28 world units × 2 apart. The studio scales spacing with node size. |
 | `expansionBlend` | Defaults to 0.7. Intermediate values let springs and repulsion respond to dragging. At 1, movable nodes use the exact targets. Pinned nodes keep their positions. |
 | `neighborhood`, `detail` | Set hop count, direction and a typed link filter. Each drilldown stays inside its parent view. Isolated detail uses free Drift by default. Pass an empty detail object to inherit the overview layout. |
-| Annotation options | `groupGesture` accepts `click`, `double-click` or `controls`. The opened boundary can use `outline`, `fade`, `hide` or `keep`. Child nodes and labels take priority over a boundary. |
+| Annotation options | `groupGesture` accepts `click`, `double-click` or `controls`. The opened boundary can use `outline`, `fade`, `hide` or `keep`. Set `activeGroup.shape` to change its geometry. The studio uses one unfilled hull around expanded rings. Child nodes and labels take priority over a boundary. |
 
 The framework-independent controller ships in `loom-core/drilldown`. Its snapshot supplies nodes and links in source order, a selection and a navigation path. On a scope change, remount with the new data. A bound in-place expansion keeps the same data and renderer. Apply the resolved layout when navigation or configuration changes. Back restores the parent positions and selection, incorporates current pins and refits the parent view.
 

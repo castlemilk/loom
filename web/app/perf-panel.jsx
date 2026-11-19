@@ -45,7 +45,11 @@ export function CloudCompass({ graph, ink }) {
   useEffect(() => {
     const ctx = ref.current?.getContext('2d')
     if (!graph || !ctx) return
+    let lastYaw, lastPitch
     return graph.onFrame(({ yaw, pitch }) => {
+      if (yaw === lastYaw && pitch === lastPitch) return
+      lastYaw = yaw
+      lastPitch = pitch
       const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch)
       const axes = [['X', cy, sp * sy, -cp * sy], ['Y', 0, cp, sp], ['Z', sy, -sp * cy, cp * cy]].sort((a, b) => a[3] - b[3])
       ctx.setTransform(2, 0, 0, 2, 0, 0); ctx.clearRect(0, 0, 62, 60)

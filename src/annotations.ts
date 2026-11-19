@@ -24,7 +24,7 @@ export interface AnnotationOptions {
   boundaryFor?: (group: TaxonGroup) => BoundaryStyle | undefined
   /** An optional sibling behind a transparent graph canvas, in the same coordinate space. */
   underlay?: HTMLElement
-  activeGroup?: { taxonomy: string; id: string; boundary?: 'outline' | 'fade' | 'hide' | 'keep' }
+  activeGroup?: { taxonomy: string; id: string; boundary?: 'outline' | 'fade' | 'hide' | 'keep'; shape?: BoundaryStyle['shape'] }
   /** Defaults to double-click. Controls keeps the canvas available for graph gestures. */
   groupGesture?: 'click' | 'double-click' | 'controls'
   /** Called by a lane button or the configured gesture in a visible bubble, after node picking. */
@@ -163,6 +163,7 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
       path.dataset.taxonomy = group.taxonomy
       path.dataset.bubble = group.id
       const style = { ...options.boundary, ...options.boundaryFor?.(group) }
+      if (opened?.taxonomy === group.taxonomy && opened.id === group.id && opened.shape) style.shape = opened.shape
       validateStyle(style)
       const color = style.color ?? options.colorFor?.(group) ?? group.color
       const width = style.width ?? 1
@@ -189,8 +190,10 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
       for (const item of nextPaths) fragment.append(item.path)
       svg.replaceChildren(fragment)
     }
-    if (options.underlay) options.underlay.append(svg)
-    else root.prepend(svg)
+    if (svg.parentNode !== (options.underlay ?? root)) {
+      if (options.underlay) options.underlay.append(svg)
+      else root.prepend(svg)
+    }
     paths = nextPaths
     laneMap = undefined
     captions.replaceChildren()

@@ -35,7 +35,8 @@ input, textarea { caret-color: var(--accent); }
 #studio-controls h2 { font-size: 17px; margin-bottom: 12px; letter-spacing: -.03em; }
 #studio-controls .drill-controls { padding-top: 21px; }
 .graph-annotations, .graph-boundaries { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-#studio-stage > canvas { position: relative; background: transparent; }
+#studio-stage { container: graph-stage / inline-size; }
+#studio-stage > #graph { position: relative; background: transparent; }
 .legend {
   --legend-rule: color-mix(in srgb, var(--map-ink) 25%, var(--map-bg));
   inset: 14px 14px auto; width: fit-content; max-width: calc(100% - 28px);
@@ -129,7 +130,7 @@ input, textarea { caret-color: var(--accent); }
 .selection-metrics > div { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
 .selection-metrics dd { font-family: var(--mono); overflow-wrap: anywhere; }
 .encoding-note { margin: 5px 0; font-size: 12px; color: var(--muted); }
-.selection .selection-content { margin-top: 8px; white-space: pre-line; line-height: 1.55; color: var(--muted); }
+.selection .selection-content { max-height: 11em; overflow: auto; overscroll-behavior: contain; margin-top: 8px; white-space: pre-line; line-height: 1.55; color: var(--muted); }
 .stage .cloud-compass { position: absolute; width: 62px; height: 60px; bottom: 11px; right: 12px; pointer-events: none; }
 .cloud-settings { margin: 9px 0; }
 .perf-panel {
@@ -152,12 +153,23 @@ input, textarea { caret-color: var(--accent); }
 .perf-panel dt { font: 10px system-ui,sans-serif; color: #b7c4b8; }
 .perf-panel dd { margin: 1px 0 0; font-size: 11px; white-space: nowrap; }
 .stage-tools button[aria-pressed="true"] { background: #39493d; color: #e0f4df; }
-@media (max-width: 700px) {
+@container graph-stage (max-width: 580px) {
   .legend { inset: 8px 8px auto; max-width: calc(100% - 16px); flex-wrap: nowrap; overflow-x: auto; pointer-events: auto; }
   .legend > * { flex-shrink: 0; }
   .legend button { min-height: 32px; }
-  .drill-trail { bottom: 55px; left: 10px; max-width: calc(100% - 20px); }
-  .stage:has(.perf-panel) .drill-trail { top: 51px; bottom: auto; max-width: calc(100% - 20px); }
+  .drill-trail, .stage:has(.perf-panel) .drill-trail { left: 10px; bottom: 55px; max-width: calc(100% - 20px); }
+  .stage:has(.drill-trail) .perf-panel { bottom: 96px; max-height: calc(100% - 152px); }
+}
+@container graph-stage (max-width: 320px) {
+  .stage-tools { left: 8px; right: 8px; }
+  .stage-tools button { padding-inline: 3px; flex: 1; font-size: 11px; }
+  .drill-trail small, .cloud-compass { display: none; }
+}
+@media (max-width: 700px) {
+  header h1 { white-space: nowrap; }
+  .identity { gap: 6px; }
+  .identity .slash { display: none; }
+  .dataset select { max-width: 43vw; }
   footer span:nth-child(2) { display: none; }
   .studio-workspace { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--stage-height, 58dvh) 12px auto; }
   .studio-workspace .stage { height: 100%; min-height: 0; }

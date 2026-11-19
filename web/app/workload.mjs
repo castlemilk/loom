@@ -77,16 +77,21 @@ export function buildWorkload(config, positioned = false, prefix = '') {
 
 // A small synthetic graph with known cross-section citations and parallel references.
 export function sectionAtlas() {
-  const sections = [['Optics', 7], ['Acoustics', 11], ['Materials', 14], ['Tides', 9]]
+  const sections = {
+    Optics: ['Prism spectrum', 'Focal plane', 'Interference fringes', 'Beam waist', 'Diffraction limit', 'Grating orders', 'Polarisation'],
+    Acoustics: ['Room response', 'Standing waves', 'Harmonics', 'Mode shapes', 'Damping', 'Beat frequency', 'Resonance', 'Decay time', 'Phase delay', 'Sound pressure', 'Reflection'],
+    Materials: ['Grain map', 'Slip bands', 'Porosity', 'Surface strain', 'Fracture plane', 'Lattice spacing', 'Yield point', 'Phase boundary', 'Crystal twins', 'Texture', 'Hardness', 'Grain growth', 'Creep rate', 'Annealing'],
+    Tides: ['Gauge series', 'Spring tide', 'Neap tide', 'Tidal lag', 'Flood current', 'Ebb flow', 'Phase offset', 'Estuary range', 'Coastal datum'],
+  }
   const nodes = [], links = []
-  for (const [section, count] of sections) {
+  for (const [section, entries] of Object.entries(sections)) {
     const hub = section.toLowerCase()
     nodes.push({ id: hub, label: section, section, kind: 'category', summary: section + ' field notebook.', complexity: 1 })
-    for (let i = 1; i <= count; i++) {
-      const id = hub + '-' + i, method = methods[(i - 1) % methods.length]
-      const content = 'The ' + section.toLowerCase() + ' ' + method + ' records a synthetic observation. ' +
+    for (let i = 1; i <= entries.length; i++) {
+      const id = hub + '-' + i, title = entries[i - 1]
+      const content = title + ' records a synthetic observation in the ' + section.toLowerCase() + ' notebook. ' +
         Array.from({ length: 1 + (i * 3) % 11 }, (_, j) => 'Sample ' + (j + 1) + ' measures a shift of ' + (i + j) + ' units.').join(' ')
-      nodes.push({ id, label: section + ' ' + method + ' ' + i, section, kind: i % 3 ? 'study' : 'lab',
+      nodes.push({ id, label: title, section, kind: i % 3 ? 'study' : 'lab',
         content, contentSize: utf8.encode(content).length, complexity: 1 + (i * 7 % 10), metrics: { figures: i % 6 } })
       links.push({ source: hub, target: id, kind: 'contains', weight: 1 + i % 3 })
       if (i > 1) links.push({ source: id, target: hub + '-' + (i - 1), kind: 'cites', weight: 2 + i % 8 })

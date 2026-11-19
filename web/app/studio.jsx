@@ -18,7 +18,7 @@ import { Grouping, useGrouping } from './grouping'
 import { Splitter } from './splitter'
 import { DrillControls, DrillTrail, detailOptions, navigationDefaults } from './drilldown-controls'
 
-const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas · clustered example'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
+const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
 const modes = ['Drift', 'Lanes', 'Orbit', 'Cloud']
 const simulations = [['auto', 'Automatic'], ['main', 'Main thread'], ['worker', 'Worker']]
 const positioned = [['seeded', 'Positioned · movable'], ['fixed', 'Positioned · pinned']]
@@ -101,7 +101,8 @@ function Workbench({ sample }) {
   }, [drill, groupFor, navigation, style.nodeScale])
   const groupEnabled = navigation.groupAction !== 'none'
   const annotations = useMemo(() => ({ ...grouping.annotations, onOpenGroup: groupEnabled ? openTerm : undefined,
-    groupGesture: navigation.groupGesture, activeGroup: level.kind === 'group' ? { taxonomy: level.taxonomy, id: level.id, boundary: navigation.boundary } : undefined }),
+    groupGesture: navigation.groupGesture, activeGroup: level.kind === 'group' ? { taxonomy: level.taxonomy, id: level.id, boundary: navigation.boundary,
+      shape: level.action === 'expand' && navigation.boundary === 'outline' ? 'hull' : undefined } : undefined }),
     [grouping.annotations, groupEnabled, openTerm, navigation.groupGesture, level, navigation.boundary])
   const mapped = useEncodings(data, encoding)
   const theme = useMemo(() => {
@@ -157,12 +158,12 @@ function Workbench({ sample }) {
   function pickGraph(value) {
     if (value === 'sections') {
       grouping.setActive('section')
-      grouping.setBoundary({ shape: 'cloud', padding: 15, fillOpacity: 0.12 })
+      grouping.setBoundary({ shape: 'cloud', padding: 10, fillOpacity: 0.085 })
       grouping.setVisible(true, 'section')
       setMode('cloud')
       setPacked(true)
-      setEncoding({ ...initialEncoding, node: 'contentSize', wire: 'weight' })
-      setStyle({ ...preset('ink'), wires: { cites: { pattern: 'dashed' }, replicates: { pattern: 'dotted' } } })
+      setEncoding({ ...initialEncoding, node: 'contentSize', wire: 'weight', radii: [3, 8], widths: [0.5, 2.5] })
+      setStyle({ ...preset('ink'), opacity: 0.34, fill: 0.65, wires: { cites: { pattern: 'dashed' }, replicates: { pattern: 'dotted' } } })
       setSettings((old) => ({ ...old, blend: 0.82, autoRotate: false }))
     }
     const option = countOptions.find((entry) => entry.value === value)
@@ -246,16 +247,16 @@ function Workbench({ sample }) {
         <section className="selection" aria-label="Selected node" hidden={!selected}>
           <h2 id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</h2>
           <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
-          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
-            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
-            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
-          {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
-          {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
           <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
             <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
           {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
             {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
               <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.action === 'expand' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Collapse' : 'Open'} {g.label}</button>)}</div>}
+          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
+            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
+            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+          {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
+          {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
         </section>
         <section><h2>{level.kind === 'overview' ? 'Layout' : 'Overview layout'}</h2>
           <Range id="blend" label="Structure" min={0} max={100} value={Math.round(settings.blend * 100)} format={percent} onChange={(v) => adjust('blend', v / 100)} />
@@ -288,6 +289,8 @@ function Workbench({ sample }) {
           <Select id="wire-pattern" label="Wire stroke" options={patterns} value={style.pattern} onChange={(v) => paint('pattern', v)} />
           <EncodingControls mapped={mapped} onChange={(patch) => setEncoding((old) => ({ ...old, ...patch }))} />
           <details><summary>Style controls</summary>
+            <Range id="marker-fill" label="Marker fill" min={0} max={100} value={Math.round(100 * (style.fill ?? themePresets[style.name].nodes?.fill ?? 0.38))}
+              format={percent} onChange={(value) => paint('fill', value / 100)} />
             <Select id="kind" label="Node kind" options={kinds.map((k) => [k, k])} value={kind} onChange={chooseKind} />
             <Color id="kind-color" label="Marker colour" value={nodeStyle.color} onChange={(color) => paintKind({ color })} />
             <Select id="shape" label="Marker shape" options={shapes} value={nodeStyle.shape} onChange={(shape) => paintKind({ shape })} />

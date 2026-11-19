@@ -11,7 +11,10 @@ const typeNames = { study: 'Study', concept: 'Concept', tag: 'Tag', blog: 'Artic
 const types = { id: 'kind', label: 'Node type', by: 'kind', terms: Object.fromEntries(kindOrder.map((kind) =>
   [kind, { label: typeNames[kind], color: knowledgeConsole.kind[kind] }])) }
 const category = { id: 'category', label: 'Category', by: { relation: 'category', groupEnd: 'target' } }
-const section = { id: 'section', label: 'Section', by: 'section' }
+const section = { id: 'section', label: 'Section', by: 'section', terms: {
+  Optics: { label: 'Optics', color: '#bc9de0' }, Acoustics: { label: 'Acoustics', color: '#70c7b4' },
+  Materials: { label: 'Materials', color: '#dfb16b' }, Tides: { label: 'Tides', color: '#87afe1' },
+} }
 const example = { id: 'family', label: 'Content family', by: 'kind',
   remap: { study: 'work', lab: 'work', blog: 'work', tag: 'subject', concept: 'subject', category: 'subject' },
   terms: { work: { label: 'Published work', color: '#63b6a0' }, subject: { label: 'Subjects', color: '#cfa35c' } } }

@@ -2,7 +2,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createDrilldown, drilldownGroup } from '../src/drilldown.js'
 import { compileTaxonomies, scopeTaxonomies } from '../src/taxonomy.js'
-import type { GraphEvents, GraphNode, LoomGraph } from '../src/types.js'
+import type { GraphEvents, GraphFrame, GraphNode, LoomGraph } from '../src/types.js'
+import { Camera } from '../src/camera.js'
 import { cacheOutline, cloudOutline } from '../src/group-outline.js'
 
 const nodes = ['a', 'b', 'c', 'd', '__proto__'].map((id, i) => ({
@@ -154,6 +155,28 @@ test('configuration is atomic and per-group policies work with and without a mou
   const count = calls
   nav.select('a')
   assert.equal(calls, count)
+})
+
+test('Cloud ring targets face the opening camera even at an edge-on angle and stay fixed during later orbits', () => {
+  const camera = new Camera('cloud')
+  camera.width = 720; camera.height = 540; camera.yaw = Math.PI / 2; camera.pitch = 0.83
+  const nav = createDrilldown(data, { memberSpacing: 35, spread: 2, expansionBlend: 1 })
+  let project!: (frame: GraphFrame) => void
+  const frame = () => ({ mode: 'cloud', yaw: camera.yaw, pitch: camera.pitch }) as GraphFrame
+  nav.bind({ ...fakeGraph(nodes), onFrame(fn) { project = fn; project(frame()); return () => {} } })
+  nav.openGroup(group)
+  const anchor = nav.resolveLayout('cloud').layout.anchor!
+  const projected = nodes.slice(0,3).map((n,i) => {
+    const p = anchor(n,i)!, out = new Float32Array(4)
+    camera.project(p.x,p.y,p.z!,out,0,camera.basis())
+    return out
+  })
+  for (let i = 1; i < projected.length; i++) {
+    assert.ok(Math.abs(projected[i][3]-projected[0][3]) < 0.0001)
+    assert.ok(Math.abs(Math.hypot(projected[i][0]-projected[0][0], projected[i][1]-projected[0][1]) - 70*projected[0][2]) < 0.001)
+  }
+  camera.yaw -= 1.5; project(frame())
+  assert.equal(nav.resolveLayout('cloud').layout.anchor, anchor)
 })
 
 test('scoped taxonomy members keep source classifications when grouping links or hubs are outside the view', () => {

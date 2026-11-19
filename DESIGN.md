@@ -12,7 +12,9 @@ Use the existing Inter/system sans stack for navigation, object names and contro
 
 The sidebar starts with node search and the group-opening action. Choosing a node exposes its inspector beside those controls. Advanced layout, styling, workload generation and diagnostics share the same scrollable panel. On small screens the controls follow the graph in document flow. The splitter resizes graph height there.
 
-An open group has an outline, an expanded legend button and a breadcrumb showing its name and member count. The rendered graph supplies the motion. Reduced motion follows the engine's existing preference. Group controls and search provide keyboard access to the same views as picking on the canvas.
+An open group has one unfilled outer contour, an expanded legend button and a breadcrumb showing its name and member count. Spaced rings face the opening camera and stay in world space while the viewer orbits. The rendered graph supplies the motion. Reduced motion follows the engine's existing preference. Group controls and search provide keyboard access to the same views as picking on the canvas. The legend scrolls in one row when the splitter makes the canvas narrow.
+
+The Section atlas uses violet for Optics, teal for Acoustics, ochre for Materials and blue for Tides. Short notebook titles keep node labels readable. Its default content-size and link-weight scales reserve visible space between members. Authors can change either scale in Appearance.
 
 ## Runtime ownership
 
