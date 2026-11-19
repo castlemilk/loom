@@ -4,7 +4,7 @@ import { makeTheme, preset } from './appearance'
 export const wireAnchor = ({ x, y, z }) => ({ x, y, z })
 export const wireForces = { blend: 0.82, linkDistance: 54, autoRotate: false }
 
-export function wireStyle() {
+export function wireModelStyle() {
   return { ...preset('ink'), route: 'straight', opacity: 0.9, fill: 0.95, artwork: false, grid: false, labels: 'focus', alternateSide: true,
     nodes: {
       porcelain: { color: '#e9d9b9', shape: 'circle' }, terracotta: { color: '#d9824f', shape: 'circle' },
@@ -15,5 +15,5 @@ export function wireStyle() {
 }
 
 export function mountWireStudy(canvas, data) {
-  return createGraph(canvas, { ...data, mode: 'cloud', sim: 'main', theme: makeTheme(wireStyle()), layout: { ...wireForces, anchor: wireAnchor } })
+  return createGraph(canvas, { ...data, mode: 'cloud', sim: 'main', theme: makeTheme(wireModelStyle()), layout: { ...wireForces, anchor: wireAnchor } })
 }

@@ -18,7 +18,7 @@ import { Grouping, useGrouping } from './grouping'
 import { Splitter } from './splitter'
 import { DrillControls, DrillTrail, detailOptions, navigationDefaults } from './drilldown-controls'
 import { artURL, fetchGraphFile, homeURL, modelURL, settingsSections } from '../site'
-import { wireAnchor, wireForces, wireStyle } from './wire-study'
+import { wireAnchor, wireForces, wireModelStyle } from './wire-study'
 
 const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas'], ['model', 'Wire model'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
 const modes = ['Drift', 'Lanes', 'Orbit', 'Cloud']
@@ -173,7 +173,7 @@ function Workbench({ sample }) {
       setMode('cloud')
       setPacked(false)
       setEncoding(initialEncoding)
-      setStyle(wireStyle())
+      setStyle(wireModelStyle())
       grouping.setActive('kind')
       setSettings((old) => ({ ...old, ...wireForces }))
     }
