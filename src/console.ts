@@ -55,7 +55,7 @@ export function mountConsoleGraph<N extends GraphNode, E extends GraphLink, Lega
   graph: { nodes: readonly N[]; edges: readonly E[] },
   enabled: boolean,
   legacy: (canvas: HTMLCanvasElement, graph: { nodes: readonly N[]; edges: readonly E[] }) => Legacy,
-  options: Omit<GraphOptions, keyof GraphData> = {},
+  options: Omit<GraphOptions<N, E>, keyof GraphData> = {},
 ) {
   if (!enabled) return legacy(canvas, graph)
   return createGraph(canvas, {

@@ -61,7 +61,7 @@ test('rounded group boundaries enclose projected discs and track movement, inclu
 
 test('Orbit picks the hub, sorts neighbours into concentric rings, and re-centres on selection', () => {
   const nodes = [{ id: 'leaf' }, { id: 'hub', x: 35, y: -20, pinned: false }, { id: 'arm' },
-    { id: 'far' }, { id: 'spare', x: 500, y: 200 }, { id: 'other' }]
+    { id: 'far' }, { id: 'spare', x: 500, y: 200, degree: 999 }, { id: 'other' }]
   const links = [['hub', 'leaf'], ['arm', 'hub'], ['arm', 'far'], ['hub', 'other']].map(([source, target]) => ({ source, target }))
   const model = prepare({ nodes, links }, parchment, 'orbit'), targets = orbitTargets(model, -1, 90)
   const radius = (values: Float32Array, stride: number, i: number, centre: number) =>

@@ -18,8 +18,14 @@ export interface GraphAnnotations {
 const ns = 'http://www.w3.org/2000/svg'
 const badge = 'position:absolute;box-sizing:border-box;background:var(--loom-overlay-bg,#242824);color:var(--loom-overlay-ink,#f4f4eb);font:12px/1.4 var(--loom-overlay-font,system-ui,sans-serif);border:1px solid #8887;border-radius:5px;'
 
+function validate(options: AnnotationOptions) {
+  const padding = options.padding ?? 9
+  if (!Number.isFinite(padding) || padding < 0) throw new RangeError('Invalid bubble padding.')
+}
+
 /** The host should cover the canvas in the same CSS-pixel coordinate space. */
 export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host: HTMLElement, index: TaxonomyIndex, options: AnnotationOptions = {}): GraphAnnotations {
+  validate(options)
   const doc = host.ownerDocument
   const root = doc.createElement('div')
   root.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;'
@@ -99,8 +105,6 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
     positionTooltip(view)
   }
   function configure() {
-    const padding = options.padding ?? 9
-    if (!Number.isFinite(padding) || padding < 0) throw new RangeError('Invalid bubble padding.')
     svg.replaceChildren()
     paths = []
     for (const group of index.groups) {
@@ -147,7 +151,13 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   }
   return {
     setIndex(next) { if (!destroyed) { index = next; configure() } },
-    setOptions(next) { if (!destroyed) { options = { ...options, ...next }; configure() } },
+    setOptions(next) {
+      if (destroyed) return
+      const updated = { ...options, ...next }
+      validate(updated)
+      options = updated
+      configure()
+    },
     destroy,
   }
 }

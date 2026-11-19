@@ -262,7 +262,11 @@ export async function orbitTransport(transport) {
   const g = createGraph(c, { ...data, sim: transport === 'main' ? 'main' : 'worker', mode: 'orbit',
     layout: { blend: 0.35, orbitGap: 75 } })
   const index = compileTaxonomies(data, { taxonomies: [{ id: 'kind', label: 'Kind', by: 'kind' }] })
-  attachAnnotations(g, host, index, { bubbles: { kind: true }, laneTaxonomy: 'kind' })
+  const layer = attachAnnotations(g, host, index, { bubbles: { kind: true }, laneTaxonomy: 'kind' })
+  try {
+    layer.setOptions({ padding: -1 })
+    throw Error('Accepted invalid bubble padding')
+  } catch (error) { check(error instanceof RangeError, 'Missing padding validation') }
   await until(() => g.stats().simTicks >= 32 && !g.stats().pendingFrame, 'Blended orbit never settled')
   function distance(a, b) {
     const p = g.getPosition(a), q = g.getPosition(b)
@@ -271,6 +275,8 @@ export async function orbitTransport(transport) {
   check(g.stats().transport === transport && Math.abs(distance('lead', 'right') - 75) < 15 &&
     distance('lead', 'end') > 124, 'Blended orbit lost its rings on ' + transport)
   const before = g.stats()
+  const boundary = host.querySelector('[data-bubble="item"]').getAttribute('d')
+  check(boundary.endsWith('Z') && !boundary.includes('NaN'), 'Invalid options damaged the active outline')
   await delay(100)
   check(!g.stats().pendingFrame && before.frames === g.stats().frames, 'Annotations woke a sleeping simulation')
   g.setLayout({ blend: 1 })

@@ -2,12 +2,14 @@ import type { Model } from '../model.js'
 
 /** A selected or highest-degree centre, two neighbourhood rings, then the remaining nodes. */
 export function orbitTargets(model: Model, selected: number, gap = 80) {
-  const { n, degree, endpoints, positions, byId } = model
+  const { n, endpoints, positions, byId } = model
   const targets = new Float32Array(n * 3)
   if (!n) return targets
   const ids = [...byId.keys()]
   let centre = selected
   if (centre < 0) {
+    const degree = new Uint32Array(n)
+    for (const endpoint of endpoints) degree[endpoint]++
     centre = 0
     for (let i = 1; i < n; i++) {
       if (degree[i] > degree[centre] || (degree[i] === degree[centre] && ids[i] < ids[centre])) centre = i
