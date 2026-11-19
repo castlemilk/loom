@@ -1,0 +1,260 @@
+{
+  "browser": "157.0.8103.79",
+  "startup": [
+    {
+      "submit": 21.020000100135803,
+      "returned": 21.794999957084656,
+      "paint": 21.990000009536743,
+      "present": 40.454999923706055,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)"
+    },
+    {
+      "submit": 13.399999976158142,
+      "returned": 14.105000019073486,
+      "paint": 14.275000095367432,
+      "present": 28.24500000476837,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)"
+    },
+    {
+      "submit": 13.43999993801117,
+      "returned": 14.164999961853027,
+      "paint": 14.355000019073486,
+      "present": 28.644999980926514,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)"
+    },
+    {
+      "submit": 23.929999947547913,
+      "returned": 24.679999947547913,
+      "paint": 24.87000000476837,
+      "present": 36.84499990940094,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)"
+    },
+    {
+      "submit": 13.644999980926514,
+      "returned": 14.339999914169312,
+      "paint": 14.524999976158142,
+      "present": 27.774999976158142,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)"
+    },
+    {
+      "submit": 11.580000042915344,
+      "returned": 12.259999990463257,
+      "paint": 12.434999942779541,
+      "present": 27.259999990463257,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)"
+    },
+    {
+      "submit": 15.09500002861023,
+      "returned": 15.774999976158142,
+      "paint": 15.960000038146973,
+      "present": 36.00499999523163,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)"
+    }
+  ],
+  "clearOnly": [
+    {
+      "submit": 5.235000014305115,
+      "present": 20.5
+    },
+    {
+      "submit": 4.90500009059906,
+      "present": 20.12000000476837
+    },
+    {
+      "submit": 5.575000047683716,
+      "present": 19.18500006198883
+    }
+  ],
+  "evaluation": {
+    "evaluationMs": 0.059999942779541016,
+    "moduleLoadMs": 4.010000109672546
+  },
+  "settlement": {
+    "frameZeroTicks": 0,
+    "ticks": 32,
+    "settledMs": 295.2099999189377
+  },
+  "throughput": [
+    {
+      "nodes": 5000,
+      "links": 20000,
+      "fps": 102.89903747296722,
+      "submitted": 72,
+      "completed": 72,
+      "p95FrameMs": 15.960000000000008,
+      "drawCalls": 3,
+      "dpr": 1,
+      "labels": 100
+    },
+    {
+      "nodes": 25000,
+      "links": 100000,
+      "fps": 118.21980673049656,
+      "submitted": 72,
+      "completed": 72,
+      "p95FrameMs": 9.789999999999964,
+      "drawCalls": 3,
+      "dpr": 1,
+      "labels": 89
+    }
+  ],
+  "consoleThroughput": [
+    {
+      "nodes": 5000,
+      "links": 20000,
+      "fps": 118.85993510357262,
+      "submitted": 72,
+      "completed": 72,
+      "p95FrameMs": 9.440000000000055,
+      "drawCalls": 4,
+      "dpr": 1,
+      "labels": 104
+    },
+    {
+      "nodes": 25000,
+      "links": 100000,
+      "fps": 118.10151809752092,
+      "submitted": 72,
+      "completed": 72,
+      "p95FrameMs": 9.884999999999991,
+      "drawCalls": 4,
+      "dpr": 1,
+      "labels": 91
+    }
+  ],
+  "input": {
+    "maxMs": 4.004999995231628,
+    "samples": 24,
+    "ticks": 2
+  },
+  "idle": {
+    "firstSubmitMs": 11.794999957084656,
+    "frameZeroDraws": 2,
+    "inkedPixels": 3172,
+    "idleFrames": 0,
+    "idleTicks": 0,
+    "idleCallbacks": 0
+  },
+  "codecs": {
+    "nodes": 25000,
+    "links": 100000,
+    "protoMs": 57.329999923706055,
+    "jsonMs": 26.65499997138977,
+    "protoBytes": 2802204,
+    "jsonBytes": 6721838
+  },
+  "memory": {
+    "jsAndBacking": 11217542,
+    "buffers": 1141080,
+    "textures": 21372936,
+    "framebuffer": 4915200,
+    "total": 38646758
+  },
+  "failures": [
+    "1k first draw submission exceeds 10 ms",
+    "1k first canvas presentation exceeds 10 ms"
+  ],
+  "errors": [],
+  "date": "2026-11-19",
+  "environment": {
+    "platform": "macOS",
+    "gpu": "Apple M2 Max",
+    "canvasCssPixels": [
+      960,
+      640
+    ],
+    "devicePixelRatio": 1,
+    "startup": "Seven fresh Chromium contexts in the same browser process. Each document contained only the graph canvas.",
+    "throughput": "72 completed GPU frames during camera movement of positioned nodes. The console preset adds kind-specific wires, a grid and lane guides."
+  },
+  "functional": {
+    "lifecycle": {
+      "firstSubmitMs": 405.3949999809265,
+      "frameZeroDraws": 2,
+      "inkedPixels": 3172,
+      "idleFrames": 0,
+      "idleTicks": 0,
+      "idleCallbacks": 0
+    },
+    "contextAndArt": true,
+    "styledGeometry": {
+      "horizontalPatch": 1060,
+      "verticalPatch": 1080,
+      "straight": 1026,
+      "arc": 1072,
+      "overriddenWire": 1540
+    },
+    "dragPin": true,
+    "workershared": {
+      "transport": "shared",
+      "ticks": 44
+    },
+    "hybridmain": {
+      "transport": "main",
+      "anchorCalls": 3,
+      "ticks": 32,
+      "drawCalls": 4
+    },
+    "hybridshared": {
+      "transport": "shared",
+      "anchorCalls": 3,
+      "ticks": 32,
+      "drawCalls": 4
+    },
+    "golden": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "workerTransfer": {
+      "transport": "transfer",
+      "ticks": 34
+    },
+    "hybridTransfer": {
+      "transport": "transfer",
+      "anchorCalls": 3,
+      "ticks": 32,
+      "drawCalls": 4
+    },
+    "studio": {
+      "offline": {
+        "full": "508 nodes · 746 links",
+        "structure": "100%",
+        "linkWidth": 8,
+        "mobile": {
+          "canvas": 375,
+          "overflow": false
+        }
+      },
+      "served": {
+        "full": "508 nodes · 746 links",
+        "structure": "100%",
+        "linkWidth": 8,
+        "mobile": {
+          "canvas": 375,
+          "overflow": false
+        }
+      }
+    },
+    "errors": []
+  },
+  "bundle": {
+    "index": {
+      "gzipBytes": 20676,
+      "sha256": "a2016fb7b2745de3a5f0ead83298dfcd480fca09ccdf2312259a7d265ab0cd50"
+    },
+    "layout-worker": {
+      "gzipBytes": 3269,
+      "sha256": "68cd9f9b53a3bce960b57a1394b8b87be405723febfb5d721eb3d8abd2c22763"
+    }
+  }
+}

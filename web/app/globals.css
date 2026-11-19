@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@import "../../demo/studio.css" layer(components);
+@source "./";
+
+@theme {
+  --color-paper: #f0eee6;
+  --color-graphite: #272920;
+  --color-rust: #b44a26;
+}

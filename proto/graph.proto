@@ -1,0 +1,27 @@
+syntax = "proto3";
+package loom.v1;
+
+message Graph {
+  repeated GNode nodes = 1;
+  repeated GLink links = 2;
+}
+
+message GNode {
+  string id = 1;
+  string label = 2;
+  string kind = 3;
+  // Presence matters: an explicit zero is a coordinate, an absent one is seeded.
+  optional float x = 4;
+  optional float y = 5;
+  optional float z = 6;
+  string art = 7;
+  uint32 degree = 8;
+  // Absent preserves the original coordinate-based pinning rule.
+  optional bool pinned = 9;
+}
+
+message GLink {
+  string source = 1;
+  string target = 2;
+  string kind = 3;
+}

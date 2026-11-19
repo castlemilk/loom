@@ -1,0 +1,47 @@
+{
+  "name": "loom-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An instanced WebGL2 graph renderer with a sleeping force layout",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "proto",
+    "README.md",
+    "benchmarks/m2-max.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./console": {
+      "types": "./dist/console.d.ts",
+      "import": "./dist/console.js"
+    },
+    "./layout-worker.js": "./dist/layout-worker.js"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs && tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/unit.mjs",
+    "test:browser": "node scripts/browser.mjs",
+    "bench": "node scripts/browser.mjs --bench",
+    "size": "node scripts/size.mjs",
+    "dev": "node scripts/serve.mjs",
+    "demo:build": "node scripts/build-studio.mjs",
+    "site:dev": "npm --prefix web run dev",
+    "site:build": "npm --prefix web run build",
+    "test:site": "node scripts/test-site.mjs",
+    "prepack": "npm run build && npm run size"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "playwright": "1.60.0",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
