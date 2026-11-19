@@ -213,6 +213,8 @@ Open **Optics** in the legend or click the space between its nodes in the [Secti
 
 In **Explore**, **Open a group** switches between in-place expansion, an isolated group with its internal links, and disabled navigation. **Drilldown settings** lets you choose the node actions, bubble gesture, open boundary, member arrangement, spacing, expansion strength and detail layout. The group buttons also work with a keyboard. Search finds nodes in the current view.
 
+The release includes captures from the same browser interaction tests. [Desktop overview](https://castlemilk.github.io/loom/previews/atlas-desktop.png) · [Expanded desktop group](https://castlemilk.github.io/loom/previews/atlas-desktop-expanded.png) · [Expanded mobile group](https://castlemilk.github.io/loom/previews/atlas-mobile-expanded.png)
+
 | Library option | Behavior |
 | --- | --- |
 | `selectAction`, `openAction` | Choose `inspect`, `focus`, `neighbors` or `group`, globally or per node. Supply `groupFor(node)` for the group action. |
@@ -380,6 +382,8 @@ const renderer = mountConsoleGraph(canvas, knowledgeGraph, useLoom, mountLegacyC
 With the flag enabled, the adapter reads the host’s inherited `--kg-ink`, `--kg-dim` and six `--kg-<kind>` colours, and uses the console layout at 25% structure with temporary dragging. If the host switches colour schemes, call `graph.setTheme(readConsoleTheme(canvas))` on the Loom handle. The host supplies its feature flag and existing canvas mount function. Mount a fresh canvas when changing renderer type, since browsers associate a canvas with its first context type. The host owns its panels, links, picker and other DOM controls. Framework wrappers and activation in the console application are follow-up milestones.
 
 ## Verification
+
+`npm run bench:contours` measures boundary CPU time for 25,000 projected nodes in 32 groups. It reports the median, p95 and number of rebuilt paths over 100 frames for a single moving group and for movement across every group. Selection-only paints reuse existing paths.
 
 ```sh
 npm run build

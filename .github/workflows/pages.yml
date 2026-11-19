@@ -41,6 +41,8 @@ jobs:
           path: artifacts/studio/
           if-no-files-found: ignore
           retention-days: 5
+      - name: Include the tested desktop and mobile views
+        run: cp -R artifacts/studio web/out/previews
       - run: printf '%s\n' "$GITHUB_SHA" > web/out/revision.txt
       - uses: actions/upload-artifact@v4
         with:

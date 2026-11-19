@@ -43,6 +43,7 @@ export class Interaction {
     private actions: Actions,
   ) {
     const opts = { signal: this.#abort.signal }
+    let clickNode: number | undefined
     const position = (e: MouseEvent) => {
       const b = canvas.getBoundingClientRect()
       return { x: e.clientX - b.left - canvas.clientLeft, y: e.clientY - b.top - canvas.clientTop }
@@ -51,6 +52,7 @@ export class Interaction {
       'pointerdown',
       (e) => {
         if (e.button !== 0) return
+        clickNode = undefined
         const p = position(e)
         canvas.focus({ preventScroll: true })
         this.#vx = this.#vy = 0
@@ -126,7 +128,10 @@ export class Interaction {
       if (!last) return
       this.#points.delete(e.pointerId)
       if (!this.#points.size) {
-        if (!cancel && !this.#dragged) actions.select(this.#node)
+        if (!cancel && !this.#dragged) {
+          clickNode = this.#node
+          actions.select(this.#node)
+        }
         if (cancel || e.timeStamp - last.time > 90 || actions.reduced()) this.#vx = this.#vy = 0
         this.#releaseTime = performance.now()
         this.#releaseNode(!cancel && actions.pinOnDrag())
@@ -139,9 +144,10 @@ export class Interaction {
     canvas.addEventListener('pointercancel', (e) => release(e, true), opts)
     canvas.addEventListener('lostpointercapture', (e) => release(e, true), opts)
     canvas.addEventListener('click', (e) => {
-      if (this.#dragged || e.button || !e.detail || e.detail > 2) return
-      const point = position(e), node = actions.pick(point.x, point.y, e.pointerType === 'touch')
-      if (node < 0 || e.detail === 2) actions.open(node, { ...point, clicks: e.detail })
+      const node = clickNode
+      clickNode = undefined
+      if (node === undefined || e.button || !e.detail || e.detail > 2) return
+      if (node < 0 || e.detail === 2) actions.open(node, { ...position(e), clicks: e.detail })
     }, opts)
     canvas.addEventListener(
       'pointerleave',
