@@ -83,7 +83,7 @@ test('performance monitoring resolves async GPU queries, reports disjoint and un
       while (!check()) { assert.ok(performance.now() < deadline); await new Promise((r) => setTimeout(r, 20)) }
     }
     draw()
-    const eventStart = performance.now() + 10
+    const eventStart = Math.ceil(performance.now()) + 10
     probe.sample(eventStart, 2, 0, true)
     probe.sample(eventStart + 16, 2, 0, true)
     probe.sample(eventStart + 32, 2, 0, true)
