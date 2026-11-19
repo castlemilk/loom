@@ -237,7 +237,8 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     const easing = camera.step(reduced),
       moving = momentum || easing || spin
     if (moving || lastMoving) gridDirty = true
-    const painted = dirty || gridDirty || uploadNeeded
+    const flowing = options.wireProgram?.step(elapsed || dt, selected, reduced) ?? false
+    const painted = dirty || gridDirty || uploadNeeded || flowing
     if (painted) {
       ensureGrid()
       probe?.beginDraw(gl!)
@@ -250,9 +251,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       frames++
       dirty = false
       if (observers.size) {
-        const { width, height, zoom } = camera, vertical = forces.vertical
-        const view = { points: grid.projected, projectionVersion, width, height, zoom, yaw: camera.yaw, pitch: camera.pitch, mode: camera.mode, vertical,
-          lanes: model.laneMap.offsets, laneOrigin: vertical ? height / 2 - camera.y * zoom : width / 2 - camera.x * zoom }
+        const view = getFrame()
         for (const observer of observers) observer(view)
       }
     }
@@ -260,9 +259,15 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     const work = performance.now() - begin
     probe?.sample(time, work, elapsed, painted)
     if (resolution.sample(work, elapsed, time)) sizeDirty = true
-    const more = moving || sizeDirty || sim.needsFrame
+    const more = moving || sizeDirty || sim.needsFrame || flowing
     lastTime = more ? time : 0
     return more
+  }
+  function getFrame(): GraphFrame {
+    ensureGrid()
+    const { width, height, zoom, yaw, pitch, mode } = camera, vertical = forces.vertical
+    return { points: grid.projected, projectionVersion, width, height, zoom, yaw, pitch, mode, vertical,
+      lanes: model.laneMap.offsets, laneOrigin: vertical ? height / 2 - camera.y * zoom : width / 2 - camera.x * zoom }
   }
   function choose(i: number) {
     if (dead || selected === i) return
@@ -368,6 +373,8 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     }
   }
   return {
+    getFrame,
+    invalidate: repaint,
     onTiming(next) {
       if (probe) throw new Error('This graph already has a timing probe')
       if (!dead) { probe = next; repaint() }

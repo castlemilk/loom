@@ -14,6 +14,9 @@ import { CloudCompass, PerfPanel } from './perf-panel'
 import { Check, Color, InspectorSection, Range, Select } from './fields'
 import { useDocument } from './editor-document'
 import { DocumentComposer, EditorToolbar, NodeProperties } from './editor-tools'
+import { defaultWireEffects } from '../../dist/wires.js'
+import { WireControls } from './wire-controls'
+import { WirePreview } from './wire-preview'
 import { kindOrder, makeTheme, marker, palettes as themePresets, patterns, preset } from './appearance'
 import { useGraph } from './use-graph'
 import { Grouping, useGrouping } from './grouping'
@@ -49,6 +52,8 @@ function Workbench({ sample }) {
   const [custom, setCustom] = useState(null)
   const [tool, setTool] = useState(null), [editingLink, setEditingLink] = useState(null)
   const [placementPoint, setPlacementPoint] = useState(null)
+  const [wireEnds, setWireEnds] = useState(null)
+  const [wireEffects, setWireEffects] = useState(defaultWireEffects)
   const [editNotice, setEditNotice] = useState('')
   const pendingView = useRef(null)
   const retainedScene = useRef(null)
@@ -134,7 +139,7 @@ function Workbench({ sample }) {
   const engine = physics === 'worker' || physics === 'main' ? physics : undefined
   const effective = useMemo(() => drill.resolveLayout(mode, overviewLayout), [drill, mode, overviewLayout, snapshot.path, snapshot.options])
   const scopeKey = JSON.stringify(snapshot.path.map(({ kind, id, taxonomy, action }) => [kind, id, taxonomy, action]))
-  const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill, source, scopeKey, retainedScene)
+  const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill, source, scopeKey, retainedScene, wireEffects)
   useEffect(() => {
     if (tool !== 'node' || !view.instance) return
     return view.instance.on('backgroundclick', ({ x, y }) => {
@@ -199,6 +204,7 @@ function Workbench({ sample }) {
       catch (error) { setEditNotice(error.message); return }
     }
     setPlacementPoint(null)
+    setWireEnds(null)
     setEditingLink(link)
     setTool(next)
     setEditNotice('')
@@ -289,6 +295,7 @@ function Workbench({ sample }) {
       }
       if (example === 'wires') {
         requestedGroup.current = 'Materials'
+        setWireEffects({ ...defaultWireEffects, direction: 'flow', scope: 'all', separation: 22 })
         grouping.setBubblesVisible(false)
         setEncoding((old) => ({ ...old, widths: [1, 5] }))
         setStyle((old) => ({ ...old, route: 'arc', wires: {
@@ -355,6 +362,8 @@ function Workbench({ sample }) {
           <div ref={view.underlay} className="graph-boundaries" aria-hidden="true" />
           <canvas id="graph" ref={view.canvas} aria-describedby={[level.kind !== 'overview' && 'drill-location', selected && 'selection'].filter(Boolean).join(' ') || undefined}
             aria-label={effective.mode === 'cloud' ? '3D graph. Drag empty space or use arrow keys to orbit. Drag a node to move it. Enter opens the selection.' : 'Knowledge graph. Drag a node to move it. Arrow keys pan, plus and minus zoom. Enter opens the selection.'} />
+          {tool === 'link' && <WirePreview graph={view.instance} canvas={view.canvas} nodes={data.nodes}
+            ends={wireEnds} route={style.route} accent={theme.accent} background={theme.bg}/>}
           <div ref={view.layer} className="graph-annotations" style={{ '--loom-overlay-bg': theme.bezel, '--loom-overlay-ink': theme.ink }} />
         </div>
         <div id="legend" className="legend" role="group" aria-label={grouping.active.label} hidden={effective.mode === 'lanes' || singleGroupView} style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
@@ -386,7 +395,7 @@ function Workbench({ sample }) {
       <Splitter />
       <SettingsTabs>
         <DocumentComposer tool={tool} link={editingLink} model={model} point={placementPoint} clearPoint={() => setPlacementPoint(null)}
-          selectedId={view.selected} run={editDocument} close={closeTool}/>
+          selectedId={view.selected} run={editDocument} close={closeTool} onEndpoints={setWireEnds}/>
         {editNotice && <output className="document-status" aria-live="polite">{editNotice}</output>}
         {selected && <section className="selection" aria-label="Selected node">
           <InspectorSection key={selected.id} title={<span id="selection" aria-live="polite">{description?.title ?? selected.id}</span>} value={view.pinned ? 'Pinned' : selected.kind || 'Node'} initialOpen className="selected-object">
@@ -442,6 +451,7 @@ function Workbench({ sample }) {
           <Select id="theme" label="Theme" options={palettes} value={style.name} onChange={(v) => setStyle(preset(v))} />
           <Select id="route" label="Wires" options={routes} value={style.route} onChange={(v) => paint('route', v)} />
           <Select id="wire-pattern" label="Wire stroke" options={patterns} value={style.pattern} onChange={(v) => paint('pattern', v)} />
+          <WireControls effects={wireEffects} setEffects={setWireEffects} route={style.route}/>
           <EncodingControls mapped={mapped} onChange={(patch) => setEncoding((old) => ({ ...old, ...patch }))} />
           <InspectorSection title="Style controls" value={routes.find(([key]) => key === style.route)?.[1]} reveal={style.name + '/' + style.route}>
             <Range id="marker-fill" label="Marker fill" min={0} max={100} value={Math.round(100 * (style.fill ?? themePresets[style.name].nodes?.fill ?? 0.38))}

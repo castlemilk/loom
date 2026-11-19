@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
-import { createGraph } from '../../dist/index.js'
+import { createWireGraph } from '../../dist/wires.js'
 import { attachAnnotations } from '../../dist/taxonomy.js'
 import { imageURL } from './workload.mjs'
 
-export function useGraph(data, engine, layout, theme, mode, taxonomy, annotationOptions, drill, source, scopeKey, retainedScene) {
+export function useGraph(data, engine, layout, theme, mode, taxonomy, annotationOptions, drill, source, scopeKey, retainedScene, wireEffects) {
   const canvas = useRef(null)
   const layer = useRef(null)
   const underlay = useRef(null)
@@ -25,8 +25,8 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
     const saved = retainedScene.current
     const restore = saved?.source === source && saved.scopeKey === scopeKey
     const nodes = restore ? dataset.nodes.map((n) => saved.poses.has(n.id) ? { ...n, ...saved.poses.get(n.id) } : n) : dataset.nodes
-    const instance = createGraph(element, {
-      ...dataset, nodes, layout, theme, mode, sim, transparentBackground: true, workerURL: base + '/layout-worker.js',
+    const instance = createWireGraph(element, {
+      ...dataset, nodes, layout, theme, mode, sim, wireEffects, transparentBackground: true, workerURL: base + '/layout-worker.js',
       art: { urlFor: (node) => imageURL(dataset, node, base) },
     })
     try {
@@ -40,7 +40,7 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
       instance.destroy()
       throw error
     }
-    applied.current = { layout, theme, mode, taxonomy, annotationOptions }
+    applied.current = { layout, theme, mode, taxonomy, annotationOptions, wireEffects }
     return instance
   })
 
@@ -91,10 +91,11 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
     if (previous.layout !== layout) current.setLayout(layout)
     if (previous.theme !== theme) current.setTheme(theme)
     if (previous.mode !== mode) current.setMode(mode)
+    if (previous.wireEffects !== wireEffects) current.setWireEffects(wireEffects)
     if (previous.taxonomy !== taxonomy) annotations.current.setIndex(taxonomy)
     if (previous.annotationOptions !== annotationOptions) annotations.current.setOptions(annotationOptions)
-    applied.current = { layout, theme, mode, taxonomy, annotationOptions }
-  }, [layout, theme, mode, taxonomy, annotationOptions])
+    applied.current = { layout, theme, mode, taxonomy, annotationOptions, wireEffects }
+  }, [layout, theme, mode, taxonomy, annotationOptions, wireEffects])
 
   function syncPin() {
     if (selected && graph.current) setPinned(graph.current.getPosition(selected).pinned)

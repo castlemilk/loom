@@ -4,3 +4,4 @@ out/
 public/graphs/
 public/layout-worker.js
 public/editor.schema.json
+public/wire-effects.schema.json

@@ -22,6 +22,11 @@
       "import": "./dist/editor.js"
     },
     "./editor.schema.json": "./dist/editor.schema.json",
+    "./wire-effects.schema.json": "./dist/wire-effects.schema.json",
+    "./wires": {
+      "types": "./dist/wires.d.ts",
+      "import": "./dist/wires.js"
+    },
     "./console": {
       "types": "./dist/console.d.ts",
       "import": "./dist/console.js"

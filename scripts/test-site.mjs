@@ -9,6 +9,7 @@ import { studioDrilldown } from '../tests/studio-drilldown.mjs'
 import { fieldGuide } from '../tests/field-guide.mjs'
 import { studioMenu } from '../tests/studio-menu.mjs'
 import { studioAuthoring } from '../tests/studio-authoring.mjs'
+import { studioWires } from '../tests/studio-wires.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
@@ -44,8 +45,9 @@ try {
   const mobileMenu = await studioMenu(mobile, url, true)
   const desktopEdits = await studioAuthoring(context, url)
   const mobileEdits = await studioAuthoring(mobile, url, true)
+  const wires = await studioWires(context, url)
   await mobile.close()
-  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits })
+  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires })
   const guide = await fieldGuide(context, home)
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)

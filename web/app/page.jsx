@@ -13,7 +13,7 @@ const examples = {
   explore: { name: 'Optics notebook', note: 'Isolate the seven children of the Optics hub and inspect each one.', measure: '8 nodes', href: opticsURL },
   layout: { name: 'Section lanes', note: 'Read four notebooks side by side, then change the direction of their lanes.', measure: '4 lanes', href: studioURL + '?example=lanes' },
   groups: { name: 'Section clouds', note: 'Orbit the atlas and pull a node across its section boundary.', measure: '45 nodes', href: studioURL + '?example=clusters' },
-  style: { name: 'Weighted connections', note: 'Follow citations and replications through the Materials notebook by stroke and weight.', measure: '30 links', href: studioURL + '?example=wires' },
+  style: { name: 'Weighted connections', note: 'Trace citations and replications through the Materials notebook by stroke, weight and direction.', measure: '30 links', href: studioURL + '?example=wires' },
 }
 
 // Static Pages serves the same HTML for every query string. Forward old studio bookmarks before hydration.

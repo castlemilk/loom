@@ -10,6 +10,7 @@ import {
 } from '../dist/index.js'
 import { fixture } from '../demo/fixture.js'
 import { attachAnnotations, compileTaxonomies } from '../dist/taxonomy.js'
+import { createWireGraph } from '../dist/wires.js'
 
 const raf = () => new Promise(requestAnimationFrame)
 const delay = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -51,6 +52,105 @@ function free(c, g) {
   g.destroy()
   c.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext()
   c.remove()
+}
+
+function wireFixture(links, wireEffects = {}) {
+  const c = canvas(400, 220)
+  const g = createWireGraph(c, {
+    nodes: [{ id: 'a', kind: 'point', x: -100, y: 0 }, { id: 'b', kind: 'point', x: 100, y: 0 }],
+    links, wireEffects: { direction: 'none', scope: 'all', ...wireEffects },
+    theme: { ...ink, bg: '#000', bezel: '#000', accent: '#10e8ff', grid: undefined, labels: { visibility: 'none' },
+      nodes: { fill: 1, byKind: { point: { color: '#0000ff', radius: 6 } } },
+      wires: { routing: 'straight', color: '#ff0000', width: 2, opacity: 1 } },
+  })
+  g.setViewport({ ...g.getViewport(), x: 0, y: 0, zoom: 1 })
+  return { c, g }
+}
+export async function wireGeometry() {
+  const forward = { source: 'a', target: 'b' }, reverse = { source: 'b', target: 'a' }
+  const { c, g } = wireFixture([forward, forward, reverse], { separation: 0 })
+  function bands(p) {
+    let count = 0, previous = false
+    for (let y = 0; y < c.height; y++) {
+      const k = (y * c.width + (c.width >> 1)) * 4
+      const lit = p[k] > 120 && p[k+1] < 40
+      if (lit && !previous) count++
+      previous = lit
+    }
+    return count
+  }
+  const merged = bands(await nextPixels(c, g))
+  g.setWireEffects({ separation: 22 })
+  const separated = bands(await nextPixels(c, g))
+  check(merged === 1 && separated === 3, 'Expected three distinct parallel paths: ' + [merged, separated])
+  check(g.stats().drawCalls === 2, 'Multiple wires must share the original draw pass')
+  free(c,g)
+  const heads = []
+  for (const edge of [forward, reverse]) {
+    const { c, g } = wireFixture([edge])
+    const off = await nextPixels(c,g)
+    g.setWireEffects({ direction:'arrow' })
+    const on = await nextPixels(c,g)
+    const gains = [0,0]
+    for (let i = 0; i < on.length; i += 4) {
+      if (on[i] - off[i] > 40) gains[Number((i/4) % c.width >= c.width/2)]++
+    }
+    const targetHalf = Number(edge.target === 'b')
+    check(gains[targetHalf] > 6 && gains[1-targetHalf] === 0, 'Arrowhead must be at the target: ' + gains)
+    heads.push(gains)
+    free(c,g)
+  }
+  const loops = wireFixture(Array.from({ length: 3 }, () => ({ source:'a', target:'a' })), { separation: 20 })
+  const p = await nextPixels(loops.c,loops.g)
+  // WebGL readback starts at the bottom. The first loop arcs above the node.
+  let lower = 0
+  for (let i = 0; i < 4 * loops.c.width * (loops.c.height/2 - 7); i += 4) if (p[i] > 120) lower++
+  check(lower > 15, 'Additional self-connections must fan into another sector')
+  free(loops.c,loops.g)
+  return { merged, separated, heads, loopPixelsBelow: lower }
+}
+
+let mediaFixture
+export async function wireMotion() {
+  const { c, g } = wireFixture([{ source: 'a', target: 'b' }], { direction:'flow', scope:'selected' })
+  mediaFixture = { c, g }
+  await until(() => !g.stats().pendingFrame, 'Unselected wires should sleep')
+  g.select('a')
+  const first = g.stats()
+  await until(() => g.stats().frames >= first.frames + 4, 'Selected flow failed to wake')
+  check(g.stats().simTicks === first.simTicks, 'Flow restarted pinned physics')
+  g.select(null)
+  await until(() => !g.stats().pendingFrame, 'Clearing the selection should sleep')
+  g.setWireEffects({ scope:'all', speed:90 })
+  const a = await nextPixels(c,g)
+  await delay(85)
+  const b = await nextPixels(c,g)
+  const changed = a.reduce((n,value,i) => n + Number(Math.abs(value-b[i]) > 12), 0)
+  check(changed > 12, 'Flow must change actual pixels: ' + changed)
+  g.pause()
+  const paused = g.stats().frames
+  await delay(60)
+  check(g.stats().frames === paused && !g.stats().pendingFrame, 'Paused graph continued to animate')
+  g.resume()
+  await until(() => g.stats().frames > paused, 'Flow failed to resume')
+  return { changedChannels: changed, pausedFrame: paused }
+}
+export async function wireMotionPreference(reduce) {
+  const { c, g } = mediaFixture
+  if (reduce) {
+    await until(() => !g.stats().pendingFrame, 'Live reduced motion must stop the pulse')
+    const staticFlow = await nextPixels(c,g)
+    g.setWireEffects({ direction:'arrow' })
+    const arrow = await nextPixels(c,g)
+    check(arrow.every((v,i) => v === staticFlow[i]), 'Reduced flow must render the static arrow')
+    g.setWireEffects({ direction:'flow' })
+    await until(() => !g.stats().pendingFrame, 'Editing a reduced-motion graph kept it awake')
+  } else {
+    const before = g.stats().frames
+    await until(() => g.stats().frames >= before + 4, 'Restoring motion failed to resume flow')
+    free(c,g)
+    mediaFixture = undefined
+  }
 }
 
 export async function lifecycle() {

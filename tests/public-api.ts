@@ -4,12 +4,20 @@ import { createDrilldown, drilldownGroup, type DrilldownOptions, type GroupView 
 import { observePerformance, type PerformanceSample } from 'loom-core/performance'
 import { clusterLayout, connectedComponents } from 'loom-core/clusters'
 import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
+import { createWireGraph, wireEffectsSchema, type WireEffects } from 'loom-core/wires'
 
 interface Paper extends GraphNode {
   disciplines: readonly string[]
   year: number
 }
 interface Citation extends GraphLink { reviewed: boolean }
+export function mountWires(canvas: HTMLCanvasElement, data: GraphData<Paper, Citation>) {
+  const patch = { direction: 'flow', scope: 'selected', speed: 40 } satisfies Partial<WireEffects>
+  const graph = createWireGraph(canvas, { ...data, wireEffects: patch,
+    theme: { ...ink, wires: { resolve: (edge) => ({ width: edge.reviewed ? 2 : 1 }) } } })
+  graph.setWireEffects({ separation: 24 })
+  return { graph, settings: graph.getWireEffects(), schema: wireEffectsSchema }
+}
 const vocabulary = {
   taxonomies: [
     { id: 'subject', label: 'Discipline', by: 'disciplines' },

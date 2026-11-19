@@ -37,7 +37,7 @@ export class Renderer {
   #hasLabels = false
   #artStarted = false
   #extras = false
-  #scene = new Float32Array(48)
+  #scene = new Float32Array(52)
   #sceneBuffer: WebGLBuffer
   #segments: number
   draws = 0
@@ -61,9 +61,10 @@ export class Renderer {
     const r = (this.#res = new Resources(gl))
     try {
       const nodes = r.program(nodeVertex, nodeFragment),
-        wires = r.program(wireVertex, wireFragment)
+        wires = r.program(options.wireProgram?.vertex ?? wireVertex, options.wireProgram?.fragment ?? wireFragment)
       this.#wire = { p: wires, vao: r.vao() }
       r.attribute(0, 2, gl.UNSIGNED_INT, false, model.endpoints)
+      if (options.wireProgram) r.attribute(3, 2, gl.FLOAT, false, options.wireProgram.slots)
       this.#node = { p: nodes, vao: r.vao() }
       this.#nodeColors = r.attribute(0, 4, gl.UNSIGNED_BYTE, true, model.look.style, true)
       this.#slots = new Uint16Array(model.n)
@@ -194,6 +195,7 @@ export class Renderer {
     scene.set(b, 8)
     scene[12] = selected
     scene[13] = hovered
+    if (this.#options.wireProgram) scene.set(this.#options.wireProgram.parameters, 48)
     gl.bindBuffer(gl.UNIFORM_BUFFER, this.#sceneBuffer)
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, scene)
     const view = ({ p, vao }: Pipeline) => {

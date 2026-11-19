@@ -100,6 +100,8 @@ export interface Theme<N extends GraphNode = GraphNode, E extends GraphLink = Gr
   labels?: { density?: number; visibility?: 'auto' | 'focus' | 'none'; alternateSide?: boolean }
 }
 export interface GraphOptions<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> extends GraphData<N, E> {
+  /** Rendering extension supplied by loom-core/wires. */
+  wireProgram?: WireProgram
   /** Composite marks over a host background, for example an SVG group boundary layer. Set on the canvas's first mount. */
   transparentBackground?: boolean
   mode?: Mode
@@ -109,6 +111,14 @@ export interface GraphOptions<N extends GraphNode = GraphNode, E extends GraphLi
   sim?: 'main' | 'worker'
   workerURL?: string | URL
   reducedMotion?: 'respect' | 'ignore'
+}
+/** @internal One instanced attribute and one uniform vector for optional wire rendering. */
+export interface WireProgram {
+  vertex: string
+  fragment: string
+  slots: Float32Array
+  parameters: Float32Array
+  step(deltaMs: number, selectedIndex: number, reducedMotion: boolean): boolean
 }
 export interface GraphEvents {
   select: string | null
@@ -157,8 +167,12 @@ export interface FrameProbe {
 }
 export interface GraphViewport { x: number; y: number; z: number; zoom: number; yaw: number; pitch: number }
 export interface LoomGraph<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> {
+  /** Request one paint on the existing scheduler. Honors pause, visibility and disposal. */
+  invalidate(): void
   /** Subscribe to actual paints. The first subscription wakes an idle graph once. */
   onFrame(listener: (frame: GraphFrame) => void): () => void
+  /** Read current projected points synchronously, including while the graph is paused. */
+  getFrame(): GraphFrame
   /** Attach an optional timing probe to this graph. Returns its detach function. */
   onTiming(probe: FrameProbe): () => void
   select(id: string | null): void

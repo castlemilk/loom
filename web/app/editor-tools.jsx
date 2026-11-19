@@ -88,10 +88,11 @@ function Endpoint({ name, value, onChange, nodes }) {
   </>
 }
 
-function LinkForm({ model, selectedId, link, run }) {
+function LinkForm({ model, selectedId, link, run, onEndpoints }) {
   const [source, setSource] = useState(link?.source ?? selectedId ?? ''), [target, setTarget] = useState(link?.target ?? '')
   const [kind, setKind] = useState(link?.kind ?? ''), [weight, setWeight] = useState(link?.weight?.toString() ?? '')
   const previous = useRef(selectedId)
+  useEffect(() => { onEndpoints({ source, target }) }, [source, target, onEndpoints])
   useEffect(() => {
     if (!link && selectedId && selectedId !== previous.current) {
       if (!source) setSource(selectedId)
@@ -151,7 +152,7 @@ export function downloadGraph(data) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-export function DocumentComposer({ tool, model, selectedId, link, run, close, point, clearPoint }) {
+export function DocumentComposer({ tool, model, selectedId, link, run, close, point, clearPoint, onEndpoints }) {
   const ref = useRef(null)
   useEffect(() => {
     if (tool) ref.current?.querySelector('input, textarea')?.focus()
@@ -161,7 +162,7 @@ export function DocumentComposer({ tool, model, selectedId, link, run, close, po
     onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); close() } }}>
     <div className="composer-heading"><h2>{{ node: 'New node', link: link ? 'Connection properties' : 'New connection', json: 'JSON commands' }[tool]}</h2>
       <button type="button" aria-label="Close document editor" onClick={close}>×</button></div>
-    {tool === 'node' ? <NodeForm model={model} run={run} point={point} clearPoint={clearPoint}/> : tool === 'link' ? <LinkForm key={link?.id ?? 'new'} model={model} selectedId={selectedId} link={link} run={run}/> : <JsonForm model={model} run={run}/>}
+    {tool === 'node' ? <NodeForm model={model} run={run} point={point} clearPoint={clearPoint}/> : tool === 'link' ? <LinkForm key={link?.id ?? 'new'} model={model} selectedId={selectedId} link={link} run={run} onEndpoints={onEndpoints}/> : <JsonForm model={model} run={run}/>}
   </section>
 }
 

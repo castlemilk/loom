@@ -32,4 +32,5 @@ message GLink {
   string kind = 3;
   optional double weight = 4;
   map<string, double> metrics = 5;
+  optional string id = 6;
 }

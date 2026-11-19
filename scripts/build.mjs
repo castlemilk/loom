@@ -20,17 +20,22 @@ const shaders = {
     plugin.onLoad({ filter: /[/\\]render[/\\]shaders\.ts$/ }, async ({ path }) => {
       const source = await readFile(path, 'utf8')
       const block = /uniform Scene\s*\{\s*vec4 ([^;]+);/.exec(source)[1].split(',').map((s) => s.trim())
-      const names = new Map(block.map((field, i) => [field, 'u' + i]))
+      // Reserve uppercase names so local variables such as v0 cannot collide.
+      const short = (i) => i < 26 ? String.fromCharCode(65 + i) : 'Z' + (i - 26).toString(36)
+      const names = new Map(block.map((field, i) => [field, short(i)]))
       // Attributes have explicit locations and varyings link by name between stages.
       const internal = ['projectNode', 'nodeAt', 'corner', 'pigment', 'details', 'eyeDepth', 'neighbor',
         'ringWidth', 'artIndex', 'wireWidth', 'wireColor', 'tangent', 'normal', 'spacing', 'selected',
-        'hovered', 'segments', 'density', 'bezel', 'accent', 'origin', 'local']
-      internal.forEach((name, index) => names.set(name, 'v' + index.toString(36)))
+        'hovered', 'segments', 'density', 'bezel', 'accent', 'origin', 'local', 'curve', 'depth',
+        'scale', 'side', 'along', 'stroke', 'pattern', 'width', 'alpha', 'phase', 'delta', 'light',
+        'world', 'clip', 'mid', 'bend', 'unit', 'axis', 'far', 'head', 'slot', 'cell', 'edge', 'color', 'dash', 'shaft']
+      internal.forEach((name, index) => names.set(name, short(block.length + index)))
       const contents = source.replace(/`([^`]+)`/g, (_, shader) => {
-        const compact = shader.trim().replace(/\b\w+\b/g, (word) => names.get(word) ?? word)
+        const compact = shader.replace(/\/\/[^\n]*/g, '').trim().replace(/\b\w+\b/g, (word) => names.get(word) ?? word)
           .split(/^\s*(#[^\n]*)$/gm)
           .map((part) => part.startsWith('#') ? '\n' + part.trim() + '\n' :
-            part.replace(/\s+/g, ' ').replace(/\s*([(),;{}=*\/<>])\s*/g, '$1').trim()).join('')
+            part.replace(/\s+/g, ' ').replace(/\s*([(),;{}=*\/<>])\s*/g, '$1')
+              .replace(/\b(\d+)\.0\b/g, '$1.').replace(/\b0\.(\d+)/g, '.$1').trim()).join('')
         return '`\n' + compact + '\n`'
       })
       return { contents, loader: 'ts' }
@@ -51,13 +56,15 @@ const core = await build({ ...options, write: false, entryPoints: { index: 'src/
 await mkdir(options.outdir, { recursive: true })
 // These methods and fields are internal to a single compiled renderer or worker.
 // Keep public options, user records, GPU names and posted message keys intact.
-const internals = /^(?:targetZoom|resetAngle|zoomAt|unproject|project|basis|focal|pan|pickLabel|labelCount|projected|rebuild|draggingNode|startX|startY|advance|configure|settling|needsFrame|wake|suspend|paint)$/
+const internals = /^(?:targetZoom|resetAngle|zoomAt|unproject|project|basis|focal|pan|pickLabel|labelCount|projected|rebuild|draggingNode|startX|startY|advance|configure|settling|needsFrame|wake|suspend|paint|uniformBlock|vao|attribute|texture|upload|place|repel|insert|items|res|ready|actions|camera|model|neighborhood|byId|laneMap|movable|room|uint|finish|string|float|integer|double|limit|metric|skip|bytes)$/
 await Promise.all(core.outputFiles.map(async (file) => {
   const result = await minify(file.text, { ecma: 2022, module: true, compress: { passes: 3 }, mangle: { properties: { regex: internals } } })
   await writeFile(file.path, result.code)
 }))
-await build({ ...options, entryPoints: ['src/console.ts'], external: ['./index.js'] })
+await build({ ...options, entryPoints: ['src/console.ts', 'src/wires.ts'], external: ['./index.js'] })
 await build({ ...options, entryPoints: ['src/taxonomy.ts'] })
 await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts'] })
 const { editorSchema } = await import('../dist/editor.js')
 await writeFile('dist/editor.schema.json', JSON.stringify(editorSchema, null, 2) + '\n')
+const { wireEffectsSchema } = await import('../dist/wires.js')
+await writeFile('dist/wire-effects.schema.json', JSON.stringify(wireEffectsSchema, null, 2) + '\n')

@@ -24,7 +24,7 @@ try {
     const ctx = await browser.newContext({
       viewport: { width: 1024, height: 768 },
       deviceScaleFactor: 1,
-      reducedMotion: bench ? 'no-preference' : 'reduce',
+      reducedMotion: options.motion ?? (bench ? 'no-preference' : 'reduce'),
     })
     const page = await ctx.newPage(),
       errors = []
@@ -42,6 +42,12 @@ try {
         assert.deepEqual(await capture(result.marker), child, 'Opaque overlapping group fills must preserve child marker pixels')
         assert.notDeepEqual(await capture(result.overlap), background, 'The empty space between markers must show the group fills')
         await page.evaluate(() => document.getElementById('finishFixture').click())
+      }
+      if (name === 'wireMotion') {
+        for (const reducedMotion of ['reduce', 'no-preference']) {
+          await page.emulateMedia({ reducedMotion })
+          await page.evaluate(async (reduce) => (await import('/tests/browser-scenarios.mjs')).wireMotionPreference(reduce), reducedMotion === 'reduce')
+        }
       }
       assert.deepEqual(errors, [])
       return result
@@ -68,6 +74,8 @@ try {
       report['orbit-' + transport] = await run('orbitTransport', [transport], { isolated: transport !== 'transfer' })
     }
     report.styledGeometry = await run('styledGeometry')
+    report.wireGeometry = await run('wireGeometry')
+    report.wireMotion = await run('wireMotion', [], { motion:'no-preference' })
     report.dragPin = await run('dragPin')
     report.springMain = await run('springDrag', ['main'])
     report.springShared = await run('springDrag', ['shared'])

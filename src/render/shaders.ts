@@ -5,7 +5,7 @@ vec2 corner() { return vec2(gl_VertexID & 1, (gl_VertexID >> 1) & 1); }
 // or GPU round trips are required to submit the first frame.
 const scene = `
 layout(std140) uniform Scene {
-  vec4 screenData, centerData, basis, stateData, bgData, bezelData, accentData, dimData, wireData, markData, gridData, laneData;
+  vec4 screenData, centerData, basis, stateData, bgData, bezelData, accentData, dimData, wireData, markData, gridData, laneData, effectData;
 };
 #define viewport screenData.xy
 #define origin centerData.xyz
@@ -90,18 +90,20 @@ void main() {
   color = vec4(mix(rgb,bg,details.z*0.74), 1.0-smoothstep(-aa,aa,d));
 }
 `
-export const wireVertex =
+export const wireInputs =
   projection +
   `
 layout(location=0) in uvec2 ends;
 layout(location=1) in vec4 wireColor;
 layout(location=2) in float wireWidth;
 out vec4 pigment;
-out vec4 dash;
-void main() {
+out vec4 dash;`
+export const wireEndpoints = `
   vec4 na=nodeAt(int(ends.x)), nb=nodeAt(int(ends.y));
   vec4 a = projectNode(na), b = projectNode(nb);
   vec2 delta = b.xy-a.xy;
+`
+export const wireControls = `
   vec2 bend = vec2(-delta.y,delta.x) * (((gl_InstanceID & 1)==0 ? 1.0 : -1.0)*0.17);
   vec2 c = a.xy+delta*0.29+bend, d = a.xy+delta*0.71+bend;
   if (wireData.x==1.0) {
@@ -109,7 +111,11 @@ void main() {
     c=laneData.w>0.5 ? vec2(a.x,mid.y) : vec2(mid.x,a.y);
     d=laneData.w>0.5 ? vec2(b.x,mid.y) : vec2(mid.x,b.y);
   } else if (wireData.x==2.0) { c=a.xy+delta/3.0; d=b.xy-delta/3.0; }
+`
+const defaultLoop = `
   if (ends.x==ends.y) { c = a.xy+vec2(-2,-3)*a.z; d = a.xy+vec2(2,-3)*a.z; }
+`
+export const wireCurve = `
   float t = float(gl_VertexID >> 1) / float(segments), s = 1.0-t;
   vec2 curve = s*s*s*a.xy + 3.0*s*s*t*c + 3.0*s*t*t*d + t*t*t*b.xy;
   vec2 tangent = s*s*(c-a.xy) + 2.0*s*t*(d-c) + t*t*(b.xy-d);
@@ -123,7 +129,10 @@ void main() {
   float depth=mix(a.w,b.w,t);
   if (centerData.w>0.5) {
     vec4 p=projectNode(mix(na,nb,t));
-    curve+=p.xy-mix(a.xy,b.xy,t);
+`
+// The enhanced path uses a screen-space cubic for both distance and tangents.
+// Both passes keep the same interpolated scene depth and fog.
+const wireStroke = `
     depth=p.w+0.003;
     float far=smoothstep(-0.38,0.45,depth);
     width*=mix(1.35,0.65,far);
@@ -132,26 +141,99 @@ void main() {
   pigment = vec4(hot ? accent : (styled ? wireColor.rgb : dim), alpha);
   float side = (gl_VertexID & 1)==0 ? -1.0 : 1.0;
   if (hot) width=max(wireData.z,width);
+`
+export const wireVertex = wireInputs + 'void main(){' + wireEndpoints + wireControls + defaultLoop + wireCurve + `curve+=p.xy-mix(a.xy,b.xy,t);` + wireStroke + `
   float along=0.0;
   if (pattern>0.5) along=t*0.5*(length(delta)+length(c-a.xy)+length(d-c)+length(b.xy-d));
   dash=vec4(along,side*width*0.5,width,pattern);
   gl_Position = clip(curve + normal*side*width*0.5, depth);
 }
 `
-export const wireFragment = `
+export const wireFragmentInputs = `
 in vec4 pigment;
 in vec4 dash;
 out vec4 color;
-void main(){
-  color=pigment;
+float strokeMask(){
   if(dash.w>0.5){
     float unit=max(1.5,dash.z);
     float period=(dash.w>1.5 ? 2.6 : 5.0)*unit;
     float phase=abs(mod(dash.x+0.5*period,period)-0.5*period);
     float edge=dash.w>1.5 ? length(vec2(phase,dash.y))-0.5*dash.z : phase-1.5*unit;
-    if(edge>0.5) discard;
-    color.a*=clamp(0.5-edge,0.0,1.0);
+    return clamp(0.5-edge,0.0,1.0);
   }
+  return 1.0;
+}`
+export const wireFragment = wireFragmentInputs + `
+void main(){
+  float coverage=strokeMask();
+  if(coverage<=0.0) discard;
+  color=vec4(pigment.rgb,pigment.a*coverage);
+}`
+// The optional wire entry point shares projection, stroke styles and depth with the default pass.
+export const effectsWireVertex = wireInputs + `
+layout(location=3) in vec2 laneSlot;
+out vec2 arrow;
+float speedAt(float u,vec2 v0,vec2 v1,vec2 v2){
+  return 3.0*length(mix(mix(v0,v1,u),mix(v1,v2,u),u));
+}
+float arcLength(float end,vec2 v0,vec2 v1,vec2 v2){
+  // Three-point Gauss quadrature measures distance along the projected cubic.
+  return end*(0.2777778*(speedAt(0.1127017*end,v0,v1,v2)+speedAt(0.8872983*end,v0,v1,v2))
+    +0.4444444*speedAt(0.5*end,v0,v1,v2));
+}
+void main(){` + wireEndpoints + wireControls + `
+  if(ends.x==ends.y){
+    float angle=laneSlot.x*2.399963;
+    mat2 turn=mat2(cos(angle),sin(angle),-sin(angle),cos(angle));
+    float radius=max(7.0,a.z)+sqrt(laneSlot.x)*effectData.x*0.45;
+    c=a.xy+turn*vec2(-2.0,-3.0)*radius;
+    d=a.xy+turn*vec2(2.0,-3.0)*radius;
+  }else if(laneSlot.y>1.0){
+    if(wireData.x==0.0){ c=a.xy+delta*0.29; d=a.xy+delta*0.71; }
+    vec2 offset=vec2(-delta.y,delta.x)/max(length(delta),0.001)*laneSlot.x*effectData.x*1.3333333;
+    c+=offset;
+    d+=offset;
+  }
+` + wireCurve + wireStroke + `
+  bool marked=effectData.y>0.5 && (effectData.z>0.5 || int(ends.x)==selected || int(ends.y)==selected);
+  float along=0.0, tip=0.0;
+  if(pattern>0.5 || marked){
+    if(wireData.x==2.0 && ends.x!=ends.y && (laneSlot.y<=1.0 || effectData.x==0.0)){
+      along=t*length(delta);
+      tip=length(delta);
+    }else{
+      along=arcLength(t,c-a.xy,d-c,b.xy-d);
+      if(marked) tip=arcLength(1.0,c-a.xy,d-c,b.xy-d);
+    }
+  }
+  tip-=b.z+3.0;
+  float head=min(clamp(6.0+width*1.4,7.0,18.0),tip-a.z-2.0);
+  if(!marked || head<4.0 || width<=0.0) head=0.0;
+  float span=max(0.5*width,head*0.46)+0.8;
+  dash=vec4(along,side*span,width,pattern);
+  arrow=vec2(tip-along,head);
+  gl_Position=clip(curve+normal*side*span,depth);
+}`
+export const effectsWireFragment = scene + wireFragmentInputs + `
+in vec2 arrow;
+void main(){
+  if(dash.z<=0.0 || pigment.a<=0.0) discard;
+  float lateral=abs(dash.y);
+  float shaft=clamp(0.5+0.5*dash.z-lateral,0.0,1.0);
+  float coverage=shaft*strokeMask(), pulse=0.0;
+  if(arrow.y>0.0){
+    float edge=max(max(-arrow.x,arrow.x-arrow.y),lateral-arrow.x*0.46);
+    coverage=max(coverage,clamp(0.5-edge,0.0,1.0));
+    if(effectData.y>1.5 && effectData.w>=0.0){
+      float behind=mod(effectData.w-dash.x,72.0);
+      float dotDistance=length(vec2(min(behind,72.0-behind),dash.y));
+      pulse=max(shaft*(1.0-smoothstep(1.0,14.0,behind))*0.75,
+                clamp(0.5+min(3.5,1.5+0.4*dash.z)-dotDistance,0.0,1.0));
+    }
+  }
+  if(max(coverage,pulse)<=0.0) discard;
+  color=vec4(mix(pigment.rgb,accent,pulse*0.7),
+             max(coverage*pigment.a,pulse*min(1.0,pigment.a*2.5+0.15)));
 }`
 export const labelVertex =
   quad +

@@ -73,14 +73,16 @@ Keep a document session per graph. Subscribe from a UI with `useSyncExternalStor
 
 Authored positions live in node fields `x`, `y`, `z` and `pinned`. The simulation also has transient positions. Read one using `graph.getPosition(id)` and commit a `node.update` to make it part of a document. `graph.screenToWorld(x,y,depth)` converts canvas-local CSS pixels onto a camera-facing plane. Its default depth is zero. `getViewport()` and `setViewport()` round-trip the world centre, zoom, yaw and pitch. The studio preserves the current camera and surviving node positions when editing in the same scope.
 
-The studio keeps named edits for this tab's session. **JSON → Download graph** saves a portable graph JSON file, and **Import graph** reopens it. For services that resume guarded commands across restarts, store the checkpoint with its document ID and revision. A restored checkpoint starts a new undo history. The compact protobuf exporter serves renderer snapshots and omits editor link identities and arbitrary metadata.
+The studio keeps named edits for this tab's session. **JSON → Download graph** saves a portable graph JSON file, and **Import graph** reopens it. For services that resume guarded commands across restarts, store the checkpoint with its document ID and revision. A restored checkpoint starts a new undo history. Protobuf snapshots preserve the renderer's typed fields, including optional link IDs. Use JSON or checkpoints for arbitrary metadata.
+
+The optional `loom-core/wires` renderer orders parallel and reciprocal links by stable document ID and fans out self-loops. Hosts can discover valid visual settings through `wireEffectsSchema`, apply a partial patch with `setWireEffects` and read it back with `getWireEffects`. Visual changes keep the document revision and layout. For a custom connection tool, read `graph.getFrame()` for the initial endpoint positions and subscribe with `graph.onFrame()` until the gesture finishes. The [wire API example](../README.md#draw-and-animate-connections) includes the supported modes, units and defaults.
 
 ## Extension points for larger integrations
 
 | Use case | Available today | Further library surface |
 | --- | --- | --- |
 | Bulk selection and editing | Apply many object operations as one undoable transaction | Marquee hit-testing, a selection set, alignment and distribution |
-| Diagram authoring | Place nodes and connect existing endpoints, including parallel links | Ports, endpoint snapping, waypoints and per-object style overrides |
+| Diagram authoring | Place nodes, preview and snap connections to nodes, trace separated parallel links and animate direction | Named ports, obstacle-aware routes, editable waypoints and per-object style overrides |
 | Shared graph editing | Stable document IDs, optimistic revisions, snapshots and transactional errors | Durable command IDs, idempotent replay, per-client history and conflict resolution |
 | Long-running agents | Schema discovery, bounded reads, previews, explicit errors and checkpoint restore | Incremental change feeds, stable cursors and cancellation |
 | Host integrations | Immutable snapshots, callbacks and schema-based validation | Host-owned authorization, storage adapters, and an HTTP or MCP transport |

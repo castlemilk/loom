@@ -77,6 +77,7 @@ export async function studioAuthoring(context, url, touch = false) {
     await page.waitForFunction(() => document.getElementById('endpoint-To')?.value)
   }
   await form.getByLabel('To', {exact:true}).fill('receiver')
+  await page.locator('.wire-preview[data-active][data-snapped]').waitFor({state:'attached'})
   await form.getByLabel('Relationship').fill('feeds')
   await form.getByLabel('Weight').fill('4')
   await pick(form.getByRole('button', {name:'Create connection'}))

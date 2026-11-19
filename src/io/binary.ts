@@ -107,6 +107,7 @@ export function toBinary(data: GraphData): Uint8Array {
     w.string(26, l.kind)
     w.double(33, l.weight)
     w.metrics(42, l.metrics)
+    w.string(50, l.id, true)
     w.finish(start)
   }
   return w.bytes.slice(0, w.at)
@@ -316,6 +317,7 @@ export function fromBinary(buffer: Uint8Array | ArrayBuffer): {
         else if (field === 26) l.kind = r.string(true)
         else if (field === 33) l.weight = r.double()
         else if (field === 42) r.metric(l)
+        else if (field === 50) l.id = r.string(true)
         else r.skip(field)
       }
       links.push(l)

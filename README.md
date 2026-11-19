@@ -10,6 +10,34 @@ In the [graph studio](https://castlemilk.github.io/loom/studio/), pick **Node** 
 
 For integrations, import `createEditor` from `loom-core/editor`. Discover commands with `describe()`, query nodes or links, preview a revision-guarded batch and read back the result. The [authoring API guide](docs/editor-api.md) covers examples, six operations, undo, checkpoints, viewport coordinates, hosting and extension points. The [transaction schema](https://castlemilk.github.io/loom/editor.schema.json) is machine-readable.
 
+## Draw and animate connections
+
+Open **Style → Connection drawing** in the [weighted connections example](https://castlemilk.github.io/loom/studio/?example=wires#settings-style). Parallel and reciprocal links take separate paths. Self-loops fan around their node. Choose **Arrows** for static direction or **Flow** for a pulse travelling from source to target. Limit the cue to a selected node or show it across the graph. The **Connect** tool previews the path and rings its target before you commit.
+
+```js
+import { createWireGraph } from 'loom-core/wires'
+
+const graph = createWireGraph(document.querySelector('canvas'), {
+  nodes: [{ id: 'reader' }, { id: 'paper' }],
+  links: [{ id: 'cites', source: 'reader', target: 'paper' },
+          { id: 'reviews', source: 'reader', target: 'paper' }],
+  wireEffects: { direction: 'flow', scope: 'selected', separation: 18, speed: 48 },
+})
+graph.select('reader')
+graph.setWireEffects({ direction: 'arrow' })
+```
+
+| Setting | Values | Default |
+| --- | --- | --- |
+| `separation` | 0–96 CSS pixels between adjacent paths at their midpoint | 14 |
+| `direction` | `none`, `arrow`, `flow` | `arrow` |
+| `scope` | `selected` for incoming and outgoing links of the selection, or `all` | `selected` |
+| `speed` | 0–240 CSS pixels per second. Zero holds a static arrow. | 48 |
+
+`getWireEffects()` returns an immutable settings snapshot. `setWireEffects(patch)` validates the whole patch and updates the mounted graph. The [wire settings schema](https://castlemilk.github.io/loom/wire-effects.schema.json) is also exported as `wireEffectsSchema` for tool definitions and form generation. These settings belong to the view. Hosts can persist them alongside their graph document.
+
+Stable link IDs determine the order of parallel paths across input reordering and protobuf round trips. Anonymous links follow input order. Strokes, arrowheads and pulses share one instanced wire draw. Reduced motion displays static arrows. Pausing the graph, hiding the page or moving the canvas offscreen suspends the pulse. The base `createGraph` entry point loads the original wire renderer.
+
 ## Run the studio
 
 Use Node.js 22 or later.
@@ -94,7 +122,7 @@ npm install "https://castlemilk.github.io/loom/packages/$revision/loom-core-0.1.
 | `select(id)`, `select(null)` | Highlight the node, its incident wires and its immediate neighbours, or clear the selection. |
 | `focus(id)`, `fit()`, `reset()` | Centre a node, fit the graph bounds, or clear selection and restore the fitted camera. |
 | `on(event, callback)` | Subscribe to `select`, `hover`, `open`, `modechange` or `destroy`. The return value unsubscribes. Selection and hover deliver a node ID or `null`. |
-| `onFrame(callback)` | Subscribe to painted frames for a custom overlay. Screen positions and radii use CSS pixels in input node order. Copy the borrowed points if you need to retain them across frames. |
+| `getFrame()`, `onFrame(callback)` | Read projected points synchronously, including while paused, or subscribe to paints for a custom overlay. Screen positions and radii use CSS pixels in input node order. Copy the borrowed points to retain them across updates. |
 | `pause()`, `resume()`, `resize()` | Control scheduling and refresh the backing size. Resize and intersection observers handle ordinary layout changes. |
 | `stats()`, `destroy()` | Read frame, tick, label, transport and submission counters, or release listeners, workers, textures, buffers and programs. |
 
