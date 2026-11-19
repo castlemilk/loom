@@ -3,6 +3,10 @@ export async function studio(page, url, openSettings = () => {}) {
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
   const byId = (id) => page.locator('#' + id)
+  async function disclose(label) {
+    const summary = page.locator('summary').filter({ hasText: label })
+    if (!await summary.evaluate((el) => el.parentElement.open)) await summary.click()
+  }
   const check = (ok, message) => {
     if (!ok) throw new Error(message)
   }
@@ -60,12 +64,12 @@ export async function studio(page, url, openSettings = () => {}) {
   await byId('pin').click()
   await byId('pin-drag').uncheck()
   await byId('direction').selectOption('vertical')
-  await page.getByText('Spacing & forces', { exact: true }).click()
+  await disclose('Spacing & forces')
   await byId('lane-gap').focus()
   await byId('lane-gap').press('ArrowRight')
   check((await byId('lane-gap-value').textContent()) === '176', 'Lane spacing control failed')
   await openSettings('Style')
-  await page.getByText('Style controls', { exact: true }).click()
+  await disclose('Style controls')
   await byId('kind').selectOption('lab')
   await byId('shape').selectOption('circle')
   await byId('kind-color').fill('#be45ab')

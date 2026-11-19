@@ -41,6 +41,12 @@ An open group has one unfilled outer contour, an expanded legend button and a br
 
 The Section atlas uses violet for Optics, teal for Acoustics, ochre for Materials and blue for Tides. Short notebook titles keep node labels readable. Its default content-size and link-weight scales reserve visible space between members. Authors can change either scale in Appearance.
 
+## Document tools and contextual controls
+
+The tool strip groups Select, Node, Connect and JSON, with a divider before history. A filled copper treatment marks the active tool. Selecting a node opens its named inspector with editable properties, a kind or pin indicator, and a disclosure listing incident connections. Switching setting tabs folds that card. Changing a layout, taxonomy or quantitative encoding reveals the controls that shape it. Each disclosure pairs a native keyboard-operable summary with its current value and a rotating chevron. A manual collapse lasts until the next relevant change.
+
+On narrow screens the strip occupies a full row. Opening a tool focuses its input and Escape returns to its button. The graph accepts V, N and C for selection, node creation and connection editing. Text inputs keep their own keyboard shortcuts.
+
 ## Runtime ownership
 
 The studio inherits its paper, text, rule, accent and type tokens from `demo/studio.css`. `web/app/globals.css` owns the studio's graph tools, legend and responsive controls. `src/theme.ts` and the studio's theme adapter own graph colour and geometry. `web/app/fields.jsx` owns shared controls. The working interaction examples and typed settings live in the README.

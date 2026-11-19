@@ -71,3 +71,20 @@ export function mountDrilldown(canvas: HTMLCanvasElement, underlay: HTMLElement,
 // @ts-expect-error A numeric field needs a classifier converting its value into a group id.
 const invalid: TaxonomyConfig<Paper> = { taxonomies: [{ id: 'year', label: 'Year', by: 'year' }] }
 void invalid
+
+import { createEditor, restoreEditor, editorSchema, type EditorTransaction } from 'loom-core/editor'
+
+export function authorCatalogue(data: GraphData<Paper, Citation>) {
+  const editor = createEditor(data, { documentId: 'papers', historyLimit: 10 })
+  const { documentId, revision } = editor.describe()
+  const edit = { version: 1, documentId, expectedRevision: revision, operations: [
+    { op: 'node.add', value: { id: 'p2', label: 'Second paper', disciplines: ['Optics'] } },
+    { op: 'link.add', value: { id: 'cite', source: 'p1', target: 'p2', reviewed: true } },
+  ] } satisfies EditorTransaction
+  const preview = editor.preview(edit)
+  if (!preview.ok) return preview.error.code
+  const result = editor.apply(edit)
+  if (result.ok) editor.transact([{ op: 'link.update', id: 'cite', unset: ['reviewed'] }], result.revision)
+  const restored = restoreEditor(editor.checkpoint())
+  return { schema: editorSchema, record: restored.getNode('p2'), links: restored.query({ entity: 'link', incidentTo: 'p2' }) }
+}

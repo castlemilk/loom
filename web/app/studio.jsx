@@ -11,7 +11,9 @@ import { EncodingControls, initialEncoding, useEncodings } from './encodings'
 import { maxNodeSize, minNodeSize, nodeCounts, sizeLabel, stepNodeSize } from '../../demo/node-controls.js'
 import { WorkloadControls } from './workload-controls'
 import { CloudCompass, PerfPanel } from './perf-panel'
-import { Check, Color, Range, Select } from './fields'
+import { Check, Color, InspectorSection, Range, Select } from './fields'
+import { useDocument } from './editor-document'
+import { DocumentComposer, EditorToolbar, NodeProperties } from './editor-tools'
 import { kindOrder, makeTheme, marker, palettes as themePresets, patterns, preset } from './appearance'
 import { useGraph } from './use-graph'
 import { Grouping, useGrouping } from './grouping'
@@ -45,6 +47,11 @@ function Workbench({ sample }) {
   const [workload, setWorkload] = useState({ config: initialWorkload, data: null })
   const [workloadDraft, editWorkload] = useState(initialWorkload)
   const [custom, setCustom] = useState(null)
+  const [tool, setTool] = useState(null), [editingLink, setEditingLink] = useState(null)
+  const [placementPoint, setPlacementPoint] = useState(null)
+  const [editNotice, setEditNotice] = useState('')
+  const pendingView = useRef(null)
+  const retainedScene = useRef(null)
   const [perf, setPerf] = useState(false)
   const [mode, setMode] = useState('drift')
   const [style, setStyle] = useState(() => preset('console'))
@@ -79,7 +86,10 @@ function Workbench({ sample }) {
     return null
   }, [stress, countOption, workload, placement])
   const atlas = useMemo(() => dataset === 'sections' ? sectionAtlas() : null, [dataset])
-  const source = atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : remote.data ?? sample)
+  const input = atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : remote.data ?? sample)
+  const datasetLabel = datasets.find(([key]) => key === dataset)?.[1] ?? (countOption ? formatCount.format(countOption.config.nodes) + ' nodes' : custom?.name ?? 'Graph')
+  const model = useDocument(input, dataset, datasetLabel, setDataset)
+  const source = model.data, origin = model.draft?.origin ?? dataset
   const drill = useMemo(() => createDrilldown(source), [source])
   const snapshot = useSyncExternalStore(drill.subscribe, drill.getSnapshot, drill.getSnapshot)
   const data = useMemo(() => snapshot.data === source ? source : { ...source, ...snapshot.data }, [source, snapshot.data])
@@ -95,12 +105,12 @@ function Workbench({ sample }) {
     return drill.openGroup(drilldownGroup(term, data.nodes))
   }, [drill, data.nodes, level])
   useEffect(() => {
-    drill.setOptions({ selectAction: navigation.selectAction, openAction: navigation.openAction,
+    drill.setOptions({ selectAction: tool === 'link' ? 'inspect' : navigation.selectAction, openAction: navigation.openAction,
       groupAction: navigation.groupAction, groupFor, detail: detailOptions(navigation.detail),
       spread: navigation.spread, arrangement: navigation.arrangement, memberSpacing: navigation.spacing * style.nodeScale,
       expansionBlend: navigation.expansionBlend, neighborhood: { hops: navigation.hops, direction: navigation.direction } })
-  }, [drill, groupFor, navigation, style.nodeScale])
-  const groupEnabled = navigation.groupAction !== 'none'
+  }, [drill, groupFor, navigation, style.nodeScale, tool])
+  const groupEnabled = tool !== 'node' && tool !== 'link' && navigation.groupAction !== 'none'
   const annotations = useMemo(() => ({ ...grouping.annotations, onOpenGroup: groupEnabled ? openTerm : undefined,
     groupGesture: navigation.groupGesture, activeGroup: level.kind === 'group' ? { taxonomy: level.taxonomy, id: level.id, boundary: navigation.boundary,
       shape: level.action === 'expand' && navigation.boundary === 'outline' ? 'hull' : undefined } : undefined }),
@@ -118,17 +128,43 @@ function Workbench({ sample }) {
   const clusters = useMemo(() => packed ? clusterLayout(data.nodes, grouping.laneBy,
     { gap, dimensions: mode === 'cloud' ? 3 : 2, depth: settings.cloudDepth }) : null,
     [packed, data, grouping.laneBy, gap, mode, settings.cloudDepth])
-  const showWireShape = dataset === 'model' && !!remote.data && (mode === 'cloud' || mode === 'drift')
+  const showWireShape = origin === 'model' && (!!remote.data || !!model.draft) && (mode === 'cloud' || mode === 'drift')
   const overviewLayout = useMemo(() => ({ ...settings, anchor: clusters?.anchor ?? (showWireShape ? wireAnchor : null), laneBy: grouping.laneBy, laneOrder: grouping.laneOrder,
-    springsByKind: stress || dataset === 'model' ? undefined : consoleLayout.springsByKind }), [settings, stress, clusters, grouping.laneBy, grouping.laneOrder, dataset, showWireShape])
+    springsByKind: origin === 'stress' || origin.startsWith('count-') || origin === 'model' ? undefined : consoleLayout.springsByKind }), [settings, origin, clusters, grouping.laneBy, grouping.laneOrder, showWireShape])
   const engine = physics === 'worker' || physics === 'main' ? physics : undefined
   const effective = useMemo(() => drill.resolveLayout(mode, overviewLayout), [drill, mode, overviewLayout, snapshot.path, snapshot.options])
-  const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill)
+  const scopeKey = JSON.stringify(snapshot.path.map(({ kind, id, taxonomy, action }) => [kind, id, taxonomy, action]))
+  const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill, source, scopeKey, retainedScene)
+  useEffect(() => {
+    if (tool !== 'node' || !view.instance) return
+    return view.instance.on('backgroundclick', ({ x, y }) => {
+      setPlacementPoint(view.instance.screenToWorld(x, y))
+      document.querySelector('#document-composer input')?.focus({ preventScroll: true })
+    })
+  }, [tool, view.instance])
+  useEffect(() => {
+    const pending = pendingView.current
+    if (!pending || pending.data !== source) return
+    pendingView.current = null
+    for (const level of pending.path.slice(1)) {
+      if (level.kind === 'node') {
+        if (!drill.getSnapshot().data.nodes.some((n) => n.id === level.id)) break
+        drill.openNeighborhood(level.id, { hops: level.hops, direction: level.direction })
+      } else {
+        const term = grouping.root.legend(level.taxonomy).find((g) => g.id === level.id)
+        if (!term || !drill.openGroup(drilldownGroup(term, source.nodes), level.action)) break
+      }
+    }
+    if (pending.selected && model.state && source.nodes.some((n) => n.id === pending.selected)) {
+      if (!drill.getSnapshot().data.nodes.some((n) => n.id === pending.selected)) drill.goTo(0)
+      drill.inspect(pending.selected)
+    }
+  }, [drill, source, grouping.root, model.state])
   const singleGroupView = level.kind === 'group' && level.action === 'isolate' && effective.mode !== 'lanes' &&
     grouping.active.id === level.taxonomy && grouping.groups.length === 1 && grouping.groups[0].id === level.id
   const lastRoute = useRef(null)
   useEffect(() => {
-    if (lastRoute.current?.drill === drill && lastRoute.current.path !== snapshot.path && !document.activeElement?.closest('.member-views')) {
+    if (lastRoute.current?.drill === drill && lastRoute.current.path !== snapshot.path && !document.activeElement?.closest('.member-views, #document-composer')) {
       view.canvas.current?.focus({ preventScroll: true })
     }
     lastRoute.current = { drill, path: snapshot.path }
@@ -157,12 +193,63 @@ function Workbench({ sample }) {
   function paintWire(patch) {
     setStyle((old) => ({ ...old, wires: { ...old.wires, [wire]: { ...old.wires[wire], ...patch } } }))
   }
+  function chooseTool(next, link = null) {
+    if (next) {
+      try { model.editor() }
+      catch (error) { setEditNotice(error.message); return }
+    }
+    setPlacementPoint(null)
+    setEditingLink(link)
+    setTool(next)
+    setEditNotice('')
+  }
+  function closeTool() {
+    document.getElementById('tool-' + tool)?.focus()
+    chooseTool(null)
+  }
+  function retainScene(editor, selectedId) {
+    const next = editor.getSnapshot().data
+    pendingView.current = { data: next, path: snapshot.path, selected: selectedId }
+    const graph = view.graph.current
+    if (!graph) return
+    const visible = new Set(data.nodes.map((n) => n.id)), poses = new Map()
+    for (const old of source.nodes) {
+      if (!visible.has(old.id)) continue
+      const row = editor.getNode(old.id)
+      if (row && ['x', 'y', 'z', 'pinned'].every((key) => old[key] === row[key])) poses.set(old.id, graph.getPosition(old.id))
+    }
+    retainedScene.current = { source: next, scopeKey, poses, viewport: graph.getViewport(), paused: view.paused }
+  }
+  function editDocument(tx, selectedId = snapshot.selected) {
+    const editor = model.editor()
+    const result = model.apply(tx)
+    if (!result.ok) {
+      setEditNotice(result.error.path + ' ' + result.error.message)
+      return result
+    }
+    if (result.changes.length) retainScene(editor, selectedId)
+    if (tool && tool !== 'json') closeTool()
+    setEditNotice(result.changes.length ? 'Saved · revision ' + result.revision : 'Already up to date')
+    return result
+  }
+  function editHistory(action) {
+    if (!model.state) return
+    const editor = model.editor(), result = editor[action](model.state.revision)
+    if (!result.ok) { setEditNotice(result.error.message); return }
+    retainScene(editor, snapshot.selected)
+    if (tool !== 'json') chooseTool(null)
+    setEditNotice((action === 'undo' ? 'Undone' : 'Redone') + ' · revision ' + result.revision)
+  }
   function switchDataset(next) {
+    chooseTool(null)
+    pendingView.current = null
+    retainedScene.current = null
     if (next !== 'stress' && !next.startsWith('count-') && ['fixed', 'seeded'].includes(physics)) setPhysics('auto')
     setDataset(next)
   }
   function pickGraph(value) {
-    if (value === 'model') {
+    const base = model.drafts.find((item) => item.key === value)?.origin ?? value
+    if (base === 'model') {
       setMode('cloud')
       setPacked(false)
       setEncoding(initialEncoding)
@@ -170,7 +257,7 @@ function Workbench({ sample }) {
       grouping.setActive('kind')
       setSettings((old) => ({ ...old, ...wireForces }))
     }
-    if (value === 'sections') {
+    if (base === 'sections') {
       grouping.setActive('section')
       grouping.setBoundary({ shape: 'cloud', padding: 10, fillOpacity: 0.085 })
       grouping.setVisible(true, 'section')
@@ -234,9 +321,12 @@ function Workbench({ sample }) {
     <header className="shrink-0">
       <div className="identity"><a className="wordmark studio-home" href={homeURL} aria-label="Loom field guide"><img src={artURL('loom-mark.svg')} width="20" height="18" alt="" />Loom</a>
         <span className="slash" aria-hidden="true">/</span><h1>Graph studio</h1></div>
+      <EditorToolbar tool={tool} choose={chooseTool} select={() => { chooseTool(null); view.canvas.current?.focus() }}
+        state={model.state} history={editHistory} ready={!remoteURL || !!remote.data}/>
       <label className="dataset">Graph<select id="dataset" value={dataset} onChange={(e) => pickGraph(e.target.value)}>
         {datasets.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         {custom && <option value="custom">{custom.name}</option>}
+        {!!model.drafts.length && <optgroup label="Edited graphs">{model.drafts.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}</optgroup>}
         <optgroup label="Generated node counts">{countOptions.map(({ value, config }) =>
           <option key={value} value={value}>{formatCount.format(config.nodes)} nodes · {formatCount.format(config.nodes * config.degree)} links</option>)}</optgroup>
       </select></label>
@@ -253,7 +343,7 @@ function Workbench({ sample }) {
       </div>
     </header>
     <main className="studio-workspace min-w-0">
-      <section id="studio-stage" className="stage isolate" data-member-detail={singleGroupView || undefined} aria-label="Graph viewport" style={{ backgroundColor: theme.bg }}
+      <section id="studio-stage" className="stage isolate" data-editor-tool={tool} data-member-detail={singleGroupView || undefined} aria-label="Graph viewport" style={{ backgroundColor: theme.bg }}
         onPointerUp={view.syncPin} onPointerCancel={view.syncPin} onKeyDownCapture={(event) => {
           if (event.key === 'Escape' && event.target === view.canvas.current && snapshot.path.length > 1) {
             event.preventDefault(); event.stopPropagation(); drill.back()
@@ -293,6 +383,25 @@ function Workbench({ sample }) {
       </section>
       <Splitter />
       <SettingsTabs>
+        <DocumentComposer tool={tool} link={editingLink} model={model} point={placementPoint} clearPoint={() => setPlacementPoint(null)}
+          selectedId={view.selected} run={editDocument} close={closeTool}/>
+        {editNotice && <output className="document-status" aria-live="polite">{editNotice}</output>}
+        {selected && <section className="selection" aria-label="Selected node">
+          <InspectorSection key={selected.id} title={<span id="selection" aria-live="polite">{description?.title ?? selected.id}</span>} value={view.pinned ? 'Pinned' : selected.kind || 'Node'} initialOpen className="selected-object">
+          <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
+          <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
+            <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
+          {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
+            {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
+              <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Close' : 'Open'} {g.label}</button>)}</div>}
+          <NodeProperties key={JSON.stringify([selected.id, selected.label, selected.kind])} node={selected} model={model} run={editDocument} editLink={(link) => chooseTool('link', link)}/>
+          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
+            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
+            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+          {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
+          {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
+          </InspectorSection>
+        </section>}
         <SettingsPanel id="explore">
           <DrillControls dataset={dataset} snapshot={snapshot} config={navigation} setView={drill.setGroupView}
             inspect={(id, fromSearch) => { drill.inspect(id); if (fromSearch) view.canvas.current?.focus({ preventScroll: true }) }}
@@ -315,13 +424,13 @@ function Workbench({ sample }) {
             <Check id="cloud-rotate" label="Auto-rotate when idle" checked={settings.autoRotate} onChange={(v) => adjust('autoRotate', v)} /></div>}
           <Select id="direction" label="Lane direction" options={directions} value={settings.direction} onChange={(v) => adjust('direction', v)} />
           <Check id="pin-drag" label="Pin nodes after dragging" checked={settings.pinOnDrag} onChange={(v) => adjust('pinOnDrag', v)} />
-          <details><summary>Spacing &amp; forces</summary>
+          <InspectorSection title="Spacing &amp; forces" value={modes.find((m) => m.toLowerCase() === mode)} reveal={mode}>
             <Range id="lane-gap" label="Lane spacing" min={40} max={360} value={settings.laneGap} onChange={(v) => adjust('laneGap', v)} />
             <Range id="row-gap" label="Row spacing" min={16} max={160} value={settings.rowGap} onChange={(v) => adjust('rowGap', v)} />
             <Range id="link-distance" label="Link distance" min={0} max={180} value={settings.linkDistance} onChange={(v) => adjust('linkDistance', v)} />
             <Range id="spring" label="Spring strength" min={0} max={4} step={0.05} value={settings.springStrength} format={times} onChange={(v) => adjust('springStrength', v)} />
             <Range id="repulsion" label="Repulsion" min={0} max={4} step={0.05} value={settings.repulsion} format={times} onChange={(v) => adjust('repulsion', v)} />
-          </details>
+          </InspectorSection>
         </section></SettingsPanel>
         <SettingsPanel id="groups">
           <Grouping level={level} group={grouping} packed={packed} setPacked={enableClusters} gap={gap} setGap={setGap} openTerm={groupEnabled ? openTerm : undefined} />
@@ -332,7 +441,7 @@ function Workbench({ sample }) {
           <Select id="route" label="Wires" options={routes} value={style.route} onChange={(v) => paint('route', v)} />
           <Select id="wire-pattern" label="Wire stroke" options={patterns} value={style.pattern} onChange={(v) => paint('pattern', v)} />
           <EncodingControls mapped={mapped} onChange={(patch) => setEncoding((old) => ({ ...old, ...patch }))} />
-          <details><summary>Style controls</summary>
+          <InspectorSection title="Style controls" value={routes.find(([key]) => key === style.route)?.[1]} reveal={style.name + '/' + style.route}>
             <Range id="marker-fill" label="Marker fill" min={0} max={100} value={Math.round(100 * (style.fill ?? themePresets[style.name].nodes?.fill ?? 0.38))}
               format={percent} onChange={(value) => paint('fill', value / 100)} />
             <Select id="kind" label="Node kind" options={kinds.map((k) => [k, k])} value={kind} onChange={chooseKind} />
@@ -348,22 +457,8 @@ function Workbench({ sample }) {
             <div className="checks"><Check id="artwork" label="Artwork" checked={style.artwork} onChange={(v) => paint('artwork', v)} />
               <Check id="guides" label="Lane guides" checked={settings.guides} onChange={(v) => adjust('guides', v)} />
               <Check id="grid" label="Grid" checked={style.grid} onChange={(v) => paint('grid', v)} /></div>
-          </details>
+          </InspectorSection>
         </section></SettingsPanel>
-        <section className="selection" aria-label="Selected node" hidden={!selected}>
-          <h2 id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</h2>
-          <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
-          <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
-            <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
-          {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
-            {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
-              <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Close' : 'Open'} {g.label}</button>)}</div>}
-          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
-            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
-            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
-          {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
-          {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
-        </section>
         <WorkloadControls data={source} active={stress || dataset === 'custom'} draft={workloadDraft} edit={editWorkload}
           onGenerate={(config, next) => { setWorkload({ config, data: next }); switchDataset('stress') }}
           onLoad={(next, name) => { setCustom({ data: next, name }); switchDataset('custom') }} />

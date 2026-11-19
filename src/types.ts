@@ -19,6 +19,8 @@ export interface GraphNode {
   metrics?: Readonly<Record<string, number>>
 }
 export interface GraphLink {
+  /** Optional stable document identity. The editor assigns IDs to older anonymous links. */
+  id?: string
   source: string
   target: string
   kind?: string
@@ -153,6 +155,7 @@ export interface FrameProbe {
   endDraw(): void
   sample(time: number, mainThreadMs: number, intervalMs: number, painted: boolean): void
 }
+export interface GraphViewport { x: number; y: number; z: number; zoom: number; yaw: number; pitch: number }
 export interface LoomGraph<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> {
   /** Subscribe to actual paints. The first subscription wakes an idle graph once. */
   onFrame(listener: (frame: GraphFrame) => void): () => void
@@ -163,6 +166,10 @@ export interface LoomGraph<N extends GraphNode = GraphNode, E extends GraphLink 
   setMode(mode: Mode): void
   setLayout(options: LayoutOptions<N>): void
   setTheme(theme: Theme<N, E>): void
+  /** Convert canvas CSS pixels to the camera-facing world plane at the given camera depth. */
+  screenToWorld(x: number, y: number, depth?: number): { x: number; y: number; z: number }
+  getViewport(): GraphViewport
+  setViewport(viewport: GraphViewport): void
   getPosition(id: string): { x: number; y: number; z: number; pinned: boolean }
   pin(id: string, position?: { x: number; y: number; z?: number }): void
   unpin(id: string): void

@@ -244,3 +244,78 @@ input, textarea { caret-color: var(--accent); }
   .settings-nav { position: sticky; top: 0; z-index: 2; }
   #studio-controls h2[id^="settings-"] { scroll-margin-block-start: 81px; }
 }
+
+/* Document tools stay together while the settings tabs change underneath. */
+.editor-dock { display: inline-flex; align-items: center; gap: 2px; flex: none; padding: 3px; margin-inline: auto;
+  border: 1px solid var(--rule); background: var(--control-surface); border-radius: 8px; }
+.editor-dock button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 32px;
+  height: 33px; padding: 0 7px; border: 1px solid transparent; border-radius: 5px; color: var(--text);
+  background: transparent; font: inherit; font-size: 12px; font-weight: 580; }
+.editor-dock button[aria-pressed="true"], .editor-dock button[aria-expanded="true"] {
+  background: #f1dfcd; border-color: #d5aa8d; color: #793917; }
+.editor-dock button:not(:disabled):hover { background: #e9e7dd; }
+.editor-dock button:disabled { opacity: .37; cursor: default; }
+.tool-divider { height: 17px; width: 1px; margin-inline: 3px; background: var(--rule); }
+.studio-workspace [data-editor-tool="node"] canvas, .studio-workspace [data-editor-tool="link"] canvas { cursor: crosshair; }
+.inspector-section { margin-top: 11px; border-top: 1px solid var(--rule); }
+.inspector-section > summary { list-style: none; display: flex; align-items: center; gap: 7px; min-height: 40px;
+  margin: 0; padding: 5px 2px; color: var(--text); font-weight: 600; }
+.inspector-section > summary::-webkit-details-marker { display: none; }
+.inspector-section > summary > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.inspector-section > summary > small, .incident-list small { flex: none; max-width: 48%; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font: 10px/1.6 var(--mono); color: #555e50; }
+.inspector-section > summary > i { width: 7px; height: 7px; flex: none; margin: 0 5px 0 3px;
+  border: solid currentColor; border-width: 0 1.6px 1.6px 0; transform: rotate(-45deg); transition: transform 140ms ease; }
+.inspector-section[open] > summary > i { transform: rotate(45deg); color: var(--accent); }
+.inspector-section[open] > summary { margin-bottom: 2px; }
+.inspector-body { padding: 1px 1px 8px; }
+#studio-controls > .selection { padding-block: 8px; }
+.selected-object { margin: 0; border: 0; }
+.selected-object > summary { gap: 7px; }
+.selected-object > summary::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex: none;
+  border: 2px solid var(--accent); background: #f7e6d6; }
+#selection { font-size: 16px; font-weight: 660; line-height: 1.3; letter-spacing: -.025em; }
+.selected-object > summary > small { padding: 0 5px; border: 1px solid #cebda8; border-radius: 3px; color: #6f4630; }
+#studio-controls > .document-composer { padding: 14px 10px 14px 13px; margin-top: 8px;
+  border: 1px solid #c5b29d; border-radius: 5px; background: #f7f2e9; }
+.composer-heading, .editor-meta, .placement, .incident-list > button { display: flex; align-items: center; justify-content: space-between; gap: 7px; }
+#studio-controls .composer-heading h2 { margin: 0; font-size: 16px; }
+.composer-heading { margin-bottom: 10px; }
+.composer-heading button { font-size: 21px; line-height: 1; width: 30px; height: 30px; padding: 0; border: none; background: transparent; }
+.document-composer form, .selection form, .transaction-form { display: grid; gap: 9px; }
+#studio-controls :is(.document-composer,.selection) form label, #studio-controls .transaction-form label {
+  display: grid; gap: 3px; justify-content: stretch; min-width: 0; color: #41483e; font-size: 12px; }
+.document-composer :is(input,textarea), .selection form input { box-sizing: border-box; width: 100%; min-width: 0;
+  padding: 7px 8px; border: 1px solid #b2b4a7; border-radius: 4px; font: inherit; color: var(--text); background: var(--control-surface); }
+.document-composer textarea { font: 11px/1.5 var(--mono); resize: vertical; min-height: 90px; }
+.document-composer p, .incident-list p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.document-composer b { white-space: nowrap; color: var(--text); font: 11px var(--mono); }
+.edit-actions, .editor-pair { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.editor-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(65px, .55fr); }
+.edit-actions button, .document-composer .commit-edit, .placement button { width: fit-content; min-height: 31px; font-size: 12px; }
+:is(.document-composer,.selection) .commit-edit { background: #373f35; border-color: #373f35; color: #faf9f3; }
+:is(.document-composer,.selection) button:disabled { opacity: .48; cursor: default; }
+.editor-meta, .transaction-form output, .placement output, .document-status { font: 11px/1.45 var(--mono); overflow-wrap: anywhere; color: var(--muted); }
+.editor-meta a { color: #803b22; text-decoration: underline; text-underline-offset: 2px; }
+.document-status { display: block; padding-block: 7px 0; color: #394f38; }
+.edit-preview { max-height: 9em; margin: 0; padding: 6px 8px; overflow: auto; background: var(--control-surface); font-size: 11px; overflow-wrap: anywhere; }
+.edit-preview code { color: #793917; }
+.incident-list > button { width: 100%; min-height: 32px; text-align: left; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: transparent; }
+.incident-list > button span { min-width: 0; overflow-wrap: anywhere; }
+@media (min-width: 701px) and (max-width: 1090px) {
+  header:has(.editor-dock) { display: grid; grid-template-columns: auto minmax(0,1fr); padding-block: 6px; row-gap: 5px; }
+  .editor-dock { grid-row: 2; justify-self: start; margin: 0; }
+  header:has(.editor-dock) .dataset { grid-area: 1 / 2; }
+  header:has(.editor-dock) .node-sizing { grid-area: 2 / 2; justify-self: end; grid-template-columns: auto 30px minmax(72px,12vw) 30px auto; }
+}
+@media (max-width: 700px) {
+  .editor-dock { grid-row: 2; grid-column: 1 / -1; width: 100%; justify-content: space-between; margin: 2px 0; }
+  .editor-dock button { min-height: 36px; flex: 1; }
+  header:has(.editor-dock) .dataset { grid-area: 1 / 2; }
+  header:has(.editor-dock) .node-sizing { grid-area: 3 / 1 / 4 / -1; }
+  #document-composer { scroll-margin-top: 78px; }
+}
+@media (prefers-reduced-motion: reduce) { .inspector-section > summary > i { transition: none; } }
+@media (forced-colors: active) {
+  .editor-dock button:is([aria-pressed="true"],[aria-expanded="true"]) { border-color: Highlight; }
+}

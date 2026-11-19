@@ -123,7 +123,13 @@ jobs:
           cd "$consumer_dir"
           node --input-type=module <<'JS'
           import { createGraph } from 'loom-core'
+          import { createEditor, restoreEditor } from 'loom-core/editor'
+          import schema from 'loom-core/editor.schema.json' with { type: 'json' }
           import { observePerformance } from 'loom-core/performance'
+          const editor = createEditor({ nodes: [], links: [] })
+          const { revision } = editor.transact([{ op: 'node.add', value: { id: 'receipt' } }])
+          if (revision !== 1 || !restoreEditor(editor.checkpoint()).getNode('receipt') ||
+              schema.properties.operations.items.oneOf.length !== 6) throw new Error('Published authoring API mismatch')
           import { compileTaxonomies } from 'loom-core/taxonomy'
           if (typeof createGraph !== 'function' || typeof observePerformance !== 'function' ||
               !compileTaxonomies({ nodes: [], links: [] }, { taxonomies: [] }).legend) process.exit(1)

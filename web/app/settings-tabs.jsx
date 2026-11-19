@@ -32,6 +32,7 @@ export function SettingsTabs({ children }) {
 
   function select(id) {
     const hash = '#settings-' + id
+    if (id !== active) controls.current.querySelector('details.selected-object')?.removeAttribute('open')
     if (location.hash !== hash) history.pushState(history.state, '', hash)
     setActive(id)
     revealControls()

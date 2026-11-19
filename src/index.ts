@@ -460,6 +460,26 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       if (!gl!.isContextLost()) render.setTheme(next)
       repaint()
     },
+    screenToWorld(x, y, depth = 0) {
+      const [wx, wy, wz] = camera.unproject(x, y, depth)
+      return { x: wx, y: wy, z: wz }
+    },
+    getViewport() {
+      const { x, y, z, zoom, yaw, pitch } = camera
+      return { x, y, z, zoom, yaw, pitch }
+    },
+    setViewport({ x, y, z, zoom, yaw, pitch }) {
+      if (![x, y, z, zoom, yaw, pitch].every(Number.isFinite) || zoom <= 0) throw new RangeError('Invalid viewport')
+      if (dead) return
+      autoFit = false
+      camera.x = camera.tx = x
+      camera.y = camera.ty = y
+      camera.z = camera.tz = z
+      camera.zoom = camera.targetZoom = zoom
+      camera.yaw = yaw
+      camera.pitch = pitch
+      viewChanged()
+    },
     getPosition(id) {
       const i = lookup(id),
         k = i * 4

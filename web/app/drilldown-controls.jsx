@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Range, Select } from './fields'
+import { InspectorSection, Range, Select } from './fields'
 import { opticsURL } from '../site'
 
 export const navigationDefaults = {
@@ -87,7 +87,7 @@ export function DrillControls({ dataset, snapshot, config, change, select, inspe
     <NodeBrowser key={JSON.stringify([dataset, level.kind, level.taxonomy, level.id])}
       snapshot={snapshot} select={select} inspect={inspect} setView={setView} />
     <Select id="group-action" label="Open a group" options={groupActions} value={config.groupAction} onChange={(v) => change('groupAction', v)} />
-    <details><summary>Drilldown settings</summary>
+    <InspectorSection title="Drilldown settings" value={groupActions.find(([key]) => key === config.groupAction)?.[1]} reveal={config.groupAction}>
       <Select id="select-action" label="Select a node" options={actions} value={config.selectAction} onChange={(v) => change('selectAction', v)} />
       <Select id="open-action" label="Double-click / Enter" options={actions} value={config.openAction} onChange={(v) => change('openAction', v)} />
       {config.groupAction !== 'none' && <>
@@ -107,7 +107,7 @@ export function DrillControls({ dataset, snapshot, config, change, select, inspe
       <Select id="neighbor-direction" label="Follow links" options={[[ 'both','Both directions'], ['outgoing','Outgoing'], ['incoming','Incoming']]}
         value={config.direction} onChange={(v) => change('direction', v)} />
       <Range id="neighbor-hops" label="Neighbor hops" min={1} max={4} value={config.hops} onChange={(v) => change('hops', v)} />
-    </details>
+    </InspectorSection>
   </section>
 }
 

@@ -144,10 +144,16 @@ export function importWorkload(raw) {
   if (links.some((e) => !e || !ids.has(e.source) || !ids.has(e.target) || (e.kind !== undefined && typeof e.kind !== 'string')))
     throw Error('Every link needs existing source and target IDs and an optional string kind.')
   if (links.some((e) => (e.weight !== undefined && !Number.isFinite(e.weight)) || badMetrics(e.metrics))) throw Error('Link weights and metrics must be finite numbers.')
+  const linkIds = new Set()
+  for (const e of links) if (e.id !== undefined) {
+    if (typeof e.id !== 'string' || !e.id || linkIds.has(e.id)) throw Error('Explicit link IDs must be unique, nonempty strings.')
+    linkIds.add(e.id)
+  }
   const artwork = raw.artwork ?? raw.thumbnails ?? {}
   if (typeof artwork !== 'object' || Array.isArray(artwork) || Object.values(artwork).some((v) => typeof v !== 'string'))
     throw Error('Artwork must map image IDs to image URLs.')
-  const data = { nodes: raw.nodes, links, artwork }
+  const { edges, thumbnails, ...metadata } = raw
+  const data = { ...metadata, nodes: raw.nodes, links, artwork }
   if (data.nodes.some((n) => n.art && !imageURL(data, n))) throw Error('Use a raster data URL, an HTTP(S) image URL, or a bundled graphs/ image path.')
   return data
 }

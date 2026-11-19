@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { downloadGraph } from './editor-tools'
 import { presets, importWorkload, buildWorkload, mergeWorkload, maxNodes } from './workload.mjs'
 import { Select } from './fields'
 
@@ -39,12 +40,6 @@ export function WorkloadControls({ data, active, draft, edit, onGenerate, onLoad
       report('Loaded ' + item.name + '.')
     } catch (error) { if (ticket === read.current) report(error.message) }
   }
-  function download() {
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }))
-    const link = document.createElement('a')
-    link.href = url; link.download = 'loom-graph.json'; link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }
   return <details className="workload-panel" open={open} onToggle={(e) => expand(e.currentTarget.open)}>
     <summary>Test data</summary>
     <Select id="workload-preset" label="Preset" options={Object.entries(presets).map(([k, v]) => [k, v.label])}
@@ -64,7 +59,7 @@ export function WorkloadControls({ data, active, draft, edit, onGenerate, onLoad
     <div className="workload-actions"><button className="generate" onClick={() => apply(false)}>Generate graph</button>
       <button onClick={() => apply(true)}>Append batch</button></div>
     <div className="workload-files"><button onClick={() => file.current?.click()}>Import JSON</button>
-      <button onClick={download}>Export JSON</button><input ref={file} type="file" id="workload-file" accept=".json,application/json" hidden onChange={loadFile} /></div>
+      <button onClick={() => downloadGraph(data)}>Export JSON</button><input ref={file} type="file" id="workload-file" accept=".json,application/json" hidden onChange={loadFile} /></div>
     <p role="status" className="workload-message">{notice?.draft === draft ? notice.text : ''}</p>
   </details>
 }

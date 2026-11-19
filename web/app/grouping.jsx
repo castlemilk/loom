@@ -5,7 +5,7 @@ import { compileTaxonomies, parseTaxonomy, scopeTaxonomies } from '../../dist/ta
 import { connectedComponents } from '../../dist/clusters.js'
 import { knowledgeConsole } from '../../dist/index.js'
 import { kindOrder, marker, patterns } from './appearance'
-import { Check, Range, Select } from './fields'
+import { Check, InspectorSection, Range, Select } from './fields'
 
 const typeNames = { study: 'Study', concept: 'Concept', tag: 'Tag', blog: 'Article', lab: 'Lab', category: 'Category' }
 const types = { id: 'kind', label: 'Node type', by: 'kind', terms: Object.fromEntries(kindOrder.map((kind) =>
@@ -75,7 +75,7 @@ export function useGrouping(source, data, theme, packed) {
     setWords(next)
     try { localStorage.setItem(storageKey + '.language', JSON.stringify(next)) } catch { /* In-memory settings are still active. */ }
   }
-  return { definitions, custom, index, active, groups, laneBy, laneOrder, annotations, setActive, apply, remove,
+  return { definitions, custom, root, index, active, groups, laneBy, laneOrder, annotations, setActive, apply, remove,
     words, language, displayStyle, nativeMarkers: kindStyles && active.id === 'kind',
     setTooltips, setBubblesVisible, setBoundary: (patch) => setBoundary((old) => ({ ...old, ...patch })),
     setVisible: (visible, taxonomy = active.id) => setBubbles((old) => ({ ...old, [taxonomy]: visible })) }
@@ -143,7 +143,8 @@ export function Grouping({ level, group, packed, setPacked, gap, setGap, openTer
     {packed && <Range id="cluster-gap" label="Cluster spacing" min={0} max={240} step={5} value={gap}
       format={(v) => v + ' units'} onChange={setGap} />}
     <Check id="tooltips" label="Node tooltips" checked={group.annotations.tooltips} onChange={group.setTooltips} />
-    <details><summary>Group bubbles</summary>
+    <InspectorSection title="Group bubbles" value={group.annotations.bubblesVisible ? list.filter((term) => checked(term.id)).length + '/' + list.length : 'Off'}
+      reveal={group.annotations.bubblesVisible && group.active.id}>
       <Select id="boundary-shape" label="Boundary" options={[[ 'hull','Enclosing hull'],['cloud','Cloud contour']]}
         value={group.annotations.boundary.shape} onChange={(shape) => group.setBoundary({ shape })} />
       <Select id="boundary-pattern" label="Outline stroke" options={patterns} value={group.annotations.boundary.pattern}
@@ -163,7 +164,7 @@ export function Grouping({ level, group, packed, setPacked, gap, setGap, openTer
         )}</div>
         {filtered.length > 50 && <small>Filter to see the other {filtered.length - 50} groups.</small>}
       </> : <p>No matching groups in this dataset.</p>}
-    </details>
+    </InspectorSection>
     {typeof group.active.by !== 'function' && <DefinitionEditor key={JSON.stringify(group.active)} group={group} />}
     <Language key={JSON.stringify(group.words)} group={group} />
   </section>

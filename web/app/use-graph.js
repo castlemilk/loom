@@ -5,7 +5,7 @@ import { createGraph } from '../../dist/index.js'
 import { attachAnnotations } from '../../dist/taxonomy.js'
 import { imageURL } from './workload.mjs'
 
-export function useGraph(data, engine, layout, theme, mode, taxonomy, annotationOptions, drill) {
+export function useGraph(data, engine, layout, theme, mode, taxonomy, annotationOptions, drill, source, scopeKey, retainedScene) {
   const canvas = useRef(null)
   const layer = useRef(null)
   const underlay = useRef(null)
@@ -22,11 +22,19 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
   const base = process.env.NEXT_PUBLIC_BASE_PATH
 
   const create = useEffectEvent((element, dataset, sim) => {
+    const saved = retainedScene.current
+    const restore = saved?.source === source && saved.scopeKey === scopeKey
+    const nodes = restore ? dataset.nodes.map((n) => saved.poses.has(n.id) ? { ...n, ...saved.poses.get(n.id) } : n) : dataset.nodes
     const instance = createGraph(element, {
-      ...dataset, layout, theme, mode, sim, transparentBackground: true, workerURL: base + '/layout-worker.js',
+      ...dataset, nodes, layout, theme, mode, sim, transparentBackground: true, workerURL: base + '/layout-worker.js',
       art: { urlFor: (node) => imageURL(dataset, node, base) },
     })
     try {
+      if (restore) {
+        instance.setViewport(saved.viewport)
+        if (saved.paused) pausedOwner.current = drill
+        retainedScene.current = null
+      }
       annotations.current = attachAnnotations(instance, layer.current, taxonomy, { ...annotationOptions, underlay: underlay.current })
     } catch (error) {
       instance.destroy()
@@ -40,8 +48,6 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
     const element = canvas.current
     select(null)
     setPinned(false)
-    const keepPaused = pausedOwner.current === drill
-    setPaused(keepPaused)
     setStats(null)
     setError('')
     let instance
@@ -53,6 +59,8 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
       return
     }
     graph.current = instance
+    const keepPaused = pausedOwner.current === drill
+    setPaused(keepPaused)
     if (keepPaused) instance.pause()
     setInstance(instance)
     element.dataset.ready = 'true'

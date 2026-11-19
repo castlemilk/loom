@@ -8,6 +8,7 @@ import { studioLoad } from '../tests/studio-load.mjs'
 import { studioDrilldown } from '../tests/studio-drilldown.mjs'
 import { fieldGuide } from '../tests/field-guide.mjs'
 import { studioMenu } from '../tests/studio-menu.mjs'
+import { studioAuthoring } from '../tests/studio-authoring.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
@@ -41,8 +42,10 @@ try {
   const desktopMenu = await studioMenu(context, url)
   const mobile = await siteContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
   const mobileMenu = await studioMenu(mobile, url, true)
+  const desktopEdits = await studioAuthoring(context, url)
+  const mobileEdits = await studioAuthoring(mobile, url, true)
   await mobile.close()
-  console.log({ desktopMenu, mobileMenu })
+  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits })
   const guide = await fieldGuide(context, home)
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)

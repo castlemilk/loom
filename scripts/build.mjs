@@ -55,4 +55,6 @@ await Promise.all(core.outputFiles.map(async (file) => {
 }))
 await build({ ...options, entryPoints: ['src/console.ts'], external: ['./index.js'] })
 await build({ ...options, entryPoints: ['src/taxonomy.ts'] })
-await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts'] })
+await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts'] })
+const { editorSchema } = await import('../dist/editor.js')
+await writeFile('dist/editor.schema.json', JSON.stringify(editorSchema, null, 2) + '\n')

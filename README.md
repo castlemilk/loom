@@ -4,6 +4,12 @@ Loom draws interactive node graphs on a WebGL2 canvas. The first draw contains n
 
 On the M2 Max, the bundle including the optional worker measured 23,945 bytes minified and gzipped. The 1,000-node graph presented its first frame in 27.3–40.5 ms across seven fresh contexts, above the 10 ms release budget. A clear-only WebGL canvas presented in 19.2–20.5 ms. The layout settled in 295 ms in a separate run. With the knowledge-console styling, camera movement sustained 118.9 fps at 5,000 nodes and 118.1 fps at 25,000 nodes. Both sizes used four draw calls. The [hardware measurements](benchmarks/m2-max.json) include the raw samples.
 
+## Edit a graph
+
+In the [graph studio](https://castlemilk.github.io/loom/studio/), pick **Node** to create a record, optionally clicking the canvas to position it. **Connect** takes two node selections or IDs. Selecting a node exposes its properties and incident connections. The active tool, relationship endpoints, settings values and history buttons show the current state. **JSON** previews and applies the same commands the controls use. Download an edited graph there to keep it across sessions.
+
+For integrations, import `createEditor` from `loom-core/editor`. Discover commands with `describe()`, query nodes or links, preview a revision-guarded batch and read back the result. The [authoring API guide](docs/editor-api.md) covers examples, six operations, undo, checkpoints, viewport coordinates, hosting and extension points. The [transaction schema](https://castlemilk.github.io/loom/editor.schema.json) is machine-readable.
+
 ## Run the studio
 
 Use Node.js 22 or later.
