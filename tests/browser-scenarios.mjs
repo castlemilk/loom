@@ -284,6 +284,21 @@ export async function orbitTransport(transport) {
   check(Math.abs(distance('right', 'end') - 225) < 0.01 && g.getPosition('pinned').x === 200, 'Exact orbit or pin changed on ' + transport)
   g.setMode('lanes')
   await until(() => host.querySelector('[data-lane="item"]'), 'Lane captions did not appear')
+  g.setLayout({ cloudDepth: 0, autoRotate: false })
+  g.setMode('cloud')
+  check(data.nodes.every(({ id }) => g.getPosition(id).z === 0), 'Zero-depth Cloud has an unexpected height')
+  let frame
+  g.onFrame((view) => { frame = { yaw: view.yaw, points: view.points.slice() } })
+  g.setLayout({ cloudDepth: 1.6 })
+  await until(() => frame && !g.stats().pendingFrame, 'Structured Cloud did not paint')
+  const heights = data.nodes.map(({ id }) => g.getPosition(id).z)
+  check(Math.max(...heights) - Math.min(...heights) > 40 && heights[4] === 0, 'Cloud lost volume or moved a pin on ' + transport)
+  const beforeRotation = frame
+  c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
+  await until(() => frame.yaw !== beforeRotation.yaw, 'Camera did not orbit a structured cloud')
+  const motion = data.nodes.map((_, i) => frame.points[4 * i] - beforeRotation.points[4 * i])
+  check(Math.max(...motion) - Math.min(...motion) > 4 && g.stats().drawCalls <= 4,
+    'Cloud did not produce parallax within the instanced draw budget on ' + transport)
   free(c, g)
   check(!host.childElementCount, 'Destroy should release the annotation DOM')
   host.remove()

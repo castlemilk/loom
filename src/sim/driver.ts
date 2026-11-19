@@ -8,186 +8,198 @@ import { placeOnTargets, type Forces, type LayoutUpdate } from '../constraints.j
 export class LayoutDriver {
   transport: GraphStats['transport'] = 'main'
   ticks = 0
-  private layout?: Layout
-  private worker?: Worker
-  private shared: Float32Array<SharedArrayBuffer>[] = []
-  private spare?: ArrayBuffer
-  private nextSlot = 0
-  private busy = false
-  private result?: WorkerFrame
-  private epoch = 0
-  private heldNode = -1
-  private movedSinceStep = false
-  private paced = false
-  private active: boolean
-  private suspended = false
+  #layout?: Layout
+  #worker?: Worker
+  #shared: Float32Array<SharedArrayBuffer>[] = []
+  #spare?: ArrayBuffer
+  #nextSlot = 0
+  #busy = false
+  #result?: WorkerFrame
+  #epoch = 0
+  #heldNode = -1
+  #movedSinceStep = false
+  #paced = false
+  #active: boolean
+  #suspended = false
+  #model: Model
+  #options: GraphOptions
+  #mode: Mode
+  #wake: () => void
+  #forces: Forces
+  #targets: Float32Array | undefined
   constructor(
-    private model: Model,
-    private options: GraphOptions,
-    private mode: Mode,
-    private wake: () => void,
-    private forces: Forces,
-    private targets?: Float32Array,
+    model: Model,
+    options: GraphOptions,
+    mode: Mode,
+    wake: () => void,
+    forces: Forces,
+    targets?: Float32Array,
   ) {
-    this.active = model.movable > 0 && this.forces.blend < 1
+    this.#model = model
+    this.#options = options
+    this.#mode = mode
+    this.#wake = wake
+    this.#forces = forces
+    this.#targets = targets
+    this.#active = model.movable > 0 && this.#forces.blend < 1
   }
-  private post(message: WorkerCommand, transfer: Transferable[] = []) {
-    this.worker!.postMessage(message, transfer)
+  #post(message: WorkerCommand, transfer: Transferable[] = []) {
+    this.#worker!.postMessage(message, transfer)
   }
-  private local() {
+  #local() {
     this.transport = 'main'
-    this.layout = new Layout(this.model, this.mode, this.forces, this.targets)
+    this.#layout = new Layout(this.#model, this.#mode, this.#forces, this.#targets)
   }
-  private init() {
+  #init() {
     if (
-      (this.options.sim ?? (this.model.n > 5000 ? 'worker' : 'main')) === 'main' ||
+      (this.#options.sim ?? (this.#model.n > 5000 ? 'worker' : 'main')) === 'main' ||
       typeof Worker === 'undefined'
     ) {
-      this.local()
+      this.#local()
       return
     }
     try {
-      this.worker = new Worker(
-        this.options.workerURL ?? new URL('./layout-worker.js', import.meta.url),
+      this.#worker = new Worker(
+        this.#options.workerURL ?? new URL('./layout-worker.js', import.meta.url),
         { type: 'module', name: 'loom-layout' },
       )
       if (globalThis.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined') {
-        this.shared = [0, 1].map(
-          () => new Float32Array(new SharedArrayBuffer(this.model.positions.byteLength)),
+        this.#shared = [0, 1].map(
+          () => new Float32Array(new SharedArrayBuffer(this.#model.positions.byteLength)),
         )
       }
-      this.transport = this.shared.length ? 'shared' : 'transfer'
-      this.worker.onmessage = (e: MessageEvent<WorkerFrame>) => {
-        this.result = e.data
-        this.busy = false
-        this.wake()
+      this.transport = this.#shared.length ? 'shared' : 'transfer'
+      this.#worker.onmessage = (e: MessageEvent<WorkerFrame>) => {
+        this.#result = e.data
+        this.#busy = false
+        this.#wake()
       }
-      this.worker.onerror = (e) => {
+      this.#worker.onerror = (e) => {
         e.preventDefault()
-        this.fallback()
-        this.wake()
+        this.#fallback()
+        this.#wake()
       }
-      this.worker.onmessageerror = () => {
-        this.fallback()
-        this.wake()
+      this.#worker.onmessageerror = () => {
+        this.#fallback()
+        this.#wake()
       }
-      const { n, positions, lanes, fixed, endpoints, springs } = this.model
-      this.post({
+      const { n, positions, lanes, fixed, endpoints, springs } = this.#model
+      this.#post({
         type: 'init',
         data: { n, positions, lanes, fixed, endpoints, springs },
-        mode: this.mode,
-        forces: this.forces,
-        targets: this.targets,
-        shared: this.shared.map((s) => s.buffer),
+        mode: this.#mode,
+        forces: this.#forces,
+        targets: this.#targets,
+        shared: this.#shared.map((s) => s.buffer),
       })
     } catch {
-      this.fallback()
+      this.#fallback()
     }
   }
-  private fallback() {
-    this.worker?.terminate()
-    this.worker = undefined
-    this.result = undefined
-    this.busy = false
-    this.shared = []
-    this.local()
+  #fallback() {
+    this.#worker?.terminate()
+    this.#worker = undefined
+    this.#result = undefined
+    this.#busy = false
+    this.#shared = []
+    this.#local()
   }
   advance() {
     let changed = false
-    if (this.suspended) return false
-    if (this.result) {
-      const frame = this.result
-      this.result = undefined
-      if (frame.epoch === this.epoch) {
-        const previous = this.model.positions
-        this.model.positions = frame.buffer ? new Float32Array(frame.buffer) : this.shared[frame.slot]
+    if (this.#suspended) return false
+    if (this.#result) {
+      const frame = this.#result
+      this.#result = undefined
+      if (frame.epoch === this.#epoch) {
+        const previous = this.#model.positions
+        this.#model.positions = frame.buffer ? new Float32Array(frame.buffer) : this.#shared[frame.slot]
         // Publish the worker's neighbours even when another pointer sample has
         // arrived. The held node follows the latest local pointer coordinates.
-        if (this.heldNode >= 0) {
-          const k = this.heldNode * 4
-          this.model.positions.set(previous.subarray(k, k + 3), k)
+        if (this.#heldNode >= 0) {
+          const k = this.#heldNode * 4
+          this.#model.positions.set(previous.subarray(k, k + 3), k)
         }
-        if (previous.buffer instanceof ArrayBuffer) this.spare = previous.buffer
-        this.nextSlot = 1 - frame.slot
+        if (previous.buffer instanceof ArrayBuffer) this.#spare = previous.buffer
+        this.#nextSlot = 1 - frame.slot
         this.ticks += frame.ticks
-        this.active = frame.active || (this.movedSinceStep && this.active)
+        this.#active = frame.active || (this.#movedSinceStep && this.#active)
         changed = true
-      } else if (frame.buffer) this.spare = frame.buffer
+      } else if (frame.buffer) this.#spare = frame.buffer
     }
-    if (!this.active) {
-      this.paced = false
+    if (!this.#active) {
+      this.#paced = false
       return changed
     }
-    if (!this.layout && !this.worker) this.init()
-    if (this.layout) {
-      const revision = this.layout.revision
-      this.ticks += this.layout.advance(3.5, this.paced ? 1 : 4)
-      this.active = this.layout.alpha > 0
-      return this.layout.revision !== revision || changed
+    if (!this.#layout && !this.#worker) this.#init()
+    if (this.#layout) {
+      const revision = this.#layout.revision
+      this.ticks += this.#layout.advance(3.5, this.#paced ? 1 : 4)
+      this.#active = this.#layout.alpha > 0
+      return this.#layout.revision !== revision || changed
     }
-    if (!this.busy) {
-      this.busy = true
-      this.movedSinceStep = false
-      const buffer = this.shared.length
+    if (!this.#busy) {
+      this.#busy = true
+      this.#movedSinceStep = false
+      const buffer = this.#shared.length
         ? undefined
-        : (this.spare ?? new ArrayBuffer(this.model.positions.byteLength))
-      this.spare = undefined
-      this.post(
-        { type: 'step', epoch: this.epoch, slot: this.nextSlot, buffer, paced: this.paced },
+        : (this.#spare ?? new ArrayBuffer(this.#model.positions.byteLength))
+      this.#spare = undefined
+      this.#post(
+        { type: 'step', epoch: this.#epoch, slot: this.#nextSlot, buffer, paced: this.#paced },
         buffer ? [buffer] : [],
       )
     }
     return changed
   }
   get settling() {
-    return this.active
+    return this.#active
   }
   get needsFrame() {
-    return this.active && !this.suspended && !this.worker
+    return this.#active && !this.#suspended && !this.#worker
   }
   configure(mode: Mode, update: LayoutUpdate = {}) {
-    if (update.lanes) this.model.lanes = update.lanes
-    if (update.springs !== undefined) this.model.springs = update.springs
-    if (update.forces) this.forces = update.forces
-    if (update.targets) this.targets = update.targets
-    if (this.forces.blend === 1 && this.targets)
-      placeOnTargets(this.model.positions, this.model.fixed, this.targets)
-    this.epoch++
-    this.paced = this.heldNode >= 0
-    this.mode = mode
-    this.active = this.forces.blend < 1 && this.model.fixed.includes(0)
-    this.layout?.configure(mode, update)
-    if (this.worker) this.post({ type: 'configure', mode, update })
+    if (update.lanes) this.#model.lanes = update.lanes
+    if (update.springs !== undefined) this.#model.springs = update.springs
+    if (update.forces) this.#forces = update.forces
+    if (update.targets) this.#targets = update.targets
+    if (this.#forces.blend === 1 && this.#targets)
+      placeOnTargets(this.#model.positions, this.#model.fixed, this.#targets)
+    this.#epoch++
+    this.#paced = this.#heldNode >= 0
+    this.#mode = mode
+    this.#active = this.#forces.blend < 1 && this.#model.fixed.includes(0)
+    this.#layout?.configure(mode, update)
+    if (this.#worker) this.#post({ type: 'configure', mode, update })
   }
   pin(i: number, x: number, y: number, fixed: number, z?: number, dragging?: boolean) {
-    if (!fixed && this.forces.blend === 1 && this.targets) {
-      x = this.targets[i * 3]
-      y = this.targets[i * 3 + 1]
-      z = this.targets[i * 3 + 2]
+    if (!fixed && this.#forces.blend === 1 && this.#targets) {
+      x = this.#targets[i * 3]
+      y = this.#targets[i * 3 + 1]
+      z = this.#targets[i * 3 + 2]
     }
     if (dragging !== undefined) {
-      this.heldNode = dragging ? i : -1
-      this.paced = true
+      this.#heldNode = dragging ? i : -1
+      this.#paced = true
     }
-    if (dragging) this.movedSinceStep = true
-    else this.epoch++
-    this.model.fixed[i] = fixed
-    if (z !== undefined) this.model.positions[i * 4 + 2] = z
-    this.model.positions[i * 4] = x
-    this.model.positions[i * 4 + 1] = y
-    this.active = this.forces.blend < 1 && this.model.fixed.includes(0)
-    this.layout?.pin(i, x, y, fixed, z)
-    if (this.worker) this.post({ type: 'pin', i, x, y, fixed, z })
+    if (dragging) this.#movedSinceStep = true
+    else this.#epoch++
+    this.#model.fixed[i] = fixed
+    if (z !== undefined) this.#model.positions[i * 4 + 2] = z
+    this.#model.positions[i * 4] = x
+    this.#model.positions[i * 4 + 1] = y
+    this.#active = this.#forces.blend < 1 && this.#model.fixed.includes(0)
+    this.#layout?.pin(i, x, y, fixed, z)
+    if (this.#worker) this.#post({ type: 'pin', i, x, y, fixed, z })
   }
   suspend(value: boolean) {
-    if (this.suspended === value) return
-    this.suspended = value
-    if (this.worker) this.post({ type: 'suspend', value })
+    if (this.#suspended === value) return
+    this.#suspended = value
+    if (this.#worker) this.#post({ type: 'suspend', value })
   }
   destroy() {
-    if (this.worker) {
-      this.worker.onmessage = this.worker.onerror = this.worker.onmessageerror = null
-      this.worker.terminate()
+    if (this.#worker) {
+      this.#worker.onmessage = this.#worker.onerror = this.#worker.onmessageerror = null
+      this.#worker.terminate()
     }
   }
 }

@@ -2,12 +2,14 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { writeSpecimens } from './specimen-art.mjs'
 
 const root = new URL('../', import.meta.url)
 const target = (path) => new URL(path, import.meta.url)
 execFileSync(process.execPath, ['scripts/build.mjs'], { cwd: fileURLToPath(root), stdio: 'inherit' })
 await mkdir(target('./public/graphs/art/'), { recursive: true })
 await mkdir(target('./.generated/'), { recursive: true })
+await writeSpecimens(target('./public/graphs/specimens/v1/'))
 await copyFile(new URL('dist/layout-worker.js', root), target('./public/layout-worker.js'))
 
 const snapshot = JSON.parse(await readFile(new URL('demo/knowledge.json', root), 'utf8'))

@@ -1,5 +1,6 @@
 import { createGraph, ink, type GraphNode, type GraphData, type GraphLink } from 'loom-core'
 import { compileTaxonomies, attachAnnotations, type TaxonomyConfig } from 'loom-core/taxonomy'
+import { observePerformance, type PerformanceSample } from 'loom-core/performance'
 
 interface Paper extends GraphNode {
   disciplines: readonly string[]
@@ -27,6 +28,9 @@ export function mountCatalogue(canvas: HTMLCanvasElement, layer: HTMLElement, da
   graph.setLayout({ laneBy: (paper) => String(paper.year) })
   graph.setTheme({ ...ink, nodes: { resolve: (paper) => ({ radius: paper.disciplines.length + 2 }) } })
   const annotations = attachAnnotations(graph, layer, taxonomy, { bubbles: { subject: ['physics'], review: true }, laneTaxonomy: 'subject' })
+  graph.setLayout({ cloudDepth: 1.5, autoRotate: false })
+  const stop = observePerformance(graph, (s: PerformanceSample) => { void [s.gpuMs, s.heapBytes, s.frameIntervals] })
+  stop()
   annotations.setOptions({ tooltips: false })
   graph.onFrame(({ width, height, points }) => { void [width, height, points[0]] })
   return graph

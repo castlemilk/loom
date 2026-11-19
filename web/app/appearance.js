@@ -29,9 +29,9 @@ export function makeTheme(style) {
 }
 
 export function marker(theme, kind) {
-  const rule = theme.nodes.byKind[kind]
+  const rule = Object.hasOwn(theme.nodes.byKind, kind) ? theme.nodes.byKind[kind] : undefined
   return {
-    color: rule?.color ?? theme.kind[kind] ?? theme.accent,
+    color: rule?.color ?? (Object.hasOwn(theme.kind, kind) ? theme.kind[kind] : theme.accent),
     shape: rule?.shape ?? (['concept', 'tag', 'category'].includes(kind) ? 'circle' : 'rounded-square'),
   }
 }

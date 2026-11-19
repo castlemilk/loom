@@ -43,6 +43,7 @@ layout(location=2) in float neighbor;
 out vec2 local;
 flat out vec4 pigment;
 flat out vec4 details;
+flat out float eyeDepth;
 void main() {
   vec4 p = projectNode(nodeAt(gl_InstanceID));
   float hot = float(gl_InstanceID == selected || gl_InstanceID == hovered);
@@ -50,6 +51,7 @@ void main() {
   local = (corner()*2.0-1.0)*(1.0+1.0/r);
   pigment = style;
   details = vec4(artIndex, hot, float(selected >= 0 && neighbor < 0.5 && hot < 0.5), r);
+  eyeDepth = p.w;
   gl_Position = clip(p.xy+local*r, p.w);
 }
 `
@@ -58,6 +60,7 @@ export const nodeFragment =
   `
 in vec2 local;
 flat in vec4 pigment, details;
+flat in float eyeDepth;
 uniform sampler2D art0, art1;
 out vec4 color;
 void main() {
@@ -78,6 +81,12 @@ void main() {
     fill = mix(fill,art.rgb,art.a);
   }
   vec3 rgb = mix(fill, ring, smoothstep(-ringWidth-aa,-ringWidth+aa,d));
+  if (centerData.w > 0.5) {
+    vec3 normal = normalize(vec3(local, sqrt(max(0.03,1.0-dot(local,local)))));
+    float light = max(0.0,dot(normal,vec3(-0.42,-0.58,0.69)));
+    rgb = rgb*(0.73+0.39*light)+0.18*pow(light,8.0);
+    rgb = mix(rgb,bg,0.59*smoothstep(-0.36,0.49,eyeDepth)*(1.0-details.y));
+  }
   color = vec4(mix(rgb,bg,details.z*0.74), 1.0-smoothstep(-aa,aa,d));
 }
 `
@@ -87,9 +96,10 @@ export const wireVertex =
 layout(location=0) in uvec2 ends;
 layout(location=1) in vec4 wireColor;
 layout(location=2) in float wireWidth;
-flat out vec4 pigment;
+out vec4 pigment;
 void main() {
-  vec4 a = projectNode(nodeAt(int(ends.x))), b = projectNode(nodeAt(int(ends.y)));
+  vec4 na=nodeAt(int(ends.x)), nb=nodeAt(int(ends.y));
+  vec4 a = projectNode(na), b = projectNode(nb);
   vec2 delta = b.xy-a.xy;
   vec2 bend = vec2(-delta.y,delta.x) * (((gl_InstanceID & 1)==0 ? 1.0 : -1.0)*0.17);
   vec2 c = a.xy+delta*0.29+bend, d = a.xy+delta*0.71+bend;
@@ -107,12 +117,21 @@ void main() {
   bool styled = wireData.w > 0.5;
   float width = styled ? wireWidth : wireData.y;
   float alpha = hot ? 0.9 : (selected >= 0 ? 0.045 : (styled ? wireColor.a : density));
-  pigment = vec4(hot ? accent : (styled ? wireColor.rgb : dim), alpha*(1.0-max(0.0,mix(a.w,b.w,t))*0.6));
+  float depth=mix(a.w,b.w,t);
+  if (centerData.w>0.5) {
+    vec4 p=projectNode(mix(na,nb,t));
+    curve+=p.xy-mix(a.xy,b.xy,t);
+    depth=p.w+0.003;
+    float far=smoothstep(-0.38,0.45,depth);
+    width*=mix(1.35,0.65,far);
+    if (!hot) alpha*=mix(1.38,0.33,far);
+  }
+  pigment = vec4(hot ? accent : (styled ? wireColor.rgb : dim), alpha);
   float side = (gl_VertexID & 1)==0 ? -1.0 : 1.0;
-  gl_Position = clip(curve + normal*side*(hot ? wireData.z : width)*0.5, mix(a.w,b.w,t));
+  gl_Position = clip(curve + normal*side*(hot ? wireData.z : width)*0.5, depth);
 }
 `
-export const wireFragment = 'flat in vec4 pigment; out vec4 color; void main(){color=pigment;}'
+export const wireFragment = `in vec4 pigment; out vec4 color; void main(){color=pigment;}`
 export const labelVertex =
   quad +
   `

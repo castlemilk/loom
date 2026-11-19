@@ -32,6 +32,7 @@ export function layoutForces(options: LayoutOptions): Forces {
   range(options.laneGap ?? 210, 1, 1e6, 'lane gap')
   range(options.rowGap ?? 46, 1, 1e6, 'row gap')
   range(options.orbitGap ?? 80, 1, 1e6, 'orbit gap')
+  range(options.cloudDepth ?? 1, 0, 3, 'cloud depth')
   if (options.direction && !['horizontal', 'vertical'].includes(options.direction))
     throw new RangeError('Invalid lane direction')
   if (options.laneOrder && new Set(options.laneOrder).size !== options.laneOrder.length)

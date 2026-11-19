@@ -12,6 +12,12 @@ The [hosted graph studio](https://castlemilk.github.io/loom/) is a Next.js stati
 
 In **Taxonomies**, choose **Category** and open **Group bubbles** to outline a single knowledge category. Outlines from several taxonomies can be visible together. **Define a taxonomy** accepts JSON field or relationship mappings, and **Display language** edits the connection and unassigned-lane labels. Applied definitions and language are saved in this browser. Drag the separator to change the graph width, or its height on a narrow screen. The arrow keys adjust the separator and Enter restores its starting size.
 
+Open **Test data**, choose **Image atlas**, then **Generate graph** to draw 1,024 image-bearing nodes. Select **Cloud** and drag the background to orbit. Open **Perf** to watch frame intervals and artwork decoding while you zoom or pull a node.
+
+The generator accepts up to 25,000 nodes and 100,000 links. Choose local clusters, hubs or random connections. Set the image coverage, choose from 256 bundled WebP specimens and switch between titles, notes and full articles. Select a node to inspect its image and text. Reusing a seed keeps the same topology when you change the payload. **Append batch** adds nodes and a connecting edge to the graph on screen. **Export JSON** saves the current data, including artwork references.
+
+**Import JSON** reads a local file with `nodes` and `links` (or `edges`). Give each node a unique string `id`; links reference these IDs with `source` and `target`. Nodes can carry `label`, `kind`, `summary`, `content` and `art`. An optional `artwork` dictionary maps art keys to URLs. Raster data URLs, bundled `graphs/` paths and HTTP(S) image URLs are accepted. External image hosts must allow CORS for WebGL atlas uploads.
+
 ```sh
 npm ci
 npm --prefix web ci
@@ -31,7 +37,7 @@ Open the URL printed by the server. The studio opens a 25-node, 30-link excerpt 
 
 ## Use the core
 
-Install the typed ESM package from the [Pages build](https://castlemilk.github.io/loom/loom-core-0.1.0.tgz), or build this checkout with `npm run build`. The package includes the core, optional annotation and console entry points, and the layout worker. For a reproducible install, use the source revision in the URL. Pages retains those archives across deployments and npm records the URL and integrity in your lockfile. The browser needs a canvas with a CSS width and height.
+Install the typed ESM package from the [Pages build](https://castlemilk.github.io/loom/loom-core-0.1.0.tgz), or build this checkout with `npm run build`. The package includes the core, optional annotation, performance and console entry points, and the layout worker. For a reproducible install, use the source revision in the URL. Pages retains those archives across deployments and npm records the URL and integrity in your lockfile. The browser needs a canvas with a CSS width and height.
 
 ```sh
 revision=$(curl -fsSL https://castlemilk.github.io/loom/revision.txt)
@@ -106,6 +112,30 @@ Built-in diagram anchors sort IDs within each kind. `laneOrder` puts the named k
 `repulsion` and `springStrength` are multipliers. `linkDistance` sets the gap between node boundaries in world units. `springsByKind` can adjust the distance or strength of an individual relationship kind. The console preset gives concept links 1.55× spring strength and category links a longer rest distance. Layout callbacks run on the calling thread and the worker receives numeric arrays.
 
 Orbit opens around the highest-degree node. Ties use lexical node ID order. Selecting a node makes it the centre, and clearing the selection returns to the default. Direct neighbours occupy the first ring, two-hop neighbours the second and all remaining nodes the outer ring. `orbitGap` sets the minimum spacing in world units. At full structure the rings are exact. Lower structure keeps spring response and individual dragging. Explicit pins retain their positions.
+
+Cloud distributes unpositioned nodes through a deterministic 3D volume. Its angled perspective camera, shaded markers and depth-tested wires reveal foreground and background as you orbit. **Depth spread** scales generated heights from 0% to 300%. Authored heights and pins are preserved at full structure, including anchors that describe a plane. A lower blend lets springs pull against the volumetric targets. Dragging a node keeps it on the camera-facing plane through the point you grabbed. The orientation axes follow the camera. Idle rotation respects reduced motion and can be disabled in the studio or in code.
+
+```ts
+graph.setMode('cloud')
+graph.setLayout({ blend: 0.4, cloudDepth: 1.5, autoRotate: false })
+```
+
+## Live performance
+
+The **Perf** button attaches a monitor to the graph on screen. It reports graph draw submissions per second, the last 48 active frame intervals and their recent p95. The chart marks a 16.7 ms frame. The **Main thread** reading measures elapsed work in Loom scheduler callbacks and excludes worker execution. **GPU draw** measures a submitted draw using an asynchronous WebGL timer when supported. **JS heap** shows the browser's reported heap usage when available. The panel also shows packed geometry bytes, decoded versus requested image tiles, draw calls, labels, pixel ratio and cumulative frames.
+
+The monitor updates at most four times per second. A settled graph shows zero graph FPS, and the monitor goes to sleep after pending GPU measurements resolve or time out. Each graph supports one timing observer. Unsubscribe to close its timers and release the GPU query. Destroying the graph also detaches it.
+
+```ts
+import { observePerformance } from 'loom-core/performance'
+
+const stop = observePerformance(graph, (sample) => {
+  console.log(sample.fps, sample.p95FrameMs, sample.mainThreadMs,
+    sample.gpuStatus, sample.gpuMs, sample.heapBytes)
+})
+
+window.addEventListener('pagehide', stop, { once: true })
+```
 
 ## Taxonomies and annotations
 

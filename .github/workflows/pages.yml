@@ -109,4 +109,10 @@ jobs:
           npm install --prefix "$consumer_dir" --ignore-scripts --no-audit --no-fund "${PAGES_URL%/}/packages/$GITHUB_SHA/loom-core-0.1.0.tgz"
           node_modules/.bin/tsc --strict --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext "$consumer_dir/consumer.mts"
           cd "$consumer_dir"
-          node --input-type=module -e "import { createGraph } from 'loom-core'; import { compileTaxonomies } from 'loom-core/taxonomy'; if (typeof createGraph !== 'function' || !compileTaxonomies({ nodes: [], links: [] }, { taxonomies: [] }).legend) process.exit(1)"
+          node --input-type=module <<'JS'
+          import { createGraph } from 'loom-core'
+          import { observePerformance } from 'loom-core/performance'
+          import { compileTaxonomies } from 'loom-core/taxonomy'
+          if (typeof createGraph !== 'function' || typeof observePerformance !== 'function' ||
+              !compileTaxonomies({ nodes: [], links: [] }, { taxonomies: [] }).legend) process.exit(1)
+          JS

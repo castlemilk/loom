@@ -21,6 +21,10 @@
       "import": "./dist/console.js"
     },
     "./layout-worker.js": "./dist/layout-worker.js",
+    "./performance": {
+      "types": "./dist/performance.d.ts",
+      "import": "./dist/performance.js"
+    },
     "./taxonomy": {
       "types": "./dist/taxonomy.d.ts",
       "import": "./dist/taxonomy.js"

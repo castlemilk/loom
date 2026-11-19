@@ -1,8 +1,8 @@
 export class Resources {
-  private buffers: WebGLBuffer[] = []
-  private arrays: WebGLVertexArrayObject[] = []
-  private textures: WebGLTexture[] = []
-  private programs: WebGLProgram[] = []
+  #buffers: WebGLBuffer[] = []
+  #arrays: WebGLVertexArrayObject[] = []
+  #textures: WebGLTexture[] = []
+  #programs: WebGLProgram[] = []
   constructor(public gl: WebGL2RenderingContext) {}
   program(vertex: string, fragment: string) {
     const gl = this.gl,
@@ -18,7 +18,7 @@ export class Resources {
       gl.deleteShader(shader)
     }
     gl.linkProgram(p)
-    this.programs.push(p)
+    this.#programs.push(p)
     return p
   }
   check(p: WebGLProgram) {
@@ -30,7 +30,7 @@ export class Resources {
   }
   vao() {
     const v = this.gl.createVertexArray()!
-    this.arrays.push(v)
+    this.#arrays.push(v)
     this.gl.bindVertexArray(v)
     return v
   }
@@ -44,7 +44,7 @@ export class Resources {
   ) {
     const gl = this.gl,
       b = gl.createBuffer()!
-    this.buffers.push(b)
+    this.#buffers.push(b)
     gl.bindBuffer(gl.ARRAY_BUFFER, b)
     gl.bufferData(gl.ARRAY_BUFFER, data, dynamic ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW)
     gl.enableVertexAttribArray(index)
@@ -56,7 +56,7 @@ export class Resources {
   uniformBlock(values: Float32Array) {
     const gl = this.gl,
       buffer = gl.createBuffer()!
-    this.buffers.push(buffer)
+    this.#buffers.push(buffer)
     gl.bindBuffer(gl.UNIFORM_BUFFER, buffer)
     gl.bufferData(gl.UNIFORM_BUFFER, values, gl.DYNAMIC_DRAW)
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, buffer)
@@ -69,7 +69,7 @@ export class Resources {
   texture(unit: number, linear: boolean) {
     const gl = this.gl,
       t = gl.createTexture()!
-    this.textures.push(t)
+    this.#textures.push(t)
     gl.activeTexture(gl.TEXTURE0 + unit)
     gl.bindTexture(gl.TEXTURE_2D, t)
     for (const param of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER])
@@ -80,10 +80,10 @@ export class Resources {
   }
   destroy() {
     const gl = this.gl
-    for (const v of this.arrays) gl.deleteVertexArray(v)
-    for (const b of this.buffers) gl.deleteBuffer(b)
-    for (const t of this.textures) gl.deleteTexture(t)
-    for (const p of this.programs) gl.deleteProgram(p)
+    for (const v of this.#arrays) gl.deleteVertexArray(v)
+    for (const b of this.#buffers) gl.deleteBuffer(b)
+    for (const t of this.#textures) gl.deleteTexture(t)
+    for (const p of this.#programs) gl.deleteProgram(p)
     gl.useProgram(null)
   }
 }

@@ -3,12 +3,14 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { createGraph } from '../../dist/index.js'
 import { attachAnnotations } from '../../dist/taxonomy.js'
+import { imageURL } from './workload.mjs'
 
 export function useGraph(data, engine, layout, theme, mode, taxonomy, annotationOptions) {
   const canvas = useRef(null)
   const layer = useRef(null)
   const annotations = useRef(null)
   const graph = useRef(null)
+  const [instance, setInstance] = useState(null)
   const applied = useRef(null)
   const [selected, select] = useState(null)
   const [pinned, setPinned] = useState(false)
@@ -20,7 +22,7 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
   const create = useEffectEvent((element, dataset, sim) => {
     const instance = createGraph(element, {
       ...dataset, layout, theme, mode, sim, workerURL: base + '/layout-worker.js',
-      art: { urlFor: (node) => dataset.artwork?.[node.art] ? base + '/' + dataset.artwork[node.art] : undefined },
+      art: { urlFor: (node) => imageURL(dataset, node, base) },
     })
     try {
       annotations.current = attachAnnotations(instance, layer.current, taxonomy, annotationOptions)
@@ -43,10 +45,12 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
     try {
       instance = create(element, data, engine)
     } catch (cause) {
+      setInstance(null)
       setError(cause.message)
       return
     }
     graph.current = instance
+    setInstance(instance)
     element.dataset.ready = 'true'
     instance.on('hover', (id) => element.toggleAttribute('data-node', id !== null))
     instance.on('open', (id) => instance.focus(id))
@@ -98,5 +102,5 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
   function refresh() {
     if (graph.current) setStats(graph.current.stats())
   }
-  return { graph, canvas, layer, selected, pinned, paused, error, stats, syncPin, togglePin, togglePause, refresh }
+  return { graph, instance, canvas, layer, selected, pinned, paused, error, stats, syncPin, togglePin, togglePause, refresh }
 }

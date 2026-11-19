@@ -42,6 +42,10 @@ export interface LayoutOptions<N extends GraphNode = GraphNode> {
   laneGap?: number
   /** Minimum world-space distance between successive orbit rings. */
   orbitGap?: number
+  /** Depth multiplier for generated Cloud coordinates. Authored z coordinates take precedence. */
+  cloudDepth?: number
+  /** Slowly orbit an idle Cloud. Reduced motion suppresses automatic rotation. */
+  autoRotate?: boolean
   rowGap?: number
   direction?: 'horizontal' | 'vertical'
   anchor?:
@@ -106,6 +110,8 @@ export interface GraphFrame {
   readonly height: number
   readonly mode: Mode
   readonly zoom: number
+  readonly yaw: number
+  readonly pitch: number
   /** Screen coordinate of world zero on the lane axis. */
   readonly laneOrigin: number
   readonly vertical: boolean
@@ -118,13 +124,23 @@ export interface GraphStats {
   simTicks: number
   drawCalls: number
   labels: number
+  imageTiles: number
+  /** Bytes in the packed position/radius and edge-endpoint arrays. */
+  geometryBytes: number
   dpr: number
   pendingFrame: boolean
   transport: 'main' | 'transfer' | 'shared'
 }
+export interface FrameProbe {
+  beginDraw(gl: WebGL2RenderingContext): void
+  endDraw(): void
+  sample(time: number, mainThreadMs: number, intervalMs: number, painted: boolean): void
+}
 export interface LoomGraph<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> {
   /** Subscribe to actual paints. The first subscription wakes an idle graph once. */
   onFrame(listener: (frame: GraphFrame) => void): () => void
+  /** Attach an optional timing probe to this graph. Returns its detach function. */
+  onTiming(probe: FrameProbe): () => void
   select(id: string | null): void
   focus(id: string): void
   setMode(mode: Mode): void

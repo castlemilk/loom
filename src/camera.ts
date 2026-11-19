@@ -10,14 +10,15 @@ export class Camera {
   ty = 0
   tz = 0
   targetZoom = 1
-  yaw = 0
-  pitch = 0
+  yaw = 0.48
+  pitch = -0.26
   width = 1
   height = 1
   constructor(public mode: Mode) {}
   get focal() {
-    return Math.max(this.width, this.height) * 1.6
+    return Math.min(this.width, this.height) * 1.1
   }
+  resetAngle() { this.yaw = 0.48; this.pitch = -0.26 }
   // These four values are also supplied to the WebGL projection.
   basis() {
     const cloud = this.mode === 'cloud'
@@ -91,8 +92,14 @@ export class Camera {
     this.tx = n ? (x0 + x1) / 2 : 0
     this.ty = n ? (y0 + y1) / 2 : 0
     this.tz = n ? (z0 + z1) / 2 : 0
-    const span = Math.hypot(x1 - x0, y1 - y0, z1 - z0)
     const cloud = this.mode === 'cloud'
+    let span = 0
+    if (cloud) {
+      for (let i = 0; i < n * 4; i += 4)
+        span = Math.max(span, Math.hypot(p[i] - this.tx, p[i + 1] - this.ty, p[i + 2] - this.tz) + p[i + 3])
+      // A bounding sphere stays inside the perspective frustum at every orientation.
+      span *= 2 * Math.hypot(1, 0.44 * Math.min(this.width, this.height) / this.focal)
+    }
     this.targetZoom = n
       ? clamp(
           0.88 *

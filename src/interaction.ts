@@ -21,20 +21,20 @@ interface Pointer {
   time: number
 }
 export class Interaction {
-  private abort = new AbortController()
-  private points = new Map<number, Pointer>()
-  private node = -1
-  private grab = new Float32Array(4)
-  private fixed = 0
-  private dragged = false
-  private vx = 0
-  private vy = 0
-  private releaseTime = 0
+  #abort = new AbortController()
+  #points = new Map<number, Pointer>()
+  #node = -1
+  #grab = new Float32Array(4)
+  #fixed = 0
+  #dragged = false
+  #vx = 0
+  #vy = 0
+  #releaseTime = 0
   get draggingNode() {
-    return this.dragged && this.node >= 0
+    return this.#dragged && this.#node >= 0
   }
   get held() {
-    return this.points.size > 0
+    return this.#points.size > 0
   }
   constructor(
     private canvas: HTMLCanvasElement,
@@ -42,7 +42,7 @@ export class Interaction {
     private model: Model,
     private actions: Actions,
   ) {
-    const opts = { signal: this.abort.signal }
+    const opts = { signal: this.#abort.signal }
     const position = (e: PointerEvent | WheelEvent) => {
       const b = canvas.getBoundingClientRect()
       return { x: e.clientX - b.left - canvas.clientLeft, y: e.clientY - b.top - canvas.clientTop }
@@ -53,23 +53,23 @@ export class Interaction {
         if (e.button !== 0) return
         const p = position(e)
         canvas.focus({ preventScroll: true })
-        this.vx = this.vy = 0
-        if (!this.points.size) {
-          this.dragged = false
-          this.node = actions.pick(p.x, p.y, e.pointerType === 'touch')
-          if (this.node >= 0) {
-            this.fixed = model.fixed[this.node]
-            const k = this.node * 4,
+        this.#vx = this.#vy = 0
+        if (!this.#points.size) {
+          this.#dragged = false
+          this.#node = actions.pick(p.x, p.y, e.pointerType === 'touch')
+          if (this.#node >= 0) {
+            this.#fixed = model.fixed[this.#node]
+            const k = this.#node * 4,
               shown = actions.positions()
-            camera.project(shown[k], shown[k + 1], shown[k + 2], this.grab, 0, camera.basis())
-            this.grab[0] -= p.x
-            this.grab[1] -= p.y
+            camera.project(shown[k], shown[k + 1], shown[k + 2], this.#grab, 0, camera.basis())
+            this.#grab[0] -= p.x
+            this.#grab[1] -= p.y
           }
         } else {
-          this.releaseNode()
-          this.dragged = true
+          this.#releaseNode()
+          this.#dragged = true
         }
-        this.points.set(e.pointerId, { ...p, startX: p.x, startY: p.y, time: e.timeStamp })
+        this.#points.set(e.pointerId, { ...p, startX: p.x, startY: p.y, time: e.timeStamp })
         if (canvas.hasPointerCapture(e.pointerId) || e.isTrusted) canvas.setPointerCapture(e.pointerId)
         actions.touch()
       },
@@ -79,14 +79,14 @@ export class Interaction {
       'pointermove',
       (e) => {
         const p = position(e),
-          old = this.points.get(e.pointerId)
+          old = this.#points.get(e.pointerId)
         if (!old) {
-          if (!this.points.size) actions.hover(actions.pick(p.x, p.y))
+          if (!this.#points.size) actions.hover(actions.pick(p.x, p.y))
           return
         }
         const dx = p.x - old.x,
           dy = p.y - old.y
-        const other = [...this.points.entries()].find(([id]) => id !== e.pointerId)?.[1]
+        const other = [...this.#points.entries()].find(([id]) => id !== e.pointerId)?.[1]
         if (other) {
           const before = Math.hypot(old.x - other.x, old.y - other.y),
             after = Math.hypot(p.x - other.x, p.y - other.y)
@@ -96,20 +96,20 @@ export class Interaction {
             (other.y + p.y) / 2,
             Math.max(2, after) / Math.max(2, before),
           )
-          this.dragged = true
-        } else if (this.dragged || Math.hypot(p.x - old.startX, p.y - old.startY) > 3) {
-          const mx = this.dragged ? dx : p.x - old.startX,
-            my = this.dragged ? dy : p.y - old.startY
-          this.dragged = true
-          if (this.node >= 0) {
-            const [x, y, z] = camera.unproject(p.x + this.grab[0], p.y + this.grab[1], this.grab[3])
-            actions.pin(this.node, x, y, 1, camera.mode === 'cloud' ? z : undefined, true)
+          this.#dragged = true
+        } else if (this.#dragged || Math.hypot(p.x - old.startX, p.y - old.startY) > 3) {
+          const mx = this.#dragged ? dx : p.x - old.startX,
+            my = this.#dragged ? dy : p.y - old.startY
+          this.#dragged = true
+          if (this.#node >= 0) {
+            const [x, y, z] = camera.unproject(p.x + this.#grab[0], p.y + this.#grab[1], this.#grab[3])
+            actions.pin(this.#node, x, y, 1, camera.mode === 'cloud' ? z : undefined, true)
           } else {
             if (camera.mode === 'cloud') camera.rotate(mx, my)
             else camera.pan(mx, my)
             const dt = Math.max(8, e.timeStamp - old.time)
-            this.vx = clamp(mx / dt, -1.4, 1.4)
-            this.vy = clamp(my / dt, -1.4, 1.4)
+            this.#vx = clamp(mx / dt, -1.4, 1.4)
+            this.#vy = clamp(my / dt, -1.4, 1.4)
           }
         }
         old.x = p.x
@@ -122,14 +122,14 @@ export class Interaction {
       opts,
     )
     const release = (e: PointerEvent, cancel: boolean) => {
-      const last = this.points.get(e.pointerId)
+      const last = this.#points.get(e.pointerId)
       if (!last) return
-      this.points.delete(e.pointerId)
-      if (!this.points.size) {
-        if (!cancel && !this.dragged) actions.select(this.node)
-        if (cancel || e.timeStamp - last.time > 90 || actions.reduced()) this.vx = this.vy = 0
-        this.releaseTime = performance.now()
-        this.releaseNode(!cancel && actions.pinOnDrag())
+      this.#points.delete(e.pointerId)
+      if (!this.#points.size) {
+        if (!cancel && !this.#dragged) actions.select(this.#node)
+        if (cancel || e.timeStamp - last.time > 90 || actions.reduced()) this.#vx = this.#vy = 0
+        this.#releaseTime = performance.now()
+        this.#releaseNode(!cancel && actions.pinOnDrag())
       }
       if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
       actions.touch()
@@ -141,7 +141,7 @@ export class Interaction {
     canvas.addEventListener(
       'pointerleave',
       () => {
-        if (!this.points.size) actions.hover(-1)
+        if (!this.#points.size) actions.hover(-1)
       },
       opts,
     )
@@ -182,43 +182,43 @@ export class Interaction {
       opts,
     )
   }
-  private releaseNode(retain = false) {
+  #releaseNode(retain = false) {
     if (this.draggingNode) {
-      const k = this.node * 4
+      const k = this.#node * 4
       this.actions.pin(
-        this.node,
+        this.#node,
         this.model.positions[k],
         this.model.positions[k + 1],
-        retain ? 1 : this.fixed,
+        retain ? 1 : this.#fixed,
         this.model.positions[k + 2],
         false,
       )
     }
-    this.node = -1
+    this.#node = -1
   }
   reset() {
-    this.releaseNode()
-    for (const id of this.points.keys())
+    this.#releaseNode()
+    for (const id of this.#points.keys())
       if (this.canvas.hasPointerCapture(id)) this.canvas.releasePointerCapture(id)
-    this.points.clear()
-    this.vx = this.vy = 0
+    this.#points.clear()
+    this.#vx = this.#vy = 0
   }
   step(now: number, dt: number) {
-    if (this.held || this.actions.reduced() || Math.abs(this.vx) + Math.abs(this.vy) < 0.012)
+    if (this.held || this.actions.reduced() || Math.abs(this.#vx) + Math.abs(this.#vy) < 0.012)
       return false
-    if (now - this.releaseTime > 1500) {
-      this.vx = this.vy = 0
+    if (now - this.#releaseTime > 1500) {
+      this.#vx = this.#vy = 0
       return false
     }
     const decay = Math.exp(-dt / 160)
-    this.vx *= decay
-    this.vy *= decay
-    if (this.camera.mode === 'cloud') this.camera.rotate(this.vx * dt, this.vy * dt)
-    else this.camera.pan(this.vx * dt, this.vy * dt)
+    this.#vx *= decay
+    this.#vy *= decay
+    if (this.camera.mode === 'cloud') this.camera.rotate(this.#vx * dt, this.#vy * dt)
+    else this.camera.pan(this.#vx * dt, this.#vy * dt)
     return true
   }
   destroy() {
-    this.abort.abort()
+    this.#abort.abort()
     this.reset()
   }
 }

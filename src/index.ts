@@ -1,9 +1,10 @@
-import type { GraphEvents, GraphFrame, GraphLink, GraphNode, GraphOptions, LayoutOptions, LoomGraph, Mode } from './types.js'
+import type { FrameProbe, GraphEvents, GraphFrame, GraphLink, GraphNode, GraphOptions, LayoutOptions, LoomGraph, Mode } from './types.js'
 import { parchment } from './theme.js'
 import { prepare, neighbors } from './model.js'
 import { appearance } from './appearance.js'
 import { makeLanes, layoutForces, makeSprings, makeTargets, placeOnTargets } from './constraints.js'
 import { orbitTargets } from './sim/orbit.js'
+import { cloudTargets } from './sim/cloud.js'
 import { Camera } from './camera.js'
 import { Resolution, Scheduler } from './scheduler.js'
 import { Renderer } from './render/renderer.js'
@@ -36,10 +37,11 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
   const model = prepare(options, theme, mode, layout)
   function targetsFor(mode: Mode, centre: number, config: LayoutOptions, lanes = model.laneMap) {
     if (mode === 'orbit') return orbitTargets(model, centre, config.orbitGap)
+    if (mode === 'cloud') return cloudTargets(options.nodes, config)
     if (config.blend) return makeTargets(options.nodes, config, lanes)
   }
   let targets = targetsFor(mode, -1, layout)
-  if (targets) placeOnTargets(model.positions, model.fixed, targets, forces.blend ** 2, options.nodes)
+  if (targets) placeOnTargets(model.positions, model.fixed, targets, mode === 'cloud' && !layout.anchor ? 1 : forces.blend ** 2, options.nodes)
   let fitWhenSettled = !!targets && forces.blend < 1
   const camera = new Camera(mode),
     grid = new PickGrid(model.n)
@@ -74,6 +76,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     ownsHeight = false
   const listeners = new EventTarget()
   const observers = new Set<(frame: GraphFrame) => void>()
+  let probe: FrameProbe | undefined
   const emit = <K extends keyof GraphEvents>(type: K, value: GraphEvents[K]) =>
     listeners.dispatchEvent(new CustomEvent(type, { detail: value }))
   const schedule = new Scheduler(frame)
@@ -200,7 +203,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     clearTimeout(timer)
     spin = false
     idleSince = performance.now()
-    if (camera.mode === 'cloud' && schedule.active && !reduced && !input.held) {
+    if (camera.mode === 'cloud' && layout.autoRotate !== false && schedule.active && !reduced && !input.held) {
       timer = setTimeout(() => {
         spin = true
         schedule.wake()
@@ -231,25 +234,29 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     const easing = camera.step(reduced),
       moving = momentum || easing || spin
     if (moving || lastMoving) gridDirty = true
-    if (uploadNeeded) {
-      render.upload(shown)
-      uploadNeeded = false
-      dirty = true
-    }
-    if (dirty || gridDirty) {
+    const painted = dirty || gridDirty || uploadNeeded
+    if (painted) {
       ensureGrid()
+      probe?.beginDraw(gl!)
+      if (uploadNeeded) {
+        render.upload(shown)
+        uploadNeeded = false
+      }
       render.paint(camera, selected, hovered, grid.projected, adjacent)
+      probe?.endDraw()
       frames++
       dirty = false
       if (observers.size) {
         const { width, height, zoom } = camera, vertical = forces.vertical
-        const view = { points: grid.projected, width, height, zoom, mode: camera.mode, vertical,
+        const view = { points: grid.projected, width, height, zoom, yaw: camera.yaw, pitch: camera.pitch, mode: camera.mode, vertical,
           lanes: model.laneMap.offsets, laneOrigin: vertical ? height / 2 - camera.y * zoom : width / 2 - camera.x * zoom }
         for (const observer of observers) observer(view)
       }
     }
     lastMoving = moving
-    if (resolution.sample(performance.now() - begin, elapsed, time)) sizeDirty = true
+    const work = performance.now() - begin
+    probe?.sample(time, work, elapsed, painted)
+    if (resolution.sample(work, elapsed, time)) sizeDirty = true
     const more = moving || sizeDirty || sim.needsFrame
     lastTime = more ? time : 0
     return more
@@ -358,6 +365,11 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     }
   }
   return {
+    onTiming(next) {
+      if (probe) throw new Error('This graph already has a timing probe')
+      if (!dead) { probe = next; repaint() }
+      return () => { if (probe === next) probe = undefined }
+    },
     onFrame(observer) {
       if (!dead) {
         observers.add(observer)
@@ -389,7 +401,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
         lanesChanged ||
         next.rowGap !== layout.rowGap ||
         next.direction !== layout.direction ||
-        next.anchor !== layout.anchor || next.orbitGap !== layout.orbitGap
+        next.anchor !== layout.anchor || next.orbitGap !== layout.orbitGap || next.cloudDepth !== layout.cloudDepth
       const nextLanes = lanesChanged ? makeLanes(options.nodes, next) : model.laneMap
       const nextTargets =
         !targets || geometryChanged ? targetsFor(camera.mode, selected, next, nextLanes) : targets
@@ -403,7 +415,9 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
         nextTargets !== targets ||
         (Object.keys(forces) as (keyof typeof forces)[]).some((k) => forces[k] !== nextForces[k])
       const guideChanged = layout.guides !== next.guides
+      const rotationChanged = layout.autoRotate !== next.autoRotate
       layout = next
+      if (rotationChanged) idle()
       model.laneMap = nextLanes
       if (!gl!.isContextLost()) render.setLayout(layout, camera.mode)
       if (!changed) {
@@ -477,7 +491,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       if (!dead) {
         input.reset()
         choose(-1)
-        camera.yaw = camera.pitch = 0
+        camera.resetAngle()
         fit()
         idle()
       }
@@ -501,6 +515,8 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
         simTicks: sim.ticks,
         drawCalls: render.draws,
         labels: render.labelCount,
+        imageTiles: render.imageTiles,
+        geometryBytes: model.positions.byteLength + model.endpoints.byteLength,
         dpr: resolution.scale,
         pendingFrame: schedule.pending,
         transport: sim.transport,
@@ -510,6 +526,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       if (dead) return
       dead = true
       emit('destroy', undefined)
+      probe = undefined
       observers.clear()
       schedule.destroy()
       clearTimeout(timer)

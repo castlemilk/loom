@@ -9,6 +9,91 @@ import { PickGrid, LabelGrid } from '../src/render/grid.js'
 import { parchment, fromBinary, toBinary, fromConsole } from '../src/index.js'
 import { mountConsoleGraph } from '../src/console.js'
 import { fixture } from '../demo/fixture.js'
+import { buildWorkload, initialWorkload, presets, mergeWorkload, importWorkload, imageURL } from '../web/app/workload.mjs'
+import { cloudTargets } from '../src/sim/cloud.js'
+import { observePerformance } from '../src/performance.js'
+
+test('repeatable workloads change payload independently of topology and support capped append and import', () => {
+  const config = { ...initialWorkload, nodes: 60, coverage: 100, variety: 6, text: 'articles' }
+  const data = buildWorkload(config)
+  assert.deepEqual(data, buildWorkload(config))
+  assert.equal(data.links.length, 240)
+  assert.equal(Object.keys(data.artwork).length, 6)
+  assert.ok(data.nodes.every((n) => n.content.length > 350 && imageURL(data, n, '/loom').startsWith('/loom/graphs/specimens/')))
+  const bare = buildWorkload({ ...config, coverage: 0, text: 'labels' })
+  assert.deepEqual(bare.links, data.links)
+  assert.ok(bare.nodes.every((n) => !n.art && !n.content && !n.summary))
+  assert.notDeepEqual(buildWorkload({ ...config, seed: 3 }).links, data.links)
+  for (const preset of Object.values(presets)) {
+    const example = buildWorkload({ ...preset, seed: 17 })
+    assert.equal(example.nodes.length, preset.nodes)
+    assert.equal(example.links.length, preset.nodes * preset.degree)
+    assert.ok(example.links.every((l) => l.source !== l.target))
+  }
+  const custom = importWorkload({ nodes: [{ id: 'batch1-n0', art: 'specimen-0' }], edges: [],
+    artwork: { 'specimen-0': 'https://example.org/a.webp' } })
+  const combined = mergeWorkload(custom, config)
+  assert.equal(combined.nodes.length, 61)
+  assert.equal(combined.links.length, 241)
+  assert.equal(imageURL(combined, combined.nodes[0]), 'https://example.org/a.webp')
+  assert.deepEqual(importWorkload(JSON.parse(JSON.stringify(combined))), combined)
+  assert.throws(() => buildWorkload({ ...config, nodes: 25000, degree: 5 }), /100,000 links/)
+  assert.throws(() => mergeWorkload(custom, { ...config, nodes: 25000 }), /combined/)
+  assert.throws(() => importWorkload({ ...custom, links: [{ source: 'missing', target: 'x' }] }), /existing/)
+  assert.throws(() => importWorkload({ nodes: [{ id: 'x', art: 'file:///tmp/x' }], links: [] }), /raster/)
+})
+
+test('Cloud has a deterministic volume at full structure and preserves authored planes and coordinates', () => {
+  const nodes = Array.from({ length: 128 }, (_, i) => ({ id: 'n' + i }))
+  const volume = cloudTargets(nodes, {}), flat = cloudTargets(nodes, { cloudDepth: 0 })
+  const depths = nodes.map((_, i) => volume[3 * i + 2])
+  assert.ok(Math.max(...depths) - Math.min(...depths) > 200)
+  assert.ok(depths.filter((z) => z > 0).length > 55 && depths.filter((z) => z < 0).length > 55)
+  nodes.forEach((_, i) => {
+    assert.equal(flat[i * 3], volume[i * 3])
+    assert.equal(Math.abs(flat[i * 3 + 2]), 0)
+  })
+  assert.deepEqual([...cloudTargets([{ id: 'a', x: 0, y: 12, z: 0 }], { cloudDepth: 3 })], [0, 12, 0])
+  assert.deepEqual([...cloudTargets([{ id: 'a' }], { anchor: () => ({ x: 7, y: -5 }) })], [7, -5, 0])
+  const cam = new Camera('cloud')
+  cam.yaw = cam.pitch = 0
+  cam.width = 1200; cam.height = 400
+  const p = new Float32Array(8)
+  cam.project(0, 0, 110, p, 0, cam.basis()); cam.project(0, 0, -110, p, 4, cam.basis())
+  assert.ok(p[2] / p[6] > 1.6)
+})
+
+test('performance monitoring resolves async GPU queries, reports disjoint and unavailable clocks, and detaches', async () => {
+  for (const supported of [true, false]) {
+    const target = new EventTarget(), ext = { TIME_ELAPSED_EXT: 1, GPU_DISJOINT_EXT: 2, QUERY_COUNTER_BITS_EXT: 4 }
+    let active = false, deleted = 0, disjoint = false, off = 0, removeDestroy = 0, snap, probe, destroy
+    const gl = { canvas: target, isContextLost: () => false, getExtension: () => supported ? ext : null,
+      createQuery: () => ({}), getQuery: (_, param) => param === 4 ? 64 : null, beginQuery: () => { active = true }, endQuery: () => { active = false },
+      getParameter: () => disjoint, QUERY_RESULT_AVAILABLE: 3,
+      getQueryParameter: (_, which) => which === 3 ? true : 2500000, deleteQuery: () => { deleted++ } }
+    const graph = { stats: () => ({ frames: 12 }), onTiming: (p) => { probe = p; return () => { off++ } },
+      on: (_, f) => { destroy = f; return () => { removeDestroy++ } } }
+    const stop = observePerformance(graph, (s) => { snap = s })
+    const draw = () => {
+      probe.beginDraw(gl); assert.equal(active, supported); probe.endDraw()
+      probe.sample(performance.now(), 2, 16, true)
+    }
+    const until = async (check) => {
+      const deadline = performance.now() + 2300
+      while (!check()) { assert.ok(performance.now() < deadline); await new Promise((r) => setTimeout(r, 20)) }
+    }
+    draw()
+    await until(() => snap?.gpuStatus === (supported ? 'measured' : 'unavailable'))
+    assert.equal(snap.gpuMs, supported ? 2.5 : null); assert.equal(snap.mainThreadMs, 2)
+    if (supported) {
+      disjoint = true; draw(); await until(() => snap?.gpuStatus === 'disjoint')
+      assert.equal(snap.gpuMs, null)
+    }
+    await until(() => snap?.idle); assert.equal(snap.fps, 0)
+    destroy(); stop()
+    assert.equal(off, 1); assert.equal(removeDestroy, 1); assert.equal(deleted, supported ? 2 : 0)
+  }
+})
 import { compileTaxonomies, parseTaxonomy } from '../src/taxonomy.js'
 import { groupOutline } from '../src/group-outline.js'
 import { orbitTargets } from '../src/sim/orbit.js'

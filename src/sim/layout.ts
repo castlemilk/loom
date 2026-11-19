@@ -27,12 +27,18 @@ export class Layout {
   #chain: Int32Array
   #coordinates: Int32Array
   #volume: boolean
+  #mode: Mode
+  #forces: Forces
+  #targets: Float32Array | undefined
   constructor(
     public data: LayoutData,
-    private mode: Mode,
-    private forces: Forces = defaultForces,
-    private targets?: Float32Array,
+    mode: Mode,
+    forces: Forces = defaultForces,
+    targets?: Float32Array,
   ) {
+    this.#mode = mode
+    this.#forces = forces
+    this.#targets = targets
     const n = data.n
     this.#volume = mode === 'cloud'
     if (this.#volume) this.#seedDepth()
@@ -41,7 +47,7 @@ export class Layout {
     this.#chain = new Int32Array(n)
     this.#coordinates = new Int32Array(n * 3)
     this.#buckets = new Int32Array(2 ** Math.ceil(Math.log2(Math.max(8, n * 2))))
-    this.alpha = this.forces.blend < 1 && data.fixed.includes(0) ? 1 : 0
+    this.alpha = this.#forces.blend < 1 && data.fixed.includes(0) ? 1 : 0
     this.#sizeCells()
   }
   #sizeCells() {
@@ -53,14 +59,14 @@ export class Layout {
   #seedDepth() {
     for (let i = 0; i < this.data.n; i++) {
       if (!this.data.fixed[i] && this.data.positions[i * 4 + 2] === 0)
-        this.data.positions[i * 4 + 2] = cloudDepth(i, this.data.n)
+        this.data.positions[i * 4 + 2] = this.#targets?.[i * 3 + 2] ?? cloudDepth(i, this.data.n)
     }
   }
   configure(mode: Mode, update: LayoutUpdate = {}) {
     if (update.lanes) this.data.lanes = update.lanes
     if (update.springs !== undefined) this.data.springs = update.springs
-    if (update.forces) this.forces = update.forces
-    if (update.targets) this.targets = update.targets
+    if (update.forces) this.#forces = update.forces
+    if (update.targets) this.#targets = update.targets
     if (update.radii) {
       for (let i = 0; i < this.data.n; i++) this.data.positions[i * 4 + 3] = update.radii[i]
       this.#sizeCells()
@@ -70,9 +76,9 @@ export class Layout {
       this.#tree = new ChargeTree(this.data.n, this.#volume)
       if (this.#volume) this.#seedDepth()
     }
-    this.mode = mode
-    if (this.forces.blend === 1 && this.targets)
-      placeOnTargets(this.data.positions, this.data.fixed, this.targets)
+    this.#mode = mode
+    if (this.#forces.blend === 1 && this.#targets)
+      placeOnTargets(this.data.positions, this.data.fixed, this.#targets)
     this.#reheat()
   }
   pin(i: number, x: number, y: number, fixed: number, z?: number) {
@@ -83,10 +89,10 @@ export class Layout {
     this.#velocity.fill(0, i * 3, i * 3 + 3)
     // A pointer can move several times inside one sliced tick. Continue that tick
     // and keep the neighbours' momentum as the spring endpoint moves.
-    this.alpha = this.forces.blend < 1 && this.data.fixed.includes(0) ? Math.max(this.alpha, 0.85) : 0
+    this.alpha = this.#forces.blend < 1 && this.data.fixed.includes(0) ? Math.max(this.alpha, 0.85) : 0
   }
   #reheat() {
-    this.alpha = this.forces.blend < 1 && this.data.fixed.includes(0) ? 1 : 0
+    this.alpha = this.#forces.blend < 1 && this.data.fixed.includes(0) ? 1 : 0
     this.#phase = 'bounds'
     this.#cursor = 0
     this.#extent = 1
@@ -143,7 +149,8 @@ export class Layout {
       before = this.ticks
     const { n, positions: p, fixed, endpoints: e, lanes, springs } = this.data,
       v = this.#velocity
-    const structure = this.mode === 'orbit' ? 0.7 + 0.3 * this.forces.blend ** 2 : this.forces.blend ** 2,
+    const bias = this.#mode === 'orbit' ? 0.7 : this.#volume && this.#targets ? 0.19 : 0
+    const structure = bias + (1 - bias) * this.#forces.blend ** 2,
       free = 1 - structure
     do {
       const freeAlpha = this.alpha * free
@@ -178,7 +185,7 @@ export class Layout {
             break
           }
           case 'charge':
-            if (!fixed[i]) this.#tree.repel(i, p, v, freeAlpha * this.forces.repulsion)
+            if (!fixed[i]) this.#tree.repel(i, p, v, freeAlpha * this.#forces.repulsion)
             break
           case 'links': {
             const a = e[i * 2],
@@ -189,8 +196,8 @@ export class Layout {
               dy = p[bk + 1] - p[ak + 1],
               dz = this.#volume ? p[bk + 2] - p[ak + 2] : 0
             const distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1
-            const rest = springs && springs[i * 2] >= 0 ? springs[i * 2] : this.forces.linkDistance
-            const strength = this.forces.springStrength * (springs ? springs[i * 2 + 1] : 1)
+            const rest = springs && springs[i * 2] >= 0 ? springs[i * 2] : this.#forces.linkDistance
+            const strength = this.#forces.springStrength * (springs ? springs[i * 2 + 1] : 1)
             const f = (1 - (rest + p[ak + 3] + p[bk + 3]) / distance) * 0.045 * freeAlpha * strength
             v[a * 3] += dx * f
             v[a * 3 + 1] += dy * f
@@ -208,17 +215,17 @@ export class Layout {
               v[j] = v[j + 1] = v[j + 2] = 0
               break
             }
-            const lane = this.mode === 'lanes'
-            const laneX = lane && !this.forces.vertical,
-              laneY = lane && this.forces.vertical
+            const lane = this.#mode === 'lanes'
+            const laneX = lane && !this.#forces.vertical,
+              laneY = lane && this.#forces.vertical
             v[j] += ((laneX ? lanes[i] : 0) - p[k]) * (laneX ? 0.12 : 0.009) * freeAlpha
             v[j + 1] += ((laneY ? lanes[i] : 0) - p[k + 1]) * (laneY ? 0.12 : 0.009) * freeAlpha
             if (this.#volume) v[j + 2] -= p[k + 2] * 0.009 * freeAlpha
             for (let axis = 0; axis < (this.#volume ? 3 : 2); axis++) {
               let limit = 20
-              if (this.targets && structure) {
-                const delta = this.targets[j + axis] - p[k + axis]
-                if (this.mode === 'orbit') limit = Math.max(limit, Math.abs(delta) * 0.25)
+              if (this.#targets && structure) {
+                const delta = this.#targets[j + axis] - p[k + axis]
+                if (this.#mode === 'orbit') limit = Math.max(limit, Math.abs(delta) * 0.25)
                 v[j + axis] += delta * structure * 0.22 * this.alpha
               }
               v[j + axis] = Math.max(-limit, Math.min(limit, v[j + axis] * 0.68))
