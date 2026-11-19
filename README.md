@@ -31,10 +31,11 @@ Open the URL printed by the server. The studio opens a 25-node, 30-link excerpt 
 
 ## Use the core
 
-Install the typed ESM package from the [Pages build](https://castlemilk.github.io/loom/loom-core-0.1.0.tgz), or build this checkout with `npm run build`. The package includes the core, optional annotation and console entry points, and the layout worker. A consuming app can pin the tarball integrity in its lockfile. The browser needs a canvas with a CSS width and height.
+Install the typed ESM package from the [Pages build](https://castlemilk.github.io/loom/loom-core-0.1.0.tgz), or build this checkout with `npm run build`. The package includes the core, optional annotation and console entry points, and the layout worker. For a reproducible install, use the source revision in the URL. Pages retains those archives across deployments and npm records the URL and integrity in your lockfile. The browser needs a canvas with a CSS width and height.
 
 ```sh
-npm install https://castlemilk.github.io/loom/loom-core-0.1.0.tgz
+revision=$(curl -fsSL https://castlemilk.github.io/loom/revision.txt)
+npm install "https://castlemilk.github.io/loom/packages/$revision/loom-core-0.1.0.tgz"
 ```
 
 ```html
@@ -108,7 +109,7 @@ Orbit opens around the highest-degree node. Ties use lexical node ID order. Sele
 
 ## Taxonomies and annotations
 
-Import `loom-core/taxonomy` to use the same domain vocabulary for grouping, colours, legends, tooltips and lanes. This entry point is optional and has no framework dependencies. Here the host element supplies the dimensions, and the overlay and canvas share its bounds.
+Import `loom-core/taxonomy` to use the same domain vocabulary for grouping, colours, legends, tooltips and lanes. This entry point is optional and has no framework dependencies. The declarations target TypeScript 5.4 or later. Node and link types are inferred from the dataset, including inside marker, wire, anchor and lane callbacks. Here the overlay and canvas share the host element's bounds.
 
 ```ts
 import { createGraph, ink, type GraphData, type GraphNode } from 'loom-core'
@@ -169,6 +170,8 @@ export function mountCatalogue(host: HTMLElement) {
 `by` accepts a string-valued field, an array-valued field, a relationship endpoint, or a typed classifier such as `(node, context) => context.linksFor(node.id).length ? 'connected' : 'isolated'`. Relationship groups include their hub and its incident members. `remap` translates raw values to one or more term IDs. Multiple memberships are deduplicated. All apply to bubbles and tooltips, and the first determines exclusive lane placement. Unassigned nodes get their own lane. Term labels, descriptions and colours are independent of the raw IDs.
 
 `legend(id)` returns ordered groups, display properties and member indices. `describe(nodeId)` returns the title, formatted count and full membership. For custom tooltip content, supply `language.tooltip(node, description)` returning `{ title, lines }`. Text renders literally. Outlines and lane captions follow the camera, node drags and canvas resizes on the engine's existing paint cycle. `setOptions({ bubbles: {} })` hides every outline. Destroying the graph also releases its annotations.
+
+The v0.1 protobuf encodes the fields declared in `proto/graph.proto`. Keep taxonomy definitions and application-specific node fields in your host data, or express membership through typed graph links when it needs to survive a binary round trip.
 
 ## Style a mounted graph
 

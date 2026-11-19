@@ -67,9 +67,10 @@ export function makeSprings(
 
 export function makeLanes(nodes: readonly GraphNode[], options: LayoutOptions) {
   const keys = nodes.map((node, i) => options.laneBy?.(node, i) ?? node.kind ?? '')
-  const offsets = laneOffsets(new Set(keys), options.laneOrder ?? laneOrder, options.laneGap ?? 210)
+  const gap = options.laneGap ?? (options.blend ? 210 : Math.max(85, 12 * Math.sqrt(nodes.length)))
+  const offsets = laneOffsets(new Set(keys), options.laneOrder ?? laneOrder, gap)
   const lanes: Float32Array = Float32Array.from(keys, (key) => offsets.get(key)!)
-  return { keys, offsets, lanes }
+  return { keys, offsets, lanes, gap }
 }
 
 // Compile callbacks on the caller's thread. Only packed coordinates cross the worker boundary.

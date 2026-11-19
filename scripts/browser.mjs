@@ -16,6 +16,7 @@ try {
   sites.push(await serve(0, true))
   sites.push(await serve(0, false))
   browser = await chromium.launch({
+    channel: process.env.LOOM_BROWSER_CHANNEL,
     headless: process.env.LOOM_HEADFUL !== '1',
     args: bench ? [] : ['--enable-unsafe-swiftshader'],
   })
@@ -54,6 +55,9 @@ try {
     report.contextAndArt = await run('contextAndArt')
     report.shared = await run('worker', ['shared'])
     report.transfer = await run('worker', ['transfer'], { isolated: false })
+    for (const transport of ['main', 'shared', 'transfer']) {
+      report['orbit-' + transport] = await run('orbitTransport', [transport], { isolated: transport !== 'transfer' })
+    }
     report.styledGeometry = await run('styledGeometry')
     report.dragPin = await run('dragPin')
     report.springMain = await run('springDrag', ['main'])

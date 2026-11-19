@@ -137,7 +137,7 @@ export class Renderer {
   }
   setLayout(layout: LayoutOptions, mode: Mode) {
     this.scene[44] = this.model.laneMap.offsets.size
-    this.scene[45] = layout.laneGap ?? 210
+    this.scene[45] = this.model.laneMap.gap
     this.scene[46] = layout.guides && !layout.anchor && mode !== 'orbit' ? (mode === 'lanes' ? 1 : layout.blend ?? 0) * 0.32 : 0
     this.scene[47] = Number(layout.direction === 'vertical')
   }

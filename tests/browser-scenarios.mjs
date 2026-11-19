@@ -9,6 +9,7 @@ import {
   WebGL2UnavailableError,
 } from '../dist/index.js'
 import { fixture } from '../demo/fixture.js'
+import { attachAnnotations, compileTaxonomies } from '../dist/taxonomy.js'
 
 const raf = () => new Promise(requestAnimationFrame)
 const delay = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -250,6 +251,37 @@ export async function worker(expected) {
   check(c.getContext('webgl2').getError() === 0, 'Worker upload produced a WebGL error')
   free(c, g)
   return { transport: settled.transport, ticks: settled.simTicks }
+}
+
+export async function orbitTransport(transport) {
+  const c = canvas(), host = document.createElement('div')
+  document.body.append(host)
+  const data = { nodes: ['lead', 'left', 'right', 'end', 'pinned'].map((id) => ({ id, kind: 'item',
+    ...(id === 'pinned' ? { x: 200, y: 200 } : {}) })),
+    links: [['lead', 'left'], ['lead', 'right'], ['left', 'end']].map(([source, target]) => ({ source, target })) }
+  const g = createGraph(c, { ...data, sim: transport === 'main' ? 'main' : 'worker', mode: 'orbit',
+    layout: { blend: 0.35, orbitGap: 75 } })
+  const index = compileTaxonomies(data, { taxonomies: [{ id: 'kind', label: 'Kind', by: 'kind' }] })
+  attachAnnotations(g, host, index, { bubbles: { kind: true }, laneTaxonomy: 'kind' })
+  await until(() => g.stats().simTicks >= 32 && !g.stats().pendingFrame, 'Blended orbit never settled')
+  function distance(a, b) {
+    const p = g.getPosition(a), q = g.getPosition(b)
+    return Math.hypot(p.x - q.x, p.y - q.y)
+  }
+  check(g.stats().transport === transport && Math.abs(distance('lead', 'right') - 75) < 15 &&
+    distance('lead', 'end') > 124, 'Blended orbit lost its rings on ' + transport)
+  const before = g.stats()
+  await delay(100)
+  check(!g.stats().pendingFrame && before.frames === g.stats().frames, 'Annotations woke a sleeping simulation')
+  g.setLayout({ blend: 1 })
+  g.select('right')
+  check(Math.abs(distance('right', 'end') - 225) < 0.01 && g.getPosition('pinned').x === 200, 'Exact orbit or pin changed on ' + transport)
+  g.setMode('lanes')
+  await until(() => host.querySelector('[data-lane="item"]'), 'Lane captions did not appear')
+  free(c, g)
+  check(!host.childElementCount, 'Destroy should release the annotation DOM')
+  host.remove()
+  return { transport, ticks: before.simTicks }
 }
 
 export async function golden() {

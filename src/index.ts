@@ -1,4 +1,4 @@
-import type { GraphEvents, GraphFrame, GraphOptions, LayoutOptions, LoomGraph, Mode } from './types.js'
+import type { GraphEvents, GraphFrame, GraphLink, GraphNode, GraphOptions, LayoutOptions, LoomGraph, Mode } from './types.js'
 import { parchment } from './theme.js'
 import { prepare, neighbors } from './model.js'
 import { appearance } from './appearance.js'
@@ -23,6 +23,9 @@ export class WebGL2UnavailableError extends Error {
 }
 const modes = new Set<Mode>(['drift', 'lanes', 'orbit', 'cloud'])
 
+export function createGraph<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink>(
+  canvas: HTMLCanvasElement, options: GraphOptions<N, E>,
+): LoomGraph<N, E>
 export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): LoomGraph {
   const start = performance.now()
   const mode = options.mode ?? 'drift'
@@ -380,7 +383,8 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       if (dead) return
       const next = { ...layout, ...patch },
         nextForces = layoutForces(next)
-      const lanesChanged = next.laneGap !== layout.laneGap || next.laneOrder !== layout.laneOrder || next.laneBy !== layout.laneBy
+      const lanesChanged = next.laneGap !== layout.laneGap || next.laneOrder !== layout.laneOrder || next.laneBy !== layout.laneBy ||
+        (next.laneGap === undefined && !!next.blend !== !!layout.blend)
       const geometryChanged =
         lanesChanged ||
         next.rowGap !== layout.rowGap ||

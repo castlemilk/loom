@@ -22,7 +22,10 @@ const vocabulary = {
 export function mountCatalogue(canvas: HTMLCanvasElement, layer: HTMLElement, data: GraphData<Paper, Citation>) {
   const taxonomy = compileTaxonomies(data, vocabulary)
   const graph = createGraph(canvas, { ...data, mode: 'lanes', layout: { laneBy: taxonomy.laneBy('subject') },
-    theme: { ...ink, nodes: { resolve: (node) => taxonomy.primary(node.id, 'subject') } } })
+    theme: { ...ink, nodes: { resolve: (node) => taxonomy.primary(node.id, 'subject') },
+      wires: { resolve: (citation) => ({ width: citation.reviewed ? 2 : 1 }) } } })
+  graph.setLayout({ laneBy: (paper) => String(paper.year) })
+  graph.setTheme({ ...ink, nodes: { resolve: (paper) => ({ radius: paper.disciplines.length + 2 }) } })
   const annotations = attachAnnotations(graph, layer, taxonomy, { bubbles: { subject: ['physics'], review: true }, laneTaxonomy: 'subject' })
   annotations.setOptions({ tooltips: false })
   graph.onFrame(({ width, height, points }) => { void [width, height, points[0]] })

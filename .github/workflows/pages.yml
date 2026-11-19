@@ -65,7 +65,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          rsync -a --delete --exclude=.git export/ published/
+          rsync -a --delete --exclude=.git --exclude=/packages/ export/ published/
+          mkdir -p "published/packages/$GITHUB_SHA"
+          cp export/loom-core-*.tgz "published/packages/$GITHUB_SHA/"
           git -C published add --all
           if ! git -C published diff --cached --quiet; then
             git -C published -c user.name=github-actions[bot] -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -m "Publish studio from $GITHUB_SHA"

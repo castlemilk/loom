@@ -33,19 +33,19 @@ export interface WireStyle {
   width?: number
 }
 export type WireRoute = 'arc' | 'patch' | 'straight'
-export interface LayoutOptions {
+export interface LayoutOptions<N extends GraphNode = GraphNode> {
   /** 0 uses the active force mode. 1 places movable nodes exactly on their anchors. */
   blend?: number
   laneOrder?: readonly string[]
   /** Classify nodes into lanes. The default uses node.kind. */
-  laneBy?: (node: GraphNode, index: number) => string
+  laneBy?: (node: N, index: number) => string
   laneGap?: number
   /** Minimum world-space distance between successive orbit rings. */
   orbitGap?: number
   rowGap?: number
   direction?: 'horizontal' | 'vertical'
   anchor?:
-    ((node: GraphNode, index: number) => { x: number; y: number; z?: number } | null | undefined) | null
+    ((node: N, index: number) => { x: number; y: number; z?: number } | null | undefined) | null
   repulsion?: number
   linkDistance?: number
   springStrength?: number
@@ -54,7 +54,7 @@ export interface LayoutOptions {
   pinOnDrag?: boolean
   guides?: boolean
 }
-export interface Theme {
+export interface Theme<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> {
   kind: Readonly<Record<string, string>>
   ink: string
   dim: string
@@ -71,22 +71,22 @@ export interface Theme {
     ringWidth?: number
     fill?: number
     byKind?: Readonly<Record<string, NodeStyle>>
-    resolve?: (node: GraphNode, degree: number) => NodeStyle | undefined
+    resolve?: (node: N, degree: number) => NodeStyle | undefined
   }
   wires?: WireStyle & {
     routing?: WireRoute
     hotWidth?: number
     byKind?: Readonly<Record<string, WireStyle>>
-    resolve?: (link: GraphLink, index: number) => WireStyle | undefined
+    resolve?: (link: E, index: number) => WireStyle | undefined
   }
   grid?: { spacing?: number; color?: string; opacity?: number }
   labels?: { density?: number; visibility?: 'auto' | 'focus' | 'none'; alternateSide?: boolean }
 }
-export interface GraphOptions extends GraphData {
+export interface GraphOptions<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> extends GraphData<N, E> {
   mode?: Mode
-  theme?: Theme
-  layout?: LayoutOptions
-  art?: { urlFor: (node: GraphNode) => string | undefined }
+  theme?: Theme<NoInfer<N>, NoInfer<E>>
+  layout?: LayoutOptions<NoInfer<N>>
+  art?: { urlFor: (node: NoInfer<N>) => string | undefined }
   sim?: 'main' | 'worker'
   workerURL?: string | URL
   reducedMotion?: 'respect' | 'ignore'
@@ -122,14 +122,14 @@ export interface GraphStats {
   pendingFrame: boolean
   transport: 'main' | 'transfer' | 'shared'
 }
-export interface LoomGraph {
+export interface LoomGraph<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> {
   /** Subscribe to actual paints. The first subscription wakes an idle graph once. */
   onFrame(listener: (frame: GraphFrame) => void): () => void
   select(id: string | null): void
   focus(id: string): void
   setMode(mode: Mode): void
-  setLayout(options: LayoutOptions): void
-  setTheme(theme: Theme): void
+  setLayout(options: LayoutOptions<N>): void
+  setTheme(theme: Theme<N, E>): void
   getPosition(id: string): { x: number; y: number; z: number; pinned: boolean }
   pin(id: string, position?: { x: number; y: number; z?: number }): void
   unpin(id: string): void

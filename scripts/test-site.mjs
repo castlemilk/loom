@@ -57,11 +57,14 @@ try {
   const configPage = await context.newPage()
   configPage.setDefaultTimeout(15000)
   const configuration = await studioConfiguration(configPage, url)
-  const packageHeader = await configPage.evaluate(async () => {
-    const response = await fetch(new URL('loom-core-0.1.0.tgz', location.href))
+  const packageHeader = await configPage.evaluate(async (live) => {
+    const revision = live ? (await (await fetch(new URL('revision.txt', location.href))).text()).trim() : ''
+    if (live && !/^[a-f\d]{40}$/.test(revision)) throw new Error('Missing package revision')
+    const prefix = live ? 'packages/' + revision + '/' : ''
+    const response = await fetch(new URL(prefix + 'loom-core-0.1.0.tgz', location.href))
     if (!response.ok) throw new Error('TypeScript package HTTP ' + response.status)
     return [...new Uint8Array(await response.arrayBuffer()).slice(0, 2)]
-  })
+  }, Boolean(liveURL))
   assert.deepEqual(packageHeader, [0x1f, 0x8b], 'Studio should serve the installable npm archive')
   console.log({ ...result, worker, snapshotRequests: snapshots, configuration })
 } finally {

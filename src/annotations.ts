@@ -19,7 +19,7 @@ const ns = 'http://www.w3.org/2000/svg'
 const badge = 'position:absolute;box-sizing:border-box;background:var(--loom-overlay-bg,#242824);color:var(--loom-overlay-ink,#f4f4eb);font:12px/1.4 var(--loom-overlay-font,system-ui,sans-serif);border:1px solid #8887;border-radius:5px;'
 
 /** The host should cover the canvas in the same CSS-pixel coordinate space. */
-export function attachAnnotations(graph: LoomGraph, host: HTMLElement, index: TaxonomyIndex, options: AnnotationOptions = {}): GraphAnnotations {
+export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host: HTMLElement, index: TaxonomyIndex, options: AnnotationOptions = {}): GraphAnnotations {
   const doc = host.ownerDocument
   const root = doc.createElement('div')
   root.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;'
