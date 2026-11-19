@@ -36,8 +36,8 @@ class Writer {
     this.bytes.copyWithin(this.at, start + 5, end)
     this.at += len
   }
-  string(tag: number, value?: string) {
-    if (!value) return
+  string(tag: number, value?: string, preserveEmpty = false) {
+    if (value === undefined || (!value && !preserveEmpty)) return
     const start = this.message(tag)
     this.room(value.length * 3)
     this.at += encoder.encodeInto(value, this.bytes.subarray(this.at)).written
@@ -49,6 +49,30 @@ class Writer {
     this.bytes[this.at++] = tag
     this.view.setFloat32(this.at, value, true)
     this.at += 4
+  }
+  integer(tag: number, value: number | undefined) {
+    if (value === undefined) return
+    if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) throw new RangeError('Expected uint32')
+    this.room(6)
+    this.bytes[this.at++] = tag
+    this.uint(value)
+  }
+  double(tag: number, value: number | undefined) {
+    if (value === undefined) return
+    if (!Number.isFinite(value)) throw new RangeError('Expected finite metric')
+    this.room(9)
+    this.bytes[this.at++] = tag
+    this.view.setFloat64(this.at, value, true)
+    this.at += 8
+  }
+  metrics(tag: number, values?: Readonly<Record<string, number>>) {
+    if (!values) return
+    for (const [key, value] of Object.entries(values)) {
+      const entry = this.message(tag)
+      this.string(10, key)
+      this.double(17, value)
+      this.finish(entry)
+    }
   }
 }
 export function toBinary(data: GraphData): Uint8Array {
@@ -62,18 +86,18 @@ export function toBinary(data: GraphData): Uint8Array {
     w.float(45, n.y)
     w.float(53, n.z)
     w.string(58, n.art)
-    if (n.degree !== undefined) {
-      if (!Number.isInteger(n.degree) || n.degree < 0 || n.degree > 0xffffffff)
-        throw new RangeError('degree must fit uint32')
-      w.room(6)
-      w.bytes[w.at++] = 64
-      w.uint(n.degree)
-    }
+    w.integer(64, n.degree)
     if (n.pinned !== undefined) {
       w.room(2)
       w.bytes[w.at++] = 72
       w.bytes[w.at++] = pinFlag(n.pinned)
     }
+    w.string(82, n.section, true)
+    w.integer(88, n.contentSize)
+    w.double(97, n.complexity)
+    w.metrics(106, n.metrics)
+    w.string(114, n.summary, true)
+    w.string(122, n.content, true)
     w.finish(start)
   }
   for (const l of data.links) {
@@ -81,6 +105,8 @@ export function toBinary(data: GraphData): Uint8Array {
     w.string(10, l.source)
     w.string(18, l.target)
     w.string(26, l.kind)
+    w.double(33, l.weight)
+    w.metrics(42, l.metrics)
     w.finish(start)
   }
   return w.bytes.slice(0, w.at)
@@ -116,8 +142,8 @@ class Reader {
     if (end > this.end) invalid()
     return end
   }
-  private shortStrings = new Map<number, string>()
-  private strings = new Map<number, { start: number; length: number; text: string }>()
+  #shortStrings = new Map<number, string>()
+  #strings = new Map<number, { start: number; length: number; text: string }>()
   string(intern = false) {
     const end = this.limit(),
       start = this.at,
@@ -130,11 +156,11 @@ class Reader {
       // A leading one and six bytes fit losslessly in a JavaScript integer.
       hash = 1
       for (let i = start; i < end; i++) hash = hash * 256 + b[i]
-      const hit = this.shortStrings.get(hash)
+      const hit = this.#shortStrings.get(hash)
       if (hit !== undefined) return hit
     } else if (intern) {
       for (let i = start; i < end; i++) hash = Math.imul(hash ^ b[i], 16777619)
-      const hit = this.strings.get(hash)
+      const hit = this.#strings.get(hash)
       if (hit && hit.length === length) {
         let i = 0
         while (i < length && b[hit.start + i] === b[start + i]) i++
@@ -153,8 +179,8 @@ class Reader {
       while (i < end && b[i] < 128) text += String.fromCharCode(b[i++])
     }
     if (i !== end) text = decoder.decode(b.subarray(start, end))
-    if (short) this.shortStrings.set(hash, text)
-    else if (intern) this.strings.set(hash, { start, length, text })
+    if (short) this.#shortStrings.set(hash, text)
+    else if (intern) this.#strings.set(hash, { start, length, text })
     return text
   }
   float() {
@@ -162,6 +188,26 @@ class Reader {
     const n = this.view.getFloat32(this.at, true)
     this.at += 4
     return n
+  }
+  double() {
+    if (this.at + 8 > this.end) return invalid()
+    const n = this.view.getFloat64(this.at, true)
+    this.at += 8
+    if (!Number.isFinite(n)) return invalid()
+    return n
+  }
+  metric(record: GraphNode | GraphLink) {
+    const outer = this.end
+    this.end = this.limit()
+    let key = '', value = 0
+    while (this.at < this.end) {
+      const tag = this.tag()
+      if (tag === 10) key = this.string(true)
+      else if (tag === 17) value = this.double()
+      else this.skip(tag)
+    }
+    this.end = outer
+    Object.defineProperty(record.metrics ??= {}, key, { value, enumerable: true, configurable: true, writable: true })
   }
   tag() {
     const tag = this.uint()
@@ -250,6 +296,12 @@ export function fromBinary(buffer: Uint8Array | ArrayBuffer): {
           case 72:
             n.pinned = Boolean(r.uint())
             break
+          case 82: n.section = r.string(true); break
+          case 88: n.contentSize = r.uint(); break
+          case 97: n.complexity = r.double(); break
+          case 106: r.metric(n); break
+          case 114: n.summary = r.string(); break
+          case 122: n.content = r.string(); break
           default:
             r.skip(field)
         }
@@ -262,6 +314,8 @@ export function fromBinary(buffer: Uint8Array | ArrayBuffer): {
         if (field === 10) l.source = r.string(true)
         else if (field === 18) l.target = r.string(true)
         else if (field === 26) l.kind = r.string(true)
+        else if (field === 33) l.weight = r.double()
+        else if (field === 42) r.metric(l)
         else r.skip(field)
       }
       links.push(l)

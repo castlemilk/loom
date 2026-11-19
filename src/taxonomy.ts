@@ -1,6 +1,6 @@
 import type { GraphData, GraphLink, GraphNode, NodeShape } from './types.js'
 export { attachAnnotations } from './annotations.js'
-export type { AnnotationOptions, GraphAnnotations } from './annotations.js'
+export type { AnnotationOptions, BoundaryStyle, GraphAnnotations } from './annotations.js'
 
 export type Membership = string | readonly string[] | null | undefined
 export interface TaxonTerm {

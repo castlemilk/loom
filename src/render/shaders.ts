@@ -97,6 +97,7 @@ layout(location=0) in uvec2 ends;
 layout(location=1) in vec4 wireColor;
 layout(location=2) in float wireWidth;
 out vec4 pigment;
+out vec4 dash;
 void main() {
   vec4 na=nodeAt(int(ends.x)), nb=nodeAt(int(ends.y));
   vec4 a = projectNode(na), b = projectNode(nb);
@@ -115,7 +116,9 @@ void main() {
   vec2 normal = vec2(-tangent.y,tangent.x) / max(0.001,length(tangent));
   bool hot = int(ends.x)==selected || int(ends.y)==selected || int(ends.x)==hovered || int(ends.y)==hovered;
   bool styled = wireData.w > 0.5;
-  float width = styled ? wireWidth : wireData.y;
+  float stroke = styled ? wireWidth : wireData.y;
+  float pattern = floor(stroke/128.0);
+  float width = mod(stroke,128.0);
   float alpha = hot ? 0.9 : (selected >= 0 ? 0.045 : (styled ? wireColor.a : density));
   float depth=mix(a.w,b.w,t);
   if (centerData.w>0.5) {
@@ -128,10 +131,28 @@ void main() {
   }
   pigment = vec4(hot ? accent : (styled ? wireColor.rgb : dim), alpha);
   float side = (gl_VertexID & 1)==0 ? -1.0 : 1.0;
-  gl_Position = clip(curve + normal*side*(hot ? wireData.z : width)*0.5, depth);
+  if (hot) width=max(wireData.z,width);
+  float along=0.0;
+  if (pattern>0.5) along=t*0.5*(length(delta)+length(c-a.xy)+length(d-c)+length(b.xy-d));
+  dash=vec4(along,side*width*0.5,width,pattern);
+  gl_Position = clip(curve + normal*side*width*0.5, depth);
 }
 `
-export const wireFragment = `in vec4 pigment; out vec4 color; void main(){color=pigment;}`
+export const wireFragment = `
+in vec4 pigment;
+in vec4 dash;
+out vec4 color;
+void main(){
+  color=pigment;
+  if(dash.w>0.5){
+    float unit=max(1.5,dash.z);
+    float period=(dash.w>1.5 ? 2.6 : 5.0)*unit;
+    float phase=abs(mod(dash.x+0.5*period,period)-0.5*period);
+    float edge=dash.w>1.5 ? length(vec2(phase,dash.y))-0.5*dash.z : phase-1.5*unit;
+    if(edge>0.5) discard;
+    color.a*=clamp(0.5-edge,0.0,1.0);
+  }
+}`
 export const labelVertex =
   quad +
   `

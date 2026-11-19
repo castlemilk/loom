@@ -798,6 +798,17 @@ export async function styledGeometry() {
         diff(arc, straight) > 300,
       'Patch, rotated patch, line or arc geometry failed',
     )
+    const strokes = {}
+    for (const pattern of ['solid', 'dashed', 'dotted']) {
+      g.setTheme({ ...base, wires: { routing: 'straight', color: '#ff0000', width: 5, opacity: 1, pattern } })
+      strokes[pattern] = count(mask(await nextPixels(c, g), 0))
+    }
+    check(strokes.solid > strokes.dashed * 1.25 && strokes.dashed > strokes.dotted * 1.3 && strokes.dotted > 15,
+      'GPU stroke coverage ' + JSON.stringify(strokes))
+    g.setTheme({ ...base, wires: { routing: 'straight', pattern: 'solid', byKind: { signal: { color: '#ff0000', width: 5, opacity: 1, pattern: 'dotted' } } } })
+    check(count(mask(await nextPixels(c, g), 0)) === strokes.dotted, 'Per-kind dotted stroke differs from the global one')
+    g.setTheme({ ...base, wires: { routing: 'straight', resolve: () => ({ color: '#ff0000', width: 5, opacity: 1, pattern: 'dashed' }) } })
+    check(count(mask(await nextPixels(c, g), 0)) === strokes.dashed && g.stats().drawCalls === 2, 'Resolved wire stroke or draw count failed')
     const squareTheme = {
       ...base,
       nodes: { fill: 1, byKind: { task: { color: '#0000ff', radius: 12, shape: 'square' } } },
@@ -827,6 +838,7 @@ export async function styledGeometry() {
       straight: count(straight),
       arc: count(arc),
       overriddenWire: green,
+      strokes,
     }
   } finally {
     free(c, g)

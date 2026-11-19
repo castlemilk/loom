@@ -10,6 +10,8 @@ Use Node.js 22 or later.
 
 The [hosted graph studio](https://castlemilk.github.io/loom/) is a Next.js static export. It includes the 25-node excerpt in the initial page and uses TanStack Query to fetch and cache the full graph on demand. Tailwind CSS styles the responsive controls. The framework dependencies live in `web/`.
 
+Open the [Section atlas](https://castlemilk.github.io/loom/?example=clusters) to explore 45 nodes and 88 relationships across four synthetic notebooks. Rotate the Cloud or drag a node to see its section boundary follow. In **Taxonomies**, switch **Group by** to **Connected component** to find the two sets joined by citations. **Group bubbles** controls contour shape, padding, fill, stroke and individual group visibility. **Appearance** maps node radius and wire thickness to fields, with editable scale curves and output ranges. **Style controls → Kind stroke** assigns a pattern to a specific relationship.
+
 In **Taxonomies**, choose **Category** and open **Group bubbles** to outline a single knowledge category. Outlines from several taxonomies can be visible together. **Define a taxonomy** accepts JSON field or relationship mappings, and **Display language** edits the connection and unassigned-lane labels. Applied definitions and language are saved in this browser. Drag the separator to change the graph width, or its height on a narrow screen. The arrow keys adjust the separator and Enter restores its starting size.
 
 Open **Test data**, choose **Image atlas**, then **Generate graph** to draw 1,024 image-bearing nodes. Select **Cloud** and drag the background to orbit. Open **Perf** to watch frame intervals and artwork decoding while you zoom or pull a node.
@@ -204,6 +206,60 @@ export function mountCatalogue(host: HTMLElement) {
 `by` accepts a string-valued field, an array-valued field, a relationship endpoint, or a typed classifier such as `(node, context) => context.linksFor(node.id).length ? 'connected' : 'isolated'`. Relationship groups include their hub and its incident members. `remap` translates raw values to one or more term IDs. Multiple memberships are deduplicated. All apply to bubbles and tooltips, and the first determines exclusive lane placement. Unassigned nodes get their own lane. Term labels, descriptions and colours are independent of the raw IDs.
 
 `legend(id)` returns ordered groups, display properties and member indices. `describe(nodeId)` returns the title, formatted count and full membership. For custom tooltip content, supply `language.tooltip(node, description)` returning `{ title, lines }`. Text renders literally. Outlines and lane captions follow the camera, node drags and canvas resizes on the engine's existing paint cycle. `setOptions({ bubbles: {} })` hides every outline. Destroying the graph also releases its annotations.
+
+## Cluster placement and data-driven styling
+
+The optional `loom-core/clusters` and `loom-core/metrics` entry points prepare layout and style rules when your data changes. This example arranges papers into 3D sections, outlines each section and makes links to highly connected endpoints thicker.
+
+```ts
+import { createGraph, ink, type GraphData } from 'loom-core'
+import { clusterLayout } from 'loom-core/clusters'
+import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
+import { attachAnnotations, compileTaxonomies } from 'loom-core/taxonomy'
+
+export function mountSections(canvas: HTMLCanvasElement, overlay: HTMLElement, data: GraphData) {
+  const terms = compileTaxonomies(data, {
+    taxonomies: [{ id: 'section', label: 'Section', by: 'section' }],
+  })
+  const clusters = clusterLayout(data.nodes, terms.laneBy('section'), {
+    dimensions: 3, spacing: 28, gap: 80, depth: 1,
+  })
+  const graph = createGraph(canvas, {
+    ...data, mode: 'cloud',
+    layout: { anchor: clusters.anchor, blend: 0.75, autoRotate: false },
+    theme: {
+      ...ink,
+      nodes: { resolve: mapNodeRadius(data, 'contentSize', { curve: 'sqrt', range: [4, 18] }) },
+      wires: {
+        pattern: 'solid',
+        byKind: { cites: { pattern: 'dashed' }, replicates: { pattern: 'dotted' } },
+        resolve: mapWireWidth(data, 'connections', { curve: 'log', range: [0.75, 6] }),
+      },
+    },
+  })
+  const outlines = attachAnnotations(graph, overlay, terms, {
+    bubbles: { section: true },
+    boundary: { shape: 'cloud', padding: 14, fillOpacity: 0.1, strokeOpacity: 0.65 },
+    boundaryFor: (term) => term.id === 'Optics' ? { color: '#74b6b1', width: 2 } : undefined,
+  })
+  return { graph, outlines }
+}
+```
+
+`clusterLayout` sorts stable group and node IDs, sizes envelopes by membership and packs them into rows. Use `dimensions: 2` with Drift for disks or `dimensions: 3` with Cloud for volumes. `spacing` and `gap` use world units. `depth` scales the Z coordinate. `groups` exposes the members, center and radius of each envelope before depth scaling. Intermediate structure values retain spring response and node dragging. A blend of 1 uses exact anchors for movable nodes. Set `graph.setLayout({ anchor: null })` to restore native placement. Orbit uses hop rings and Lanes uses its lane classifier in the studio.
+
+For topology-based placement, `connectedComponents(data)` returns a classifier suitable for a taxonomy or `clusterLayout`. Pass a link predicate such as `edge => edge.kind === 'contains'` to choose which relationships connect groups. Components ignore direction, include isolated nodes and use the lexically smallest member ID as their identifier. A section taxonomy can express overlapping membership. Placement uses its first term, and each enabled boundary includes all its members.
+
+| Encoding | Inputs | Meaning |
+| --- | --- | --- |
+| Node radius | `degree`, `contentSize`, `complexity`, numeric accessor | Degree counts incident endpoints. Content size uses the supplied byte count, then UTF-8 bytes of content or summary. Complexity is supplied by the dataset. |
+| Wire width | `connections`, `multiplicity`, `weight`, numeric accessor | Connections uses the higher of the two endpoint degrees. Multiplicity counts links between the same pair in either direction. A self-loop contributes two endpoints to degree. |
+| Wire pattern | `solid`, `dashed`, `dotted` | Set globally, by kind or in `wires.resolve(link, index)`. The GPU draws each pattern on the same instanced wire pass. |
+| Group boundary | `hull`, `cloud` | Hull encloses the projected markers. Cloud traces the union of padded marker discs on a bounded screen-space grid and retains holes and separate islands. Use `boundaryFor` for per-group overrides. |
+
+Both metric helpers accept an explicit `domain`, a `range` and a `linear`, `sqrt` or `log` curve. The default domain spans finite observed values. Values outside an explicit domain clamp to the ends. A constant domain maps to the midpoint. Missing values inherit the underlying theme, and numeric zero participates in the scale. A typed accessor such as `paper => paper.metrics?.figures` can read a named metric or an application field. Node radii use world units before the global node multiplier. Wire widths use CSS pixels before Cloud depth shading.
+
+Graph JSON and protobuf support node `section`, `summary`, `content`, `contentSize` (unsigned 32-bit bytes), `complexity`, link `weight`, and a `metrics` map of named finite numbers on either. Older graphs retain absent values. Custom application fields outside the protobuf schema can stay on the plain objects passed to the renderer.
 
 The v0.1 protobuf encodes the fields declared in `proto/graph.proto`. Keep taxonomy definitions and application-specific node fields in your host data, or express membership through typed graph links when it needs to survive a binary round trip.
 

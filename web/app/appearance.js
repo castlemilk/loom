@@ -2,12 +2,13 @@ import { blueprint, ink, knowledgeConsole, parchment } from '../../dist/index.js
 
 export const palettes = { console: knowledgeConsole, ink, parchment, blueprint }
 export const kindOrder = ['study', 'concept', 'tag', 'blog', 'lab', 'category']
+export const patterns = [['solid', 'Solid'], ['dashed', 'Dashed'], ['dotted', 'Dotted']]
 
 export function preset(name) {
   const base = palettes[name]
   return {
     name, nodeScale: base.nodes?.scale ?? 1, artwork: base.nodes?.artwork !== false,
-    route: base.wires?.routing ?? 'arc', opacity: base.wires?.opacity ?? 0.45,
+    route: base.wires?.routing ?? 'arc', opacity: base.wires?.opacity ?? 0.45, pattern: 'solid',
     labels: base.labels?.visibility ?? 'auto', grid: !!base.grid, nodes: {}, wires: {},
   }
 }
@@ -22,7 +23,7 @@ export function makeTheme(style) {
   return {
     ...base,
     nodes: { ...base.nodes, scale: style.nodeScale, artwork: style.artwork, byKind: { ...base.nodes?.byKind, ...style.nodes } },
-    wires: { ...wires, byKind, routing: style.route, opacity: style.opacity },
+    wires: { ...wires, byKind, routing: style.route, opacity: style.opacity, pattern: style.pattern },
     labels: { ...base.labels, visibility: style.labels },
     grid: style.grid ? (base.grid ?? { spacing: 32, opacity: 0.18 }) : undefined,
   }

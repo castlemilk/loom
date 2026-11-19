@@ -1,6 +1,8 @@
 import { createGraph, ink, type GraphNode, type GraphData, type GraphLink } from 'loom-core'
 import { compileTaxonomies, attachAnnotations, type TaxonomyConfig } from 'loom-core/taxonomy'
 import { observePerformance, type PerformanceSample } from 'loom-core/performance'
+import { clusterLayout, connectedComponents } from 'loom-core/clusters'
+import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
 
 interface Paper extends GraphNode {
   disciplines: readonly string[]
@@ -29,6 +31,14 @@ export function mountCatalogue(canvas: HTMLCanvasElement, layer: HTMLElement, da
   graph.setTheme({ ...ink, nodes: { resolve: (paper) => ({ radius: paper.disciplines.length + 2 }) } })
   const annotations = attachAnnotations(graph, layer, taxonomy, { bubbles: { subject: ['physics'], review: true }, laneTaxonomy: 'subject' })
   graph.setLayout({ cloudDepth: 1.5, autoRotate: false })
+  const components = connectedComponents(data, (citation) => citation.reviewed)
+  const clusters = clusterLayout(data.nodes, components, { dimensions: 3, gap: 75 })
+  graph.setLayout({ anchor: clusters.anchor, blend: 0.76 })
+  graph.setTheme({ ...ink, nodes: { resolve: mapNodeRadius(data, (paper) => paper.metrics?.figures ?? paper.year) },
+    wires: { pattern: 'solid', byKind: { cites: { pattern: 'dotted' } },
+      resolve: mapWireWidth(data, 'connections', { range: [1, 6], curve: 'sqrt' }) } })
+  annotations.setOptions({ boundary: { shape: 'cloud', padding: 15 },
+    boundaryFor: (group) => group.id === 'physics' ? { pattern: 'dashed', width: 2 } : undefined })
   const stop = observePerformance(graph, (s: PerformanceSample) => { void [s.gpuMs, s.heapBytes, s.frameIntervals] })
   stop()
   annotations.setOptions({ tooltips: false })

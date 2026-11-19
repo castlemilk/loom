@@ -12,6 +12,7 @@ const subjects = ['Optical field', 'Tidal basin', 'Wave packet', 'Lunar surface'
 const methods = ['spectrum', 'section', 'field notes', 'phase study', 'atlas', 'transect', 'survey', 'time series']
 const kinds = ['lab', 'study', 'blog', 'concept', 'tag']
 const relations = ['concept', 'tag', 'reference']
+const utf8 = new TextEncoder()
 export function randomSource(seed) {
   let state = seed >>> 0
   return () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state / 4294967296 }
@@ -35,7 +36,7 @@ export function buildWorkload(config, positioned = false, prefix = '') {
     const block = Math.floor(i / 24) * 24
     const subject = subjects[Math.floor(words() * subjects.length)], method = methods[Math.floor(words() * methods.length)]
     const label = subject + ' ' + method + ' ' + (i + 1), kind = i === block ? 'category' : kinds[Math.floor(words() * kinds.length)]
-    const node = { id: id(i), kind, label, topics: [subject, method] }
+    const node = { id: id(i), kind, label, section: subject, topics: [subject, method] }
     const reading = Math.round(words() * 800 + 150), section = Math.floor(words() * 9) + 1
     if (text !== 'labels') {
       const summary = 'Field series ' + reading + ' traces changes in the ' + subject.toLowerCase() + ' across section ' + section + '.'
@@ -46,6 +47,8 @@ export function buildWorkload(config, positioned = false, prefix = '') {
         'The accompanying catalogue groups these measurements by subject and method. Each entry retains its own image, caption and relationship to the wider collection.',
       ].join('\n\n')
     }
+    node.contentSize = utf8.encode(node.content ?? node.summary ?? '').length
+    node.complexity = section
     const draw = art(), slot = (Math.floor(art() * variety) + seed % imagePoolSize) % imagePoolSize
     if (draw * 100 < coverage) {
       node.art = 'specimen-' + slot
@@ -66,10 +69,33 @@ export function buildWorkload(config, positioned = false, prefix = '') {
       if (topology === 'hubs' && j < Math.ceil(outgoing / 2)) target = Math.floor(r * Math.max(1, Math.ceil(count / 80))) * 24
       while (target === i || seen.has(target)) target = (target + 1) % count
       seen.add(target)
-      links.push({ source: node.id, target: id(target), kind: target % 24 === 0 ? 'category' : relations[j % relations.length] })
+      links.push({ source: node.id, target: id(target), kind: target % 24 === 0 ? 'category' : relations[j % relations.length], weight: 1 + Math.floor(r * 9) })
     }
   }
   return { nodes, links, artwork }
+}
+
+// A small synthetic graph with known cross-section citations and parallel references.
+export function sectionAtlas() {
+  const sections = [['Optics', 7], ['Acoustics', 11], ['Materials', 14], ['Tides', 9]]
+  const nodes = [], links = []
+  for (const [section, count] of sections) {
+    const hub = section.toLowerCase()
+    nodes.push({ id: hub, label: section, section, kind: 'category', summary: section + ' field notebook.', complexity: 1 })
+    for (let i = 1; i <= count; i++) {
+      const id = hub + '-' + i, method = methods[(i - 1) % methods.length]
+      const content = 'The ' + section.toLowerCase() + ' ' + method + ' records a synthetic observation. ' +
+        Array.from({ length: 1 + (i * 3) % 11 }, (_, j) => 'Sample ' + (j + 1) + ' measures a shift of ' + (i + j) + ' units.').join(' ')
+      nodes.push({ id, label: section + ' ' + method + ' ' + i, section, kind: i % 3 ? 'study' : 'lab',
+        content, contentSize: utf8.encode(content).length, complexity: 1 + (i * 7 % 10), metrics: { figures: i % 6 } })
+      links.push({ source: hub, target: id, kind: 'contains', weight: 1 + i % 3 })
+      if (i > 1) links.push({ source: id, target: hub + '-' + (i - 1), kind: 'cites', weight: 2 + i % 8 })
+      if (i % 4 === 0) links.push({ source: id, target: hub + '-' + (i - 1), kind: 'replicates', weight: 8 })
+    }
+  }
+  links.push({ source: 'optics-3', target: 'acoustics-4', kind: 'cites', weight: 9 },
+    { source: 'materials-2', target: 'tides-3', kind: 'cites', weight: 6 })
+  return { nodes, links, artwork: {} }
 }
 
 export function mergeWorkload(current, config) {
@@ -99,17 +125,20 @@ export function importWorkload(raw) {
   if (!Array.isArray(raw?.nodes) || !Array.isArray(links)) throw Error('Expected a nodes array and a links or edges array.')
   if (raw.nodes.length > maxNodes || links.length > maxLinks) throw Error('Import supports up to 25,000 nodes and 100,000 links.')
   const ids = new Set()
-  const stringFields = ['label', 'kind', 'summary', 'content', 'art']
+  const stringFields = ['label', 'kind', 'section', 'summary', 'content', 'art']
+  const badMetrics = (v) => v !== undefined && (v === null || typeof v !== 'object' || Array.isArray(v) || !Object.values(v).every(Number.isFinite))
   for (const n of raw.nodes) {
     if (!n || typeof n.id !== 'string' || !n.id || ids.has(n.id)) throw Error('Each node needs a unique, nonempty string id.')
     if (stringFields.some((k) => n[k] !== undefined && typeof n[k] !== 'string') ||
-      ['x','y','z'].some((k) => n[k] !== undefined && !Number.isFinite(n[k])) ||
+      ['x','y','z','complexity'].some((k) => n[k] !== undefined && !Number.isFinite(n[k])) || badMetrics(n.metrics) ||
+      (n.contentSize !== undefined && (!Number.isInteger(n.contentSize) || n.contentSize < 0 || n.contentSize > 0xffffffff)) ||
       (n.pinned !== undefined && typeof n.pinned !== 'boolean') ||
       (n.degree !== undefined && (!Number.isInteger(n.degree) || n.degree < 0 || n.degree > 0xffffffff))) throw Error('Invalid fields on node ' + n.id + '.')
     ids.add(n.id)
   }
   if (links.some((e) => !e || !ids.has(e.source) || !ids.has(e.target) || (e.kind !== undefined && typeof e.kind !== 'string')))
     throw Error('Every link needs existing source and target IDs and an optional string kind.')
+  if (links.some((e) => (e.weight !== undefined && !Number.isFinite(e.weight)) || badMetrics(e.metrics))) throw Error('Link weights and metrics must be finite numbers.')
   const artwork = raw.artwork ?? raw.thumbnails ?? {}
   if (typeof artwork !== 'object' || Array.isArray(artwork) || Object.values(artwork).some((v) => typeof v !== 'string'))
     throw Error('Artwork must map image IDs to image URLs.')

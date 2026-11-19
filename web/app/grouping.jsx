@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { compileTaxonomies, parseTaxonomy } from '../../dist/taxonomy.js'
+import { connectedComponents } from '../../dist/clusters.js'
 import { knowledgeConsole } from '../../dist/index.js'
-import { kindOrder, marker } from './appearance'
-import { Check, Select } from './fields'
+import { kindOrder, marker, patterns } from './appearance'
+import { Check, Range, Select } from './fields'
 
 const typeNames = { study: 'Study', concept: 'Concept', tag: 'Tag', blog: 'Article', lab: 'Lab', category: 'Category' }
 const types = { id: 'kind', label: 'Node type', by: 'kind', terms: Object.fromEntries(kindOrder.map((kind) =>
   [kind, { label: typeNames[kind], color: knowledgeConsole.kind[kind] }])) }
 const category = { id: 'category', label: 'Category', by: { relation: 'category', groupEnd: 'target' } }
+const section = { id: 'section', label: 'Section', by: 'section' }
 const example = { id: 'family', label: 'Content family', by: 'kind',
   remap: { study: 'work', lab: 'work', blog: 'work', tag: 'subject', concept: 'subject', category: 'subject' },
   terms: { work: { label: 'Published work', color: '#63b6a0' }, subject: { label: 'Subjects', color: '#cfa35c' } } }
@@ -17,11 +19,12 @@ const storageKey = 'loom.taxonomies.v1'
 
 const defaultWords = { singular: 'link', plural: 'links', ungrouped: 'Ungrouped' }
 
-export function useGrouping(data, theme) {
+export function useGrouping(data, theme, packed) {
   const [custom, setCustom] = useState([])
   const [activeId, setActive] = useState('kind')
   const [bubbles, setBubbles] = useState({})
   const [tooltips, setTooltips] = useState(true)
+  const [boundary, setBoundary] = useState({ shape: 'hull', padding: 12, pattern: 'solid', fillOpacity: 0.09 })
   const [words, setWords] = useState(defaultWords)
   useEffect(() => {
     try {
@@ -31,11 +34,13 @@ export function useGrouping(data, theme) {
       if (stored && Object.keys(defaultWords).every((key) => typeof stored[key] === 'string' && stored[key].trim())) setWords(stored)
     } catch { /* An unavailable or older browser store can start with the built-in definitions. */ }
   }, [])
+  const needComponents = activeId === 'component' || bubbles.component === true || !!bubbles.component?.length
   const definitions = useMemo(() => {
-    const rules = new Map([types, category].map((d) => [d.id, d]))
+    const component = { id: 'component', label: 'Connected component', by: needComponents ? connectedComponents(data) : () => undefined }
+    const rules = new Map([types, category, section, component].map((d) => [d.id, d]))
     for (const d of custom) rules.set(d.id, d)
     return [...rules.values()]
-  }, [custom])
+  }, [custom, data, needComponents])
   const index = useMemo(() => compileTaxonomies(data, { taxonomies: definitions,
     language: { ungrouped: words.ungrouped, connections: (n) => n + ' ' + (n === 1 ? words.singular : words.plural) } }), [data, definitions, words])
   const active = definitions.find((rule) => rule.id === activeId) ?? types
@@ -44,8 +49,10 @@ export function useGrouping(data, theme) {
   const laneOrder = useMemo(() => groups.map((group) => group.id), [groups])
   const kindStyles = !custom.some((rule) => rule.id === 'kind')
   const displayStyle = useCallback((term) => term.taxonomy === 'kind' && kindStyles ? marker(theme, term.id) : term, [kindStyles, theme])
-  const annotations = useMemo(() => ({ bubbles, tooltips, laneTaxonomy: active.id, colorFor: (group) => displayStyle(group).color }),
-    [bubbles, tooltips, active.id, displayStyle])
+  const annotations = useMemo(() => ({
+    bubbles: packed && !Object.hasOwn(bubbles, active.id) ? { ...bubbles, [active.id]: groups.length <= 12 ? true : groups.slice(0, 8).map((g) => g.id) } : bubbles,
+    boundary, tooltips, laneTaxonomy: active.id, colorFor: (group) => displayStyle(group).color,
+  }), [bubbles, packed, groups, boundary, tooltips, active.id, displayStyle])
   function save(next) {
     setCustom(next)
     try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* Edits still apply in this tab. */ }
@@ -65,7 +72,8 @@ export function useGrouping(data, theme) {
   }
   return { definitions, custom, index, active, groups, laneBy, laneOrder, annotations, setActive, apply, remove,
     words, language, displayStyle, nativeMarkers: kindStyles && active.id === 'kind',
-    setTooltips, setVisible: (visible) => setBubbles((old) => ({ ...old, [active.id]: visible })) }
+    setTooltips, setBoundary: (patch) => setBoundary((old) => ({ ...old, ...patch })),
+    setVisible: (visible, taxonomy = active.id) => setBubbles((old) => ({ ...old, [taxonomy]: visible })) }
 }
 
 function Language({ group }) {
@@ -103,7 +111,7 @@ function DefinitionEditor({ group }) {
   </details>
 }
 
-export function Grouping({ group }) {
+export function Grouping({ group, packed, setPacked, gap, setGap }) {
   const [filter, setFilter] = useState('')
   const list = group.groups
   const visible = Object.hasOwn(group.annotations.bubbles, group.active.id) ? group.annotations.bubbles[group.active.id] : []
@@ -119,8 +127,20 @@ export function Grouping({ group }) {
   return <section className="grouping"><h2>Taxonomies</h2>
     <Select id="taxonomy" label="Group by" options={group.definitions.map((d) => [d.id, d.label])}
       value={group.active.id} onChange={(id) => { setFilter(''); group.setActive(id) }} />
+    <Check id="cluster-layout" label="Cluster groups together" checked={packed} onChange={setPacked} />
+    {packed && !list.length && <p className="encoding-note">This graph has no matching groups. Choose another taxonomy or the Section atlas example.</p>}
+    {packed && <Range id="cluster-gap" label="Cluster spacing" min={0} max={240} step={5} value={gap}
+      format={(v) => v + ' units'} onChange={setGap} />}
     <Check id="tooltips" label="Node tooltips" checked={group.annotations.tooltips} onChange={group.setTooltips} />
     <details><summary>Group bubbles</summary>
+      <Select id="boundary-shape" label="Boundary" options={[[ 'hull','Enclosing hull'],['cloud','Cloud contour']]}
+        value={group.annotations.boundary.shape} onChange={(shape) => group.setBoundary({ shape })} />
+      <Select id="boundary-pattern" label="Outline stroke" options={patterns} value={group.annotations.boundary.pattern}
+        onChange={(pattern) => group.setBoundary({ pattern })} />
+      <Range id="boundary-padding" label="Boundary padding" min={0} max={60} value={group.annotations.boundary.padding}
+        format={(v) => v + ' px'} onChange={(padding) => group.setBoundary({ padding })} />
+      <Range id="boundary-fill" label="Boundary fill" min={0} max={40} value={Math.round(group.annotations.boundary.fillOpacity * 100)}
+        format={(v) => v + '%'} onChange={(v) => group.setBoundary({ fillOpacity: v / 100 })} />
       {list.length > 0 ? <>
         <Check id="all-bubbles" label={'All groups in ' + group.active.label} checked={all} onChange={(on) => group.setVisible(on ? true : [])} />
         {list.length > 12 && <input aria-label="Filter groups" type="search" value={filter} onChange={(e) => setFilter(e.target.value)} />}
@@ -132,7 +152,7 @@ export function Grouping({ group }) {
         {filtered.length > 50 && <small>Filter to see the other {filtered.length - 50} groups.</small>}
       </> : <p>No matching groups in this dataset.</p>}
     </details>
-    <DefinitionEditor key={JSON.stringify(group.active)} group={group} />
+    {typeof group.active.by !== 'function' && <DefinitionEditor key={JSON.stringify(group.active)} group={group} />}
     <Language key={JSON.stringify(group.words)} group={group} />
   </section>
 }

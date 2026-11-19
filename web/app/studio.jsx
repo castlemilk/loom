@@ -1,19 +1,22 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { consoleLayout } from '../../dist/console.js'
-import { buildWorkload, initialWorkload, imageURL, maxLinks } from './workload.mjs'
+import { buildWorkload, initialWorkload, imageURL, maxLinks, sectionAtlas } from './workload.mjs'
+import { clusterLayout } from '../../dist/clusters.js'
+import { contentBytes } from '../../dist/metrics.js'
+import { EncodingControls, initialEncoding, useEncodings } from './encodings'
 import { maxNodeSize, minNodeSize, nodeCounts, sizeLabel, stepNodeSize } from '../../demo/node-controls.js'
 import { WorkloadControls } from './workload-controls'
 import { CloudCompass, PerfPanel } from './perf-panel'
 import { Check, Color, Range, Select } from './fields'
-import { kindOrder, makeTheme, marker, palettes as themePresets, preset } from './appearance'
+import { kindOrder, makeTheme, marker, palettes as themePresets, patterns, preset } from './appearance'
 import { useGraph } from './use-graph'
 import { Grouping, useGrouping } from './grouping'
 import { Splitter } from './splitter'
 
-const datasets = [['sample', 'Knowledge console · excerpt'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
+const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas · clustered example'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
 const modes = ['Drift', 'Lanes', 'Orbit', 'Cloud']
 const simulations = [['auto', 'Automatic'], ['main', 'Main thread'], ['worker', 'Worker']]
 const positioned = [['seeded', 'Positioned · movable'], ['fixed', 'Positioned · pinned']]
@@ -46,6 +49,9 @@ function Workbench({ sample }) {
   const [perf, setPerf] = useState(false)
   const [mode, setMode] = useState('drift')
   const [style, setStyle] = useState(() => preset('console'))
+  const [packed, setPacked] = useState(false)
+  const [gap, setGap] = useState(80)
+  const [encoding, setEncoding] = useState(initialEncoding)
   const nodeSize = Math.round(style.nodeScale * 100)
   const defaultSize = Math.round((themePresets[style.name].nodes?.scale ?? 1) * 100)
   const [kindChoice, chooseKind] = useState('study')
@@ -71,17 +77,25 @@ function Workbench({ sample }) {
     if (stress) return !placement && workload.data || buildWorkload(workload.config, placement)
     return null
   }, [stress, countOption, workload, placement])
-  const data = stress ? generated : dataset === 'custom' && custom ? custom.data : dataset === 'full' && full.data ? full.data : sample
+  const atlas = useMemo(() => dataset === 'sections' ? sectionAtlas() : null, [dataset])
+  const data = atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : dataset === 'full' && full.data ? full.data : sample)
   const palette = useMemo(() => makeTheme(style), [style])
-  const grouping = useGrouping(data, palette)
-  const theme = useMemo(() => grouping.nativeMarkers ? palette : { ...palette, nodes: { ...palette.nodes,
-    resolve: (node) => {
-      const term = grouping.index.primary(node.id, grouping.active.id)
-      return { color: term?.color ?? palette.dim, shape: term?.shape ?? 'circle' }
-    } } },
-    [palette, grouping.nativeMarkers, grouping.index, grouping.active.id])
-  const layout = useMemo(() => ({ ...settings, laneBy: grouping.laneBy, laneOrder: grouping.laneOrder,
-    springsByKind: stress ? undefined : consoleLayout.springsByKind }), [settings, stress, grouping.laneBy, grouping.laneOrder])
+  const grouping = useGrouping(data, palette, packed)
+  const mapped = useEncodings(data, encoding)
+  const theme = useMemo(() => {
+    const nodes = grouping.nativeMarkers && !mapped.radius ? palette.nodes : { ...palette.nodes, resolve: (node, degree) => {
+      const base = palette.nodes?.resolve?.(node, degree)
+      const term = grouping.nativeMarkers ? null : grouping.index.primary(node.id, grouping.active.id)
+      return { ...base, ...(!grouping.nativeMarkers && { color: term?.color ?? palette.dim, shape: term?.shape ?? 'circle' }), ...mapped.radius?.(node) }
+    } }
+    const wires = mapped.width ? { ...palette.wires, resolve: (link, i) => ({ ...palette.wires?.resolve?.(link, i), ...mapped.width(link, i) }) } : palette.wires
+    return { ...palette, nodes, wires }
+  }, [palette, grouping.nativeMarkers, grouping.index, grouping.active.id, mapped.radius, mapped.width])
+  const clusters = useMemo(() => packed ? clusterLayout(data.nodes, grouping.laneBy,
+    { gap, dimensions: mode === 'cloud' ? 3 : 2, depth: settings.cloudDepth }) : null,
+    [packed, data, grouping.laneBy, gap, mode, settings.cloudDepth])
+  const layout = useMemo(() => ({ ...settings, anchor: clusters?.anchor ?? null, laneBy: grouping.laneBy, laneOrder: grouping.laneOrder,
+    springsByKind: stress ? undefined : consoleLayout.springsByKind }), [settings, stress, clusters, grouping.laneBy, grouping.laneOrder])
   const engine = physics === 'worker' || physics === 'main' ? physics : undefined
   const view = useGraph(data, engine, layout, theme, mode, grouping.index, grouping.annotations)
   const kinds = useMemo(() => {
@@ -96,6 +110,7 @@ function Workbench({ sample }) {
   const selected = useMemo(() => data.nodes.find((node) => node.id === view.selected), [data, view.selected])
   const thumbnail = imageURL(data, selected, process.env.NEXT_PUBLIC_BASE_PATH)
   const description = selected && grouping.index.describe(selected.id)
+  const bytes = selected && contentBytes(selected)
   const groupNames = description?.groups.filter((term) => term.taxonomy === grouping.active.id).map((term) => term.label)
   const stats = view.stats
   const adjust = (key, value) => setSettings((old) => ({ ...old, [key]: value }))
@@ -112,10 +127,31 @@ function Workbench({ sample }) {
     setDataset(next)
   }
   function pickGraph(value) {
+    if (value === 'sections') {
+      grouping.setActive('section')
+      grouping.setBoundary({ shape: 'cloud', padding: 15, fillOpacity: 0.12 })
+      grouping.setVisible(true, 'section')
+      setMode('cloud')
+      setPacked(true)
+      setEncoding({ ...initialEncoding, node: 'contentSize', wire: 'weight' })
+      setStyle({ ...preset('ink'), wires: { cites: { pattern: 'dashed' }, replicates: { pattern: 'dotted' } } })
+      setSettings((old) => ({ ...old, blend: 0.82, autoRotate: false }))
+    }
     const option = countOptions.find((entry) => entry.value === value)
     if (option) editWorkload(option.config)
     else if (value === 'stress') editWorkload(workload.config)
     switchDataset(value)
+  }
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('example') === 'clusters') pickGraph('sections')
+  }, [])
+  function enableClusters(on) {
+    setPacked(on)
+    if (on) {
+      if (mode === 'lanes' || mode === 'orbit') setMode('drift')
+      if (settings.blend < 0.65) adjust('blend', 0.65)
+      grouping.setBoundary({ shape: 'cloud' })
+    }
   }
 
   return <>
@@ -173,7 +209,10 @@ function Workbench({ sample }) {
           <Range id="blend" label="Structure" min={0} max={100} value={Math.round(settings.blend * 100)} format={percent} onChange={(v) => adjust('blend', v / 100)} />
           <div className="range-ends"><span>Force directed</span><span>Node graph</span></div>
           <div className="modes" role="group" aria-label="Force mode">{modes.map((name) =>
-            <button key={name} data-mode={name.toLowerCase()} aria-pressed={mode === name.toLowerCase()} onClick={() => setMode(name.toLowerCase())}>{name}</button>
+            <button key={name} data-mode={name.toLowerCase()} aria-pressed={mode === name.toLowerCase()} onClick={() => {
+              if (name === 'Lanes' || name === 'Orbit') setPacked(false)
+              setMode(name.toLowerCase())
+            }}>{name}</button>
           )}</div>
           {mode === 'orbit' && <div className="orbit-settings"><p>Select a node to centre its orbit.</p>
             <Range id="orbit-gap" label="Ring spacing" min={25} max={220} value={settings.orbitGap} onChange={(v) => adjust('orbitGap', v)} /></div>}
@@ -190,17 +229,20 @@ function Workbench({ sample }) {
             <Range id="repulsion" label="Repulsion" min={0} max={4} step={0.05} value={settings.repulsion} format={times} onChange={(v) => adjust('repulsion', v)} />
           </details>
         </section>
-        <Grouping group={grouping} />
+        <Grouping group={grouping} packed={packed} setPacked={enableClusters} gap={gap} setGap={setGap} />
         <section><h2>Appearance</h2>
           <Select id="theme" label="Theme" options={palettes} value={style.name} onChange={(v) => setStyle(preset(v))} />
           <Select id="route" label="Wires" options={routes} value={style.route} onChange={(v) => paint('route', v)} />
+          <Select id="wire-pattern" label="Wire stroke" options={patterns} value={style.pattern} onChange={(v) => paint('pattern', v)} />
+          <EncodingControls mapped={mapped} onChange={(patch) => setEncoding((old) => ({ ...old, ...patch }))} />
           <details><summary>Style controls</summary>
             <Select id="kind" label="Node kind" options={kinds.map((k) => [k, k])} value={kind} onChange={chooseKind} />
             <Color id="kind-color" label="Marker colour" value={nodeStyle.color} onChange={(color) => paintKind({ color })} />
             <Select id="shape" label="Marker shape" options={shapes} value={nodeStyle.shape} onChange={(shape) => paintKind({ shape })} />
             <Select id="wire-kind" label="Link kind" options={wireKinds.map((k) => [k, k || 'Untyped'])} value={wire} onChange={chooseWire} />
+            <Select id="kind-pattern" label="Kind stroke" options={[[ '', 'Use wire stroke'], ...patterns]} value={wireStyle.pattern ?? ''} onChange={(v) => paintWire({ pattern: v || undefined })} />
             <Color id="wire-color" label="Link colour" value={wireStyle.color ?? theme.wires.color ?? theme.dim} onChange={(color) => paintWire({ color })} />
-            <Range id="wire-width" label="Link width" min={0} max={8} step={0.1} value={wireStyle.width ?? theme.wires.width ?? 1.3} outputId="width-value" format={(v) => v + ' px'} onChange={(width) => paintWire({ width })} />
+            <Range id="wire-width" label={mapped.width ? 'Fallback link width' : 'Link width'} min={0} max={8} step={0.1} value={wireStyle.width ?? theme.wires.width ?? 1.3} outputId="width-value" format={(v) => v + ' px'} onChange={(width) => paintWire({ width })} />
             <Range id="wire-opacity" label="Wire opacity" min={0} max={100} value={Math.round(style.opacity * 100)} outputId="opacity-value" format={percent} onChange={(v) => paint('opacity', v / 100)} />
             <Select id="labels" label="Labels" options={labels} value={style.labels} onChange={(v) => paint('labels', v)} />
             <div className="checks"><Check id="artwork" label="Artwork" checked={style.artwork} onChange={(v) => paint('artwork', v)} />
@@ -211,6 +253,9 @@ function Workbench({ sample }) {
         <section className="selection"><h2>Selection</h2>
           <p id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</p>
           <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
+          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
+            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
+            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
           {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
           {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
           <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>

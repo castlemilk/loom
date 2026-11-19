@@ -100,9 +100,102 @@ test('performance monitoring resolves async GPU queries, reports disjoint and un
   }
 })
 import { compileTaxonomies, parseTaxonomy } from '../src/taxonomy.js'
-import { groupOutline } from '../src/group-outline.js'
+import { cloudOutline, groupOutline } from '../src/group-outline.js'
+import { clusterLayout, connectedComponents } from '../src/clusters.js'
+import { mapNodeRadius, mapWireWidth, contentBytes } from '../src/metrics.js'
+import { sectionAtlas } from '../web/app/workload.mjs'
+import { appearance } from '../src/appearance.js'
 import { orbitTargets } from '../src/sim/orbit.js'
 import { layoutForces, makeLanes } from '../src/constraints.js'
+
+test('cluster anchors are stable by id, separate envelopes and preserve planar and volumetric dimensions', () => {
+  const data = sectionAtlas(), by = (n) => n.section
+  for (const dimensions of [2, 3]) {
+    const options = { dimensions, gap: 45, spacing: 20 }
+    const plan = clusterLayout(data.nodes, by, options)
+    const reversed = clusterLayout([...data.nodes].reverse(), by, options)
+    assert.deepEqual(plan.groups, reversed.groups)
+    for (const n of data.nodes) {
+      const p = plan.anchor(n), group = plan.groups.find((g) => g.id === n.section)
+      assert.deepEqual(p, reversed.anchor(n))
+      assert.ok(Math.hypot(p.x - group.center.x, p.y - group.center.y, p.z - group.center.z) <= group.radius + 1e-8)
+      if (dimensions === 2) assert.equal(p.z, 0)
+    }
+    for (const [i, a] of plan.groups.entries()) for (const b of plan.groups.slice(i + 1)) {
+      assert.ok(Math.hypot(a.center.x - b.center.x, a.center.y - b.center.y) >= a.radius + b.radius + options.gap - 1e-8)
+    }
+    if (dimensions === 3) assert.ok(new Set(data.nodes.map((n) => plan.anchor(n).z)).size > 30)
+  }
+  assert.deepEqual(clusterLayout([], by).groups, [])
+  assert.throws(() => clusterLayout(data.nodes, by, { gap: -1 }), /spacing/)
+  const components = connectedComponents(data)
+  assert.equal(new Set(data.nodes.map(components)).size, 2)
+  const sections = connectedComponents(data, (e) => e.kind === 'contains')
+  assert.equal(new Set(data.nodes.map(sections)).size, 4)
+  assert.equal(sections(data.nodes[2]), 'optics')
+  const isolates = connectedComponents({ nodes: [{ id: 'alone' }], links: [] })
+  assert.equal(isolates({ id: 'alone' }), 'alone')
+})
+
+test('cloud contours preserve gaps and holes, merge overlapping discs, and follow their projected radii', () => {
+  const points = new Float32Array([0,0,6,0, 75,0,6,0])
+  const paths = (path: string) => (path.match(/M/g) ?? []).length
+  assert.equal(paths(cloudOutline(points, [0,1], 5)), 2)
+  const merged = cloudOutline(points, [0,1], 38)
+  assert.equal(paths(merged), 1)
+  assert.match(merged, /Q/)
+  points[2] = 74
+  assert.equal(paths(cloudOutline(points, [0,1], 5)), 1)
+  const ring = new Float32Array(24 * 4)
+  for (let i = 0; i < 24; i++) ring.set([40*Math.cos(i*Math.PI/12), 40*Math.sin(i*Math.PI/12), 6, 0], i * 4)
+  const hole = cloudOutline(ring, Array.from({ length: 24 }, (_, i) => i), 4)
+  assert.equal(paths(hole), 2)
+  assert.doesNotMatch(hole, /NaN|Infinity/)
+  assert.equal(cloudOutline(points, [], 8), '')
+})
+
+test('metric scales distinguish missing and zero, count self loops and parallel links, and compose with strokes', () => {
+  const nodes = [{ id: 'a', content: 'β🧵', complexity: 0 }, { id: 'b', summary: 'text', contentSize: 0 },
+    { id: 'c', complexity: 4 }, { id: 'd' }, { id: 'alone' }]
+  const links = [{ source: 'a', target: 'b', kind: 'ref', weight: 0.25 }, { source: 'b', target: 'a', kind: 'ref', weight: 0 },
+    { source: 'a', target: 'a', weight: 9 }, { source: 'c', target: 'd' }]
+  const data = { nodes, links }, options = { domain: [0, 4], range: [0, 8] }
+  const radius = mapNodeRadius(data, 'complexity', options)
+  assert.deepEqual(nodes.map((n) => radius(n)?.radius), [0, undefined, 8, undefined, undefined])
+  assert.deepEqual(nodes.map(contentBytes), [6, 0, undefined, undefined, undefined])
+  assert.deepEqual(nodes.map((n) => mapNodeRadius(data, 'degree', options)(n)?.radius), [8,4,2,2,0])
+  for (const curve of ['sqrt','log']) {
+    const rule = mapWireWidth(data, 'weight', { domain: [0, 1], range: [1,5], curve })
+    assert.ok(rule(links[0], 0).width > 2)
+    assert.equal(rule(links[1], 1).width, 1)
+    assert.equal(rule(links[2], 2).width, 5)
+    assert.equal(rule(links[3], 3), undefined)
+  }
+  assert.equal(mapNodeRadius(data, () => 7, { range: [10, 20] })(nodes[0]).radius, 15)
+  assert.deepEqual(links.map(mapWireWidth(data, 'connections', options)).map((s) => s.width), [8,8,8,2])
+  const byPair = mapWireWidth(data, 'multiplicity', { range: [1,5] })
+  assert.deepEqual(links.map(byPair).map((s) => s.width), [5,5,1,1])
+  const look = appearance(data, new Uint32Array(nodes.length), { ...parchment, wires: {
+    pattern: 'dashed', byKind: { ref: { pattern: 'dotted' } }, resolve: (link, i) => ({ ...byPair(link, i), ...(i === 1 && { pattern: 'solid' }) }),
+  } })
+  assert.deepEqual([...look.wireWidths], [261, 5, 129, 129])
+  const global = appearance(data, new Uint32Array(nodes.length), { ...parchment, wires: { pattern: 'dotted', width: 3 } })
+  assert.equal(global.stroke, 259); assert.equal(global.wireWidths, undefined)
+  assert.throws(() => mapWireWidth(data, 'weight', { range: [1,65] }), /range/)
+  assert.throws(() => mapNodeRadius(data, 'degree', { domain: [2,1] }), /domain/)
+})
+
+test('catalogue fields, authored zeros and named metrics survive protobuf and JSON exchange', () => {
+  const metrics = Object.fromEntries([['__proto__', 3], ['length', -0.75], ['figures', 0]])
+  const data = { nodes: [{ id: 'x', section: 'Optics', contentSize: 0, complexity: 2.1234567891, metrics, content: '', summary: 'β' }, { id: 'bare' }],
+    links: [{ source: 'x', target: 'bare', weight: 0, metrics }, { source: 'bare', target: 'x' }] }
+  assert.deepEqual(fromBinary(toBinary(data)), data)
+  assert.deepEqual(importWorkload(data).nodes, data.nodes)
+  assert.equal(contentBytes(fromBinary(toBinary(data)).nodes[0]), 0)
+  assert.throws(() => toBinary({ nodes: [{ id:'x', contentSize: -1 }], links: [] }), /uint32/)
+  assert.throws(() => toBinary({ nodes: [], links: [{ source:'x', target:'y', weight: Infinity }] }), /finite/)
+  assert.throws(() => importWorkload({ nodes: [{ id:'x', metrics: { figures: null } }], links: [] }), /fields/)
+})
 
 test('taxonomy membership, vocabulary, exclusive lanes and overlapping relation groups share one index', () => {
   const data = {

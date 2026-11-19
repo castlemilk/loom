@@ -3,11 +3,15 @@ import { rgb } from './theme.js'
 import { range } from './constraints.js'
 
 const shapes = { 'rounded-square': 0, square: 64, ring: 192, circle: 255 }
+const patterns = ['solid', 'dashed', 'dotted'] as const
 function line(rule: WireStyle) {
   if (rule.color !== undefined) rgb(rule.color)
   if (rule.opacity !== undefined) range(rule.opacity, 0, 1, 'wire opacity')
   if (rule.width !== undefined) range(rule.width, 0, 64, 'wire width')
+  if (rule.pattern !== undefined && !patterns.includes(rule.pattern)) throw new RangeError('Invalid wire pattern')
 }
+// Width occupies [0,64]. The unused high bits carry the pattern in the same GPU attribute.
+const packStroke = (width: number, pattern: WireStyle['pattern']) => width + 128 * patterns.indexOf(pattern ?? 'solid')
 export function appearance(data: GraphData, degree: Uint32Array, theme: Theme) {
   for (const color of [
     theme.bg,
@@ -82,7 +86,7 @@ export function appearance(data: GraphData, degree: Uint32Array, theme: Theme) {
   let wireColors: Uint8Array | undefined, wireWidths: Float32Array | undefined
   if (wires.resolve || (wires.byKind && Object.keys(wires.byKind).length)) {
     const density = wires.opacity ?? wireOpacity(data.nodes.length)
-    const cache = new Map<string, { color: number[]; width: number }>()
+    const cache = new Map<string, { color: number[]; width: number; pattern: WireStyle['pattern'] }>()
     wireColors = new Uint8Array(data.links.length * 4)
     wireWidths = new Float32Array(data.links.length)
     for (let i = 0; i < data.links.length; i++) {
@@ -96,21 +100,21 @@ export function appearance(data: GraphData, degree: Uint32Array, theme: Theme) {
             Math.round((rule?.opacity ?? density) * 255),
           ],
           width: rule?.width ?? wires.width ?? 1.3,
+          pattern: rule?.pattern ?? wires.pattern,
         }
         cache.set(kind, value)
       }
       wireColors.set(value.color, i * 4)
-      wireWidths[i] = value.width
       const custom = wires.resolve?.(data.links[i], i)
       if (custom) {
         line(custom)
         if (custom.color !== undefined) wireColors.set(rgb(custom.color), i * 4)
         if (custom.opacity !== undefined) wireColors[i * 4 + 3] = Math.round(custom.opacity * 255)
-        if (custom.width !== undefined) wireWidths[i] = custom.width
       }
+      wireWidths[i] = packStroke(custom?.width ?? value.width, custom?.pattern ?? value.pattern)
     }
   }
-  return { style, radii, wireColors, wireWidths }
+  return { style, radii, wireColors, wireWidths, stroke: packStroke(wires.width ?? 1.3, wires.pattern) }
 }
 export function wireOpacity(count: number) {
   return Math.max(0.1, Math.min(0.58, 16 / Math.sqrt(Math.max(1, count))))

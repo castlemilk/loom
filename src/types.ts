@@ -10,11 +10,20 @@ export interface GraphNode {
   pinned?: boolean
   art?: string
   degree?: number
+  section?: string
+  summary?: string
+  content?: string
+  /** Authored content size in bytes. The metric helper can also measure supplied text. */
+  contentSize?: number
+  complexity?: number
+  metrics?: Readonly<Record<string, number>>
 }
 export interface GraphLink {
   source: string
   target: string
   kind?: string
+  weight?: number
+  metrics?: Readonly<Record<string, number>>
 }
 export interface GraphData<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> {
   nodes: readonly N[]
@@ -31,7 +40,9 @@ export interface WireStyle {
   color?: string
   opacity?: number
   width?: number
+  pattern?: WirePattern
 }
+export type WirePattern = 'solid' | 'dashed' | 'dotted'
 export type WireRoute = 'arc' | 'patch' | 'straight'
 export interface LayoutOptions<N extends GraphNode = GraphNode> {
   /** 0 uses the active force mode. 1 places movable nodes exactly on their anchors. */

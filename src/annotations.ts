@@ -1,6 +1,17 @@
-import type { GraphFrame, LoomGraph } from './types.js'
+import type { GraphFrame, LoomGraph, WirePattern } from './types.js'
 import type { TaxonGroup, TaxonomyIndex } from './taxonomy.js'
-import { groupOutline } from './group-outline.js'
+import { cloudOutline, groupOutline } from './group-outline.js'
+
+export interface BoundaryStyle {
+  shape?: 'hull' | 'cloud'
+  /** Screen-space padding around each projected node radius. */
+  padding?: number
+  color?: string
+  fillOpacity?: number
+  strokeOpacity?: number
+  width?: number
+  pattern?: WirePattern
+}
 
 export interface AnnotationOptions {
   /** Taxonomy id to all its groups, or an explicit list of term ids. */
@@ -9,6 +20,8 @@ export interface AnnotationOptions {
   laneTaxonomy?: string
   tooltips?: boolean
   colorFor?: (group: TaxonGroup) => string
+  boundary?: BoundaryStyle
+  boundaryFor?: (group: TaxonGroup) => BoundaryStyle | undefined
 }
 export interface GraphAnnotations {
   setOptions(options: Partial<AnnotationOptions>): void
@@ -21,6 +34,13 @@ const badge = 'position:absolute;box-sizing:border-box;background:var(--loom-ove
 function validate(options: AnnotationOptions) {
   const padding = options.padding ?? 9
   if (!Number.isFinite(padding) || padding < 0) throw new RangeError('Invalid bubble padding.')
+  if (options.boundary) validateStyle(options.boundary)
+}
+function validateStyle(style: BoundaryStyle) {
+  for (const n of [style.padding, style.width]) if (n !== undefined && (!Number.isFinite(n) || n < 0)) throw new RangeError('Invalid boundary size')
+  for (const n of [style.fillOpacity, style.strokeOpacity]) if (n !== undefined && (!Number.isFinite(n) || n < 0 || n > 1)) throw new RangeError('Invalid boundary opacity')
+  if (style.shape !== undefined && !['hull','cloud'].includes(style.shape)) throw new RangeError('Invalid boundary shape')
+  if (style.pattern !== undefined && !['solid','dashed','dotted'].includes(style.pattern)) throw new RangeError('Invalid boundary pattern')
 }
 
 /** The host should cover the canvas in the same CSS-pixel coordinate space. */
@@ -43,7 +63,7 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   host.append(root)
   let destroyed = false
   let frame: GraphFrame | undefined, hovered: string | null = null
-  let paths: { members: readonly number[]; path: SVGPathElement }[] = []
+  let paths: { members: readonly number[]; path: SVGPathElement; padding: number; outline: typeof groupOutline }[] = []
   let laneMap: GraphFrame['lanes'] | undefined
   let laneTags: { offset: number; tag: HTMLSpanElement }[] = []
   const removers: (() => void)[] = []
@@ -74,7 +94,7 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   }
   function draw(view: GraphFrame) {
     frame = view
-    for (const { members, path } of paths) path.setAttribute('d', groupOutline(view.points, members, options.padding ?? 9))
+    for (const { members, path, padding, outline } of paths) path.setAttribute('d', outline(view.points, members, padding))
     const lanes = view.mode === 'lanes' && options.laneTaxonomy ? view.lanes : undefined
     if (lanes !== laneMap) {
       laneMap = lanes
@@ -105,22 +125,36 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
     positionTooltip(view)
   }
   function configure() {
-    svg.replaceChildren()
-    paths = []
+    const nextPaths: typeof paths = []
     for (const group of index.groups) {
       const active = options.bubbles && Object.hasOwn(options.bubbles, group.taxonomy) && options.bubbles[group.taxonomy]
       if (active !== true && !(active && active.includes(group.id))) continue
       const path = doc.createElementNS(ns, 'path')
       path.dataset.taxonomy = group.taxonomy
       path.dataset.bubble = group.id
-      const color = options.colorFor?.(group) ?? group.color
+      const style = { ...options.boundary, ...options.boundaryFor?.(group) }
+      validateStyle(style)
+      const color = style.color ?? options.colorFor?.(group) ?? group.color
+      const width = style.width ?? 1
+      path.dataset.shape = style.shape ?? 'hull'
       path.setAttribute('fill', color)
       path.setAttribute('stroke', color)
-      path.setAttribute('fill-opacity', '0.075')
-      path.setAttribute('stroke-opacity', '0.57')
-      svg.append(path)
-      paths.push({ members: group.members, path })
+      path.setAttribute('fill-rule', 'evenodd')
+      path.setAttribute('fill-opacity', String(style.fillOpacity ?? 0.075))
+      path.setAttribute('stroke-opacity', String(style.strokeOpacity ?? 0.57))
+      path.setAttribute('stroke-width', String(width))
+      if (style.pattern === 'dashed') path.setAttribute('stroke-dasharray', 4 * width + ' ' + 3 * width)
+      if (style.pattern === 'dotted') {
+        path.setAttribute('stroke-linecap', 'round')
+        path.setAttribute('stroke-dasharray', '0 ' + 3 * width)
+      }
+      nextPaths.push({ members: group.members, path, padding: style.padding ?? options.padding ?? 9,
+        outline: style.shape === 'cloud' ? cloudOutline : groupOutline })
     }
+    const fragment = doc.createDocumentFragment()
+    for (const item of nextPaths) fragment.append(item.path)
+    svg.replaceChildren(fragment)
+    paths = nextPaths
     laneMap = undefined
     captions.replaceChildren()
     laneTags = []
@@ -150,13 +184,19 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
     throw error
   }
   return {
-    setIndex(next) { if (!destroyed) { index = next; configure() } },
+    setIndex(next) {
+      if (destroyed) return
+      const previous = index
+      index = next
+      try { configure() } catch (error) { index = previous; throw error }
+    },
     setOptions(next) {
       if (destroyed) return
       const updated = { ...options, ...next }
       validate(updated)
+      const previous = options
       options = updated
-      configure()
+      try { configure() } catch (error) { options = previous; throw error }
     },
     destroy,
   }

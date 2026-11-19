@@ -21,6 +21,14 @@
       "import": "./dist/console.js"
     },
     "./layout-worker.js": "./dist/layout-worker.js",
+    "./clusters": {
+      "types": "./dist/clusters.d.ts",
+      "import": "./dist/clusters.js"
+    },
+    "./metrics": {
+      "types": "./dist/metrics.d.ts",
+      "import": "./dist/metrics.js"
+    },
     "./performance": {
       "types": "./dist/performance.d.ts",
       "import": "./dist/performance.js"
@@ -49,6 +57,7 @@
   "devDependencies": {
     "esbuild": "0.25.12",
     "playwright": "1.60.0",
+    "terser": "5.51.2",
     "typescript": "5.9.3"
   },
   "engines": {

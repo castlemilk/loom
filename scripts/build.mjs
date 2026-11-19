@@ -1,5 +1,16 @@
 import { build } from 'esbuild'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { minify } from 'terser'
+
+// WebGL enum values are fixed by the API. Inline TypeScript's platform constants
+// in the renderer while keeping the named enums in the source.
+const dom = await readFile(new URL(import.meta.resolve('typescript/lib/lib.dom.d.ts')), 'utf8')
+const enums = new Map([...dom.matchAll(/readonly ([A-Z][A-Z0-9_]+): (0x[\da-fA-F]+);/g)].map(([, key, hex]) => [key, String(Number(hex))]))
+const glEnums = { name: 'webgl-enums', setup(plugin) {
+  plugin.onLoad({ filter: /[/\\]render[/\\](?:renderer|gl|labels|art)\.ts$/ }, async ({ path }) => ({
+    loader: 'ts', contents: (await readFile(path, 'utf8')).replace(/\b(?:this\.)?gl\.([A-Z][A-Z0-9_]+)\b/g, (source, name) => enums.get(name) ?? source),
+  }))
+} }
 
 // Compress embedded GLSL at build time. Uniform-block fields are addressed by
 // offset in the renderer. Keep standalone uniforms and preprocessor lines intact.
@@ -34,9 +45,14 @@ const options = {
   target: 'es2022',
   minify: true,
   legalComments: 'none',
-  plugins: [shaders],
+  plugins: [shaders, glEnums],
 }
-await build({ ...options, entryPoints: { index: 'src/index.ts', 'layout-worker': 'src/sim/worker.ts' } })
+const core = await build({ ...options, write: false, entryPoints: { index: 'src/index.ts', 'layout-worker': 'src/sim/worker.ts' } })
+await mkdir(options.outdir, { recursive: true })
+await Promise.all(core.outputFiles.map(async (file) => {
+  const result = await minify(file.text, { ecma: 2022, module: true, compress: { passes: 3 } })
+  await writeFile(file.path, result.code)
+}))
 await build({ ...options, entryPoints: ['src/console.ts'], external: ['./index.js'] })
 await build({ ...options, entryPoints: ['src/taxonomy.ts'] })
-await build({ ...options, entryPoints: ['src/performance.ts'] })
+await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts'] })

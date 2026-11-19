@@ -131,7 +131,7 @@ export class Renderer {
         16 + 4 * i,
       )
     this.#scene[32] = wires.routing === 'patch' ? 1 : wires.routing === 'straight' ? 2 : 0
-    this.#scene[33] = wires.width ?? 1.3
+    this.#scene[33] = look.stroke
     this.#scene[34] = wires.hotWidth ?? 2.3
     this.#scene[35] = Number(!!look.wireColors)
     this.#scene[36] = theme.nodes?.ringWidth ?? 1.3
