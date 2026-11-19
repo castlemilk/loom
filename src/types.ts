@@ -98,6 +98,8 @@ export interface Theme<N extends GraphNode = GraphNode, E extends GraphLink = Gr
   labels?: { density?: number; visibility?: 'auto' | 'focus' | 'none'; alternateSide?: boolean }
 }
 export interface GraphOptions<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> extends GraphData<N, E> {
+  /** Composite marks over a host background, for example an SVG group boundary layer. Set on the canvas's first mount. */
+  transparentBackground?: boolean
   mode?: Mode
   theme?: Theme<NoInfer<N>, NoInfer<E>>
   layout?: LayoutOptions<NoInfer<N>>
@@ -110,11 +112,15 @@ export interface GraphEvents {
   select: string | null
   hover: string | null
   open: string
+  /** A clean click on empty graph space, in canvas CSS pixels. Nodes and labels take precedence. */
+  backgroundclick: { x: number; y: number; clicks: number }
   modechange: Mode
   destroy: undefined
 }
 /** CSS-pixel screen coordinates are borrowed until the next draw, in input node order. */
 export interface GraphFrame {
+  /** Changes when the graph rebuilds its projected coordinates. Older frame providers may omit it. */
+  readonly projectionVersion?: number
   /** Four floats per node: screen x, screen y, visible radius, camera depth. */
   readonly points: Readonly<Float32Array>
   readonly width: number

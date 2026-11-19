@@ -35,6 +35,14 @@ try {
         async ([n, a]) => (await import('/tests/browser-scenarios.mjs'))[n](...a),
         [name, args],
       )
+      if (name === 'bubbleLayers') {
+        const capture = (clip) => page.screenshot({ clip, animations: 'disabled' })
+        const child = await capture(result.marker), background = await capture(result.overlap)
+        await page.locator('#testFill').click()
+        assert.deepEqual(await capture(result.marker), child, 'Opaque overlapping group fills must preserve child marker pixels')
+        assert.notDeepEqual(await capture(result.overlap), background, 'The empty space between markers must show the group fills')
+        await page.evaluate(() => document.getElementById('finishFixture').click())
+      }
       assert.deepEqual(errors, [])
       return result
     } finally {
@@ -51,6 +59,7 @@ try {
     } finally {
       await studioCtx.close()
     }
+    report.bubbleLayers = await run('bubbleLayers')
     report.lifecycle = await run('lifecycle')
     report.contextAndArt = await run('contextAndArt')
     report.shared = await run('worker', ['shared'])

@@ -1011,3 +1011,71 @@ export async function cloudDrag() {
     free(c, g)
   }
 }
+
+export async function bubbleLayers() {
+  const host = document.createElement('section'), underlay = document.createElement('div'), overlay = document.createElement('div')
+  host.style.cssText = 'position:relative;width:360px;height:240px;background:#111820'
+  underlay.style.cssText = overlay.style.cssText = 'position:absolute;inset:0;pointer-events:none'
+  const c = canvas()
+  c.style.position = 'relative'
+  host.append(underlay, c, overlay)
+  document.body.append(host)
+  const data = { nodes: [{ id: 'left', x: -55, y: 28 }, { id: 'right', x: 55, y: 28 }, { id: 'top', x: 0, y: -42 }], links: [] }
+  const g = createGraph(c, { ...data, transparentBackground: true, theme: { ...ink, grid: { spacing: 40, opacity: 0.15 },
+    labels: { visibility: 'none' }, nodes: { fill: 1, artwork: false, resolve: () => ({ shape: 'circle', radius: 9, color: '#29b7dd' }) } } })
+  const index = compileTaxonomies(data, { taxonomies: [
+    { id: 'field', label: 'Field', by: () => 'all' }, { id: 'section', label: 'Section', by: () => 'all' }] })
+  const opened = [], children = []
+  const style = { shape: 'hull', padding: 10, color: '#ff6846', fillOpacity: 0, width: 1 }
+  const marks = attachAnnotations(g, overlay, index, { underlay, bubbles: { field: true, section: true }, groupGesture: 'click',
+    boundary: style, onOpenGroup: (term) => opened.push(term.taxonomy) })
+  g.on('open', (id) => children.push(id))
+  let points
+  const detach = g.onFrame((frame) => { points = frame.points })
+  await until(() => !!points && !g.stats().pendingFrame, 'Boundary layers did not settle')
+  const center = [points[0], points[1]], gap = [(points[0]+points[4]+points[8])/3, (points[1]+points[5]+points[9])/3]
+  function click([x,y], count) {
+    pointer(c, 'pointerdown', x, y)
+    pointer(c, 'pointerup', x, y)
+    c.dispatchEvent(new MouseEvent('click', { detail: count, clientX: x, clientY: y, bubbles: true }))
+  }
+  const geometries = []
+  const observer = new MutationObserver((changes) => geometries.push(...changes))
+  observer.observe(underlay, { attributes: true, subtree: true, attributeFilter: ['d'] })
+  click(center, 1)
+  click(center, 2)
+  check(children.join() === 'left' && opened.length === 0, 'Child activation was intercepted by a bubble')
+  click(gap, 1)
+  check(opened.join() === 'section', 'Visible overlapping bubble did not resolve in paint order')
+  marks.setOptions({ groupGesture: 'double-click' })
+  click(gap, 1)
+  click(gap, 2)
+  check(opened.length === 2, 'Configured group gesture failed')
+  marks.setOptions({ groupGesture: 'controls' })
+  click(gap, 2)
+  check(opened.length === 2, 'Controls-only groups should ignore canvas taps')
+  await raf()
+  check(geometries.length === 0, 'Unchanged contours were rewritten while selecting a node or changing gestures')
+  observer.disconnect()
+  marks.setOptions({ groupGesture: 'click' })
+  pointer(c, 'pointerdown', ...center)
+  pointer(c, 'pointermove', center[0]+12, center[1]+8)
+  pointer(c, 'pointerup', center[0]+12, center[1]+8)
+  c.dispatchEvent(new MouseEvent('click', { detail: 1, clientX: gap[0], clientY: gap[1], bubbles: true }))
+  check(opened.length === 2, 'A drag opened a bubble')
+  await until(() => !g.stats().pendingFrame, 'Released node did not settle')
+  const patch = (x,y) => ({ x: Math.floor(x)-1, y: Math.floor(y)-1, width: 3, height: 3 })
+  const control = document.createElement('button')
+  control.id = 'testFill'
+  control.textContent = 'Toggle fixture fill'
+  control.onclick = () => marks.setOptions({ boundary: { ...style, fillOpacity: 0.95 } })
+  document.body.append(control)
+  const clean = document.createElement('button')
+  clean.id = 'finishFixture'
+  clean.onclick = () => {
+    detach(); g.destroy()
+    check(!underlay.childElementCount && !overlay.childElementCount, 'Detached annotation DOM remained')
+  }
+  document.body.append(clean)
+  return { marker: patch(points[0],points[1]), overlap: patch(...gap), polygons: underlay.querySelectorAll('path').length, rewrites: geometries.length }
+}

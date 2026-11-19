@@ -1,6 +1,6 @@
 import type { GraphFrame, LoomGraph, WirePattern } from './types.js'
 import type { TaxonGroup, TaxonomyIndex } from './taxonomy.js'
-import { cloudOutline, groupOutline } from './group-outline.js'
+import { cacheOutline, cloudOutline, groupOutline } from './group-outline.js'
 
 export interface BoundaryStyle {
   shape?: 'hull' | 'cloud'
@@ -22,6 +22,13 @@ export interface AnnotationOptions {
   colorFor?: (group: TaxonGroup) => string
   boundary?: BoundaryStyle
   boundaryFor?: (group: TaxonGroup) => BoundaryStyle | undefined
+  /** An optional sibling behind a transparent graph canvas, in the same coordinate space. */
+  underlay?: HTMLElement
+  activeGroup?: { taxonomy: string; id: string; boundary?: 'outline' | 'fade' | 'hide' | 'keep' }
+  /** Defaults to double-click. Controls keeps the canvas available for graph gestures. */
+  groupGesture?: 'click' | 'double-click' | 'controls'
+  /** Called by a lane button or the configured gesture in a visible bubble, after node picking. */
+  onOpenGroup?: (group: TaxonGroup) => void
 }
 export interface GraphAnnotations {
   setOptions(options: Partial<AnnotationOptions>): void
@@ -34,6 +41,9 @@ const badge = 'position:absolute;box-sizing:border-box;background:var(--loom-ove
 function validate(options: AnnotationOptions) {
   const padding = options.padding ?? 9
   if (!Number.isFinite(padding) || padding < 0) throw new RangeError('Invalid bubble padding.')
+  if (options.groupGesture !== undefined && !['click', 'double-click', 'controls'].includes(options.groupGesture)) throw new RangeError('Invalid group gesture')
+  const policy = options.activeGroup?.boundary
+  if (policy !== undefined && !['outline', 'fade', 'hide', 'keep'].includes(policy)) throw new RangeError('Invalid open boundary')
   if (options.boundary) validateStyle(options.boundary)
 }
 function validateStyle(style: BoundaryStyle) {
@@ -50,7 +60,7 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   const root = doc.createElement('div')
   root.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;'
   const svg = doc.createElementNS(ns, 'svg')
-  svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;'
+  svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;'
   svg.setAttribute('aria-hidden', 'true')
   const captions = doc.createElement('div')
   captions.setAttribute('role', 'list')
@@ -63,7 +73,8 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   host.append(root)
   let destroyed = false
   let frame: GraphFrame | undefined, hovered: string | null = null
-  let paths: { members: readonly number[]; path: SVGPathElement; padding: number; outline: typeof groupOutline }[] = []
+  let paths: { group: TaxonGroup; path: SVGPathElement; padding: number; outline: typeof groupOutline;
+    geometry: ReturnType<typeof cacheOutline>; revision?: number }[] = []
   let laneMap: GraphFrame['lanes'] | undefined
   let laneTags: { offset: number; tag: HTMLSpanElement }[] = []
   const removers: (() => void)[] = []
@@ -94,7 +105,12 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   }
   function draw(view: GraphFrame) {
     frame = view
-    for (const { members, path, padding, outline } of paths) path.setAttribute('d', outline(view.points, members, padding))
+    for (const entry of paths) {
+      if (view.projectionVersion !== undefined && entry.revision === view.projectionVersion) continue
+      const d = entry.geometry(view.points)
+      if (d !== undefined) entry.path.setAttribute('d', d)
+      entry.revision = view.projectionVersion
+    }
     const lanes = view.mode === 'lanes' && options.laneTaxonomy ? view.lanes : undefined
     if (lanes !== laneMap) {
       laneMap = lanes
@@ -107,6 +123,15 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
         tag.setAttribute('role', 'listitem')
         tag.textContent = term?.label ?? (id || index.ungrouped)
         tag.title = tag.textContent
+        if (term && options.onOpenGroup) {
+          const button = doc.createElement('button')
+          button.type = 'button'
+          button.textContent = tag.textContent
+          button.setAttribute('aria-label', 'Open group ' + term.label)
+          button.style.cssText = 'pointer-events:auto;cursor:pointer;font:inherit;color:inherit;background:transparent;border:0;min-height:0;padding:0'
+          button.onclick = () => options.onOpenGroup?.(term)
+          tag.replaceChildren(button)
+        }
         tag.style.cssText = badge + 'padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-inline-start-width:3px;'
         tag.style.borderInlineStartColor = term ? options.colorFor?.(term) ?? term.color : '#999'
         captions.append(tag)
@@ -126,10 +151,15 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   }
   function configure() {
     const nextPaths: typeof paths = []
+    const existing = new Map(paths.map((entry) => [entry.group, entry]))
     for (const group of index.groups) {
       const active = options.bubbles && Object.hasOwn(options.bubbles, group.taxonomy) && options.bubbles[group.taxonomy]
       if (active !== true && !(active && active.includes(group.id))) continue
-      const path = doc.createElementNS(ns, 'path')
+      const opened = options.activeGroup
+      const policy = opened?.taxonomy === group.taxonomy && opened.id === group.id ? opened.boundary ?? 'outline' : 'keep'
+      if (policy === 'hide') continue
+      const previous = existing.get(group)
+      const path = previous?.path ?? doc.createElementNS(ns, 'path')
       path.dataset.taxonomy = group.taxonomy
       path.dataset.bubble = group.id
       const style = { ...options.boundary, ...options.boundaryFor?.(group) }
@@ -140,20 +170,27 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
       path.setAttribute('fill', color)
       path.setAttribute('stroke', color)
       path.setAttribute('fill-rule', 'evenodd')
-      path.setAttribute('fill-opacity', String(style.fillOpacity ?? 0.075))
+      path.setAttribute('fill-opacity', String((style.fillOpacity ?? 0.075) * (policy === 'outline' ? 0 : policy === 'fade' ? 0.2 : 1)))
       path.setAttribute('stroke-opacity', String(style.strokeOpacity ?? 0.57))
       path.setAttribute('stroke-width', String(width))
+      path.removeAttribute('stroke-dasharray')
+      path.removeAttribute('stroke-linecap')
       if (style.pattern === 'dashed') path.setAttribute('stroke-dasharray', 4 * width + ' ' + 3 * width)
       if (style.pattern === 'dotted') {
         path.setAttribute('stroke-linecap', 'round')
         path.setAttribute('stroke-dasharray', '0 ' + 3 * width)
       }
-      nextPaths.push({ members: group.members, path, padding: style.padding ?? options.padding ?? 9,
-        outline: style.shape === 'cloud' ? cloudOutline : groupOutline })
+      const padding = style.padding ?? options.padding ?? 9, outline = style.shape === 'cloud' ? cloudOutline : groupOutline
+      nextPaths.push(previous?.padding === padding && previous.outline === outline ? previous :
+        { group, path, padding, outline, geometry: cacheOutline(outline, group.members, padding) })
     }
-    const fragment = doc.createDocumentFragment()
-    for (const item of nextPaths) fragment.append(item.path)
-    svg.replaceChildren(fragment)
+    if (paths.length !== nextPaths.length || nextPaths.some((item, i) => item.path !== paths[i].path)) {
+      const fragment = doc.createDocumentFragment()
+      for (const item of nextPaths) fragment.append(item.path)
+      svg.replaceChildren(fragment)
+    }
+    if (options.underlay) options.underlay.append(svg)
+    else root.prepend(svg)
     paths = nextPaths
     laneMap = undefined
     captions.replaceChildren()
@@ -169,6 +206,7 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
     destroyed = true
     for (const remove of removers) remove()
     doc.removeEventListener('keydown', dismiss)
+    svg.remove()
     root.remove()
   }
   try {
@@ -177,6 +215,15 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
       hovered = id
       showTooltip()
       if (frame) positionTooltip(frame)
+    }), graph.on('backgroundclick', ({ x, y, clicks }) => {
+      if (!options.onOpenGroup || options.groupGesture === 'controls' || clicks !== (options.groupGesture === 'click' ? 1 : 2)) return
+      const point = svg.createSVGPoint()
+      point.x = x
+      point.y = y
+      for (let i = paths.length - 1; i >= 0; i--) {
+        const { group, path } = paths[i]
+        if (path.isPointInFill(point) || path.isPointInStroke(point)) { options.onOpenGroup(group); return }
+      }
     }), graph.on('destroy', destroy))
     doc.addEventListener('keydown', dismiss)
   } catch (error) {

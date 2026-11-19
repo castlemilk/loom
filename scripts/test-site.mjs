@@ -5,6 +5,7 @@ import { chromium } from 'playwright'
 import { studio } from '../tests/studio.mjs'
 import { studioConfiguration } from '../tests/studio-config.mjs'
 import { studioLoad } from '../tests/studio-load.mjs'
+import { studioDrilldown } from '../tests/studio-drilldown.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
@@ -70,10 +71,14 @@ try {
   }, { live: Boolean(liveURL), expected: process.env.GITHUB_SHA })
   assert.deepEqual(packageHeader, [0x1f, 0x8b], 'Studio should serve the installable npm archive')
   await configPage.close()
+  const drillPage = await context.newPage()
+  drillPage.setDefaultTimeout(20000)
+  const drilldown = await studioDrilldown(drillPage, url)
+  await drillPage.close()
   const loadPage = await context.newPage()
   loadPage.setDefaultTimeout(18000)
   const workload = await studioLoad(loadPage, url)
-  console.log({ ...result, worker, snapshotRequests: snapshots, configuration, workload })
+  console.log({ ...result, worker, snapshotRequests: snapshots, configuration, drilldown, workload })
 } finally {
   await browser.close()
 }

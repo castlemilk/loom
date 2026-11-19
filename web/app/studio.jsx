@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { consoleLayout } from '../../dist/console.js'
 import { buildWorkload, initialWorkload, imageURL, maxLinks, sectionAtlas } from './workload.mjs'
 import { clusterLayout } from '../../dist/clusters.js'
+import { createDrilldown, drilldownGroup } from '../../dist/drilldown.js'
 import { contentBytes } from '../../dist/metrics.js'
 import { EncodingControls, initialEncoding, useEncodings } from './encodings'
 import { maxNodeSize, minNodeSize, nodeCounts, sizeLabel, stepNodeSize } from '../../demo/node-controls.js'
@@ -15,6 +16,7 @@ import { kindOrder, makeTheme, marker, palettes as themePresets, patterns, prese
 import { useGraph } from './use-graph'
 import { Grouping, useGrouping } from './grouping'
 import { Splitter } from './splitter'
+import { DrillControls, DrillTrail, detailOptions, navigationDefaults } from './drilldown-controls'
 
 const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas · clustered example'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
 const modes = ['Drift', 'Lanes', 'Orbit', 'Cloud']
@@ -52,6 +54,7 @@ function Workbench({ sample }) {
   const [packed, setPacked] = useState(false)
   const [gap, setGap] = useState(80)
   const [encoding, setEncoding] = useState(initialEncoding)
+  const [navigation, setNavigation] = useState(navigationDefaults)
   const nodeSize = Math.round(style.nodeScale * 100)
   const defaultSize = Math.round((themePresets[style.name].nodes?.scale ?? 1) * 100)
   const [kindChoice, chooseKind] = useState('study')
@@ -78,9 +81,28 @@ function Workbench({ sample }) {
     return null
   }, [stress, countOption, workload, placement])
   const atlas = useMemo(() => dataset === 'sections' ? sectionAtlas() : null, [dataset])
-  const data = atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : dataset === 'full' && full.data ? full.data : sample)
+  const source = atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : dataset === 'full' && full.data ? full.data : sample)
+  const drill = useMemo(() => createDrilldown(source), [source])
+  const snapshot = useSyncExternalStore(drill.subscribe, drill.getSnapshot, drill.getSnapshot)
+  const data = useMemo(() => snapshot.data === source ? source : { ...source, ...snapshot.data }, [source, snapshot.data])
+  const level = snapshot.path.at(-1)
   const palette = useMemo(() => makeTheme(style), [style])
-  const grouping = useGrouping(data, palette, packed)
+  const grouping = useGrouping(source, data, palette, packed)
+  const groupFor = useCallback((node) => {
+    const term = grouping.index.primary(node.id, grouping.active.id)
+    return term && drilldownGroup(term, data.nodes)
+  }, [grouping.index, grouping.active.id, data.nodes])
+  const openTerm = useCallback((term) => drill.openGroup(drilldownGroup(term, data.nodes)), [drill, data.nodes])
+  useEffect(() => {
+    drill.setOptions({ selectAction: navigation.selectAction, openAction: navigation.openAction,
+      groupAction: navigation.groupAction, groupFor, detail: detailOptions(navigation.detail),
+      spread: navigation.spread, arrangement: navigation.arrangement, memberSpacing: navigation.spacing * style.nodeScale,
+      expansionBlend: navigation.expansionBlend, neighborhood: { hops: navigation.hops, direction: navigation.direction } })
+  }, [drill, groupFor, navigation, style.nodeScale])
+  const groupEnabled = navigation.groupAction !== 'none'
+  const annotations = useMemo(() => ({ ...grouping.annotations, onOpenGroup: groupEnabled ? openTerm : undefined,
+    groupGesture: navigation.groupGesture, activeGroup: level.kind === 'group' ? { taxonomy: level.taxonomy, id: level.id, boundary: navigation.boundary } : undefined }),
+    [grouping.annotations, groupEnabled, openTerm, navigation.groupGesture, level, navigation.boundary])
   const mapped = useEncodings(data, encoding)
   const theme = useMemo(() => {
     const nodes = grouping.nativeMarkers && !mapped.radius ? palette.nodes : { ...palette.nodes, resolve: (node, degree) => {
@@ -94,10 +116,16 @@ function Workbench({ sample }) {
   const clusters = useMemo(() => packed ? clusterLayout(data.nodes, grouping.laneBy,
     { gap, dimensions: mode === 'cloud' ? 3 : 2, depth: settings.cloudDepth }) : null,
     [packed, data, grouping.laneBy, gap, mode, settings.cloudDepth])
-  const layout = useMemo(() => ({ ...settings, anchor: clusters?.anchor ?? null, laneBy: grouping.laneBy, laneOrder: grouping.laneOrder,
+  const overviewLayout = useMemo(() => ({ ...settings, anchor: clusters?.anchor ?? null, laneBy: grouping.laneBy, laneOrder: grouping.laneOrder,
     springsByKind: stress ? undefined : consoleLayout.springsByKind }), [settings, stress, clusters, grouping.laneBy, grouping.laneOrder])
   const engine = physics === 'worker' || physics === 'main' ? physics : undefined
-  const view = useGraph(data, engine, layout, theme, mode, grouping.index, grouping.annotations)
+  const effective = useMemo(() => drill.resolveLayout(mode, overviewLayout), [drill, mode, overviewLayout, snapshot.path, snapshot.options])
+  const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill)
+  const lastRoute = useRef(null)
+  useEffect(() => {
+    if (lastRoute.current?.drill === drill && lastRoute.current.path !== snapshot.path) view.canvas.current?.focus({ preventScroll: true })
+    lastRoute.current = { drill, path: snapshot.path }
+  }, [drill, snapshot.path, view.canvas])
   const kinds = useMemo(() => {
     const present = new Set(data.nodes.map((node) => node.kind ?? '').filter(Boolean))
     return [...kindOrder.filter((kind) => present.has(kind)), ...[...present].filter((kind) => !kindOrder.includes(kind)).sort()]
@@ -143,7 +171,7 @@ function Workbench({ sample }) {
     switchDataset(value)
   }
   useEffect(() => {
-    if (new URLSearchParams(location.search).get('example') === 'clusters') pickGraph('sections')
+    if (['clusters', 'drilldown'].includes(new URLSearchParams(location.search).get('example'))) pickGraph('sections')
   }, [])
   function enableClusters(on) {
     setPacked(on)
@@ -177,17 +205,29 @@ function Workbench({ sample }) {
       </div>
     </header>
     <main className="studio-workspace min-w-0">
-      <section id="studio-stage" className="stage isolate" aria-label="Graph viewport" onPointerUp={view.syncPin} onPointerCancel={view.syncPin}>
-        <canvas id="graph" ref={view.canvas} aria-label={mode === 'cloud' ? '3D graph. Drag empty space or use arrow keys to orbit. Drag a node to move it. Plus and minus zoom.' : 'Knowledge graph. Drag a node to move it. Arrow keys pan, plus and minus zoom.'} />
+      <section id="studio-stage" className="stage isolate" aria-label="Graph viewport" style={{ backgroundColor: theme.bg }}
+        onPointerUp={view.syncPin} onPointerCancel={view.syncPin} onKeyDownCapture={(event) => {
+          if (event.key === 'Escape' && event.target === view.canvas.current && snapshot.path.length > 1) {
+            event.preventDefault(); event.stopPropagation(); drill.back()
+          }
+        }}>
+        <div ref={view.underlay} className="graph-boundaries" aria-hidden="true" />
+        <canvas id="graph" ref={view.canvas} aria-describedby={level.kind === 'overview' ? undefined : 'drill-location'} aria-label={effective.mode === 'cloud' ? '3D graph. Drag empty space or use arrow keys to orbit. Drag a node to move it. Enter opens the selection.' : 'Knowledge graph. Drag a node to move it. Arrow keys pan, plus and minus zoom. Enter opens the selection.'} />
         <div ref={view.layer} className="graph-annotations" style={{ '--loom-overlay-bg': theme.bezel, '--loom-overlay-ink': theme.ink }} />
-        <div id="legend" className="legend" aria-label={grouping.active.label} hidden={mode === 'lanes'} style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
+        <div id="legend" className="legend" role="group" aria-label={grouping.active.label} hidden={effective.mode === 'lanes'} style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
+          {grouping.groups.length > 0 && <span className="legend-title">{grouping.active.label}</span>}
           {grouping.groups.slice(0, 12).map((term) => {
             const item = grouping.displayStyle(term)
-            return <span key={term.key}><i data-shape={item.shape ?? 'circle'} style={{ '--kind': item.color }} />{term.label}</span>
+            const expanded = level.kind === 'group' && level.action === 'expand' && level.id === term.id && level.taxonomy === term.taxonomy
+            const content = <><i data-shape={item.shape ?? 'circle'} style={{ '--kind': item.color }} /><span className="legend-name">{term.label}</span><small>{term.members.length}</small></>
+            return groupEnabled ? <button type="button" key={term.key} data-group={term.id} onClick={() => openTerm(term)}
+              aria-description={term.members.length + ' members'} aria-expanded={navigation.groupAction === 'expand' ? expanded : undefined} aria-label={(expanded ? 'Collapse ' : 'Open ') + term.label + ' group'}>{content}<i className="group-indicator" aria-hidden="true" /></button> :
+              <span key={term.key}>{content}</span>
           })}
           {grouping.groups.length > 12 && <span>+{grouping.groups.length - 12} groups</span>}
         </div>
-        {mode === 'cloud' && <CloudCompass graph={view.instance} ink={theme.ink} />}
+        {effective.mode === 'cloud' && <CloudCompass graph={view.instance} ink={theme.ink} />}
+        <DrillTrail snapshot={snapshot} drill={drill} />
         {perf && <PerfPanel graph={view.instance} data={data} paused={view.paused} onClose={() => { setPerf(false); document.getElementById('perf-toggle')?.focus() }} />}
         <div className="stage-tools">
           <button id="fit" onClick={() => view.graph.current?.fit()}>Fit view</button>
@@ -202,10 +242,22 @@ function Workbench({ sample }) {
       </section>
       <Splitter />
       <aside id="studio-controls" aria-label="Graph controls" className="min-w-0 min-[701px]:overscroll-contain">
-        <WorkloadControls data={data} active={stress || dataset === 'custom'} draft={workloadDraft} edit={editWorkload}
-          onGenerate={(config, next) => { setWorkload({ config, data: next }); switchDataset('stress') }}
-          onLoad={(next, name) => { setCustom({ data: next, name }); switchDataset('custom') }} />
-        <section><h2>Layout</h2>
+        <DrillControls data={data} config={navigation} select={(id) => { drill.select(id); view.canvas.current?.focus({ preventScroll: true }) }} change={(key, value) => setNavigation((old) => ({ ...old, [key]: value }))} />
+        <section className="selection" aria-label="Selected node" hidden={!selected}>
+          <h2 id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</h2>
+          <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
+          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
+            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
+            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+          {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
+          {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
+          <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
+            <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
+          {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
+            {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
+              <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.action === 'expand' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Collapse' : 'Open'} {g.label}</button>)}</div>}
+        </section>
+        <section><h2>{level.kind === 'overview' ? 'Layout' : 'Overview layout'}</h2>
           <Range id="blend" label="Structure" min={0} max={100} value={Math.round(settings.blend * 100)} format={percent} onChange={(v) => adjust('blend', v / 100)} />
           <div className="range-ends"><span>Force directed</span><span>Node graph</span></div>
           <div className="modes" role="group" aria-label="Force mode">{modes.map((name) =>
@@ -229,7 +281,7 @@ function Workbench({ sample }) {
             <Range id="repulsion" label="Repulsion" min={0} max={4} step={0.05} value={settings.repulsion} format={times} onChange={(v) => adjust('repulsion', v)} />
           </details>
         </section>
-        <Grouping group={grouping} packed={packed} setPacked={enableClusters} gap={gap} setGap={setGap} />
+        <Grouping level={level} group={grouping} packed={packed} setPacked={enableClusters} gap={gap} setGap={setGap} openTerm={groupEnabled ? openTerm : undefined} />
         <section><h2>Appearance</h2>
           <Select id="theme" label="Theme" options={palettes} value={style.name} onChange={(v) => setStyle(preset(v))} />
           <Select id="route" label="Wires" options={routes} value={style.route} onChange={(v) => paint('route', v)} />
@@ -250,17 +302,9 @@ function Workbench({ sample }) {
               <Check id="grid" label="Grid" checked={style.grid} onChange={(v) => paint('grid', v)} /></div>
           </details>
         </section>
-        <section className="selection"><h2>Selection</h2>
-          <p id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</p>
-          <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
-          {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
-            'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
-            ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
-          {thumbnail && <img className="selection-image" src={thumbnail} alt={description?.title ?? 'Node artwork'} />}
-          {(selected?.content || selected?.summary) && <p className="selection-content">{selected.content || selected.summary}</p>}
-          <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
-            <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
-        </section>
+        <WorkloadControls data={source} active={stress || dataset === 'custom'} draft={workloadDraft} edit={editWorkload}
+          onGenerate={(config, next) => { setWorkload({ config, data: next }); switchDataset('stress') }}
+          onLoad={(next, name) => { setCustom({ data: next, name }); switchDataset('custom') }} />
         <details className="diagnostics"><summary>Simulation &amp; diagnostics</summary>
           <Select id="physics" label="Simulation" options={stress ? [...simulations, ...positioned] : simulations} value={physics} onChange={setPhysics} />
           <dl><dt>First draw submission</dt><dd id="first">{stats ? stats.firstSubmitMs.toFixed(2) + ' ms' : '—'}</dd>
@@ -273,8 +317,10 @@ function Workbench({ sample }) {
     </main>
     <footer className="shrink-0 flex-wrap gap-x-3 gap-y-1 py-1">
       <span id="totals" className="whitespace-nowrap tabular-nums">{formatCount.format(data.nodes.length)} {data.nodes.length === 1 ? 'node' : 'nodes'} · {formatCount.format(data.links.length)} {data.links.length === 1 ? 'link' : 'links'}</span>
-      <span>Drag a node to pull its neighbours. {mode === 'cloud' ? 'Drag the background to orbit.' : 'Drag the background to pan.'}</span>
-      <a className="underline underline-offset-2" href="https://github.com/castlemilk/loom#taxonomies-and-annotations">TypeScript API</a>
+      <span>{level.kind === 'group' && level.action === 'expand' ? 'Drag a member to pull its neighbors. Back collapses the group.' :
+        groupEnabled && navigation.groupGesture !== 'controls' && Object.values(grouping.annotations.bubbles).some((terms) => terms === true || terms.length) ? (navigation.groupGesture === 'click' ? 'Click' : 'Double-click') + ' inside a bubble to open its group. Drag a node to move it.' :
+        'Drag a node to pull its neighbors. Enter activates the selection.'}</span>
+      <a className="underline underline-offset-2" href="https://github.com/castlemilk/loom#drilldowns-and-group-interactions">TypeScript API</a>
     </footer>
   </>
 }

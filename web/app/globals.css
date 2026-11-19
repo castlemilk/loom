@@ -12,7 +12,83 @@
   --panel-width: 300px;
   grid-template-columns: minmax(0, 1fr) 12px var(--panel-width);
 }
-.graph-annotations { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+:root {
+  --control-surface: #faf9f3;
+  --scroll-thumb: #959b8b;
+  --scroll-hover: #6d7664;
+  --scroll-active: #4c5746;
+  --graph-tool: #242925;
+  --graph-rule: #576257;
+  --graph-text: #eef1e8;
+  --graph-subtle: #bfcbba;
+}
+* { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--scroll-hover); }
+*::-webkit-scrollbar-thumb:active { background: var(--scroll-active); }
+::selection { color: var(--control-surface); background: var(--accent); }
+input, textarea { caret-color: var(--accent); }
+.wordmark { letter-spacing: -.04em; }
+#studio-controls { scrollbar-gutter: stable; }
+#studio-controls > section { padding-block: 19px; }
+#studio-controls h2 { font-size: 17px; margin-bottom: 12px; letter-spacing: -.03em; }
+#studio-controls .drill-controls { padding-top: 21px; }
+.graph-annotations, .graph-boundaries { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+#studio-stage > canvas { position: relative; background: transparent; }
+.legend {
+  --legend-rule: color-mix(in srgb, var(--map-ink) 25%, var(--map-bg));
+  inset: 14px 14px auto; width: fit-content; max-width: calc(100% - 28px);
+  gap: 2px; padding: 3px; border: 1px solid var(--legend-rule); border-radius: 6px;
+  background: var(--map-bg); font: 500 12px/1.2 system-ui,sans-serif;
+}
+.legend:empty { display: none; }
+.legend .legend-title { padding: 0 9px 0 6px; color: var(--map-ink); border-right: 1px solid var(--legend-rule); }
+.legend .legend-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 19ch; padding: 0; background: none; }
+.legend button, .legend > span:not(.legend-title) {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; min-height: 27px;
+  padding: 3px 7px; border: 1px solid transparent; border-radius: 3px; color: inherit; font: inherit; background: none;
+}
+.legend button { pointer-events: auto; }
+.legend button:hover, .legend button:focus-visible, .legend button[aria-expanded="true"] {
+  border-color: var(--legend-rule); background: color-mix(in srgb, var(--map-ink) 12%, var(--map-bg));
+}
+.legend small { font: 10px var(--mono); font-variant-numeric: tabular-nums; opacity: .78; }
+.legend .group-indicator { position: relative; width: 8px; height: 8px; border: 0; background: none; opacity: .8; }
+.group-indicator::before, .group-indicator::after { content: ''; position: absolute; top: 3.5px; left: 0; width: 8px; height: 1px; background: currentColor; }
+.group-indicator::after { transform: rotate(90deg); }
+[aria-expanded="true"] > .group-indicator::after { display: none; }
+.drill-trail { position: absolute; bottom: 62px; left: 18px; display: flex; align-items: center; gap: 2px; max-width: calc(100% - 36px);
+  padding: 3px; border: 1px solid var(--graph-rule); border-radius: 5px; color: var(--graph-text); background: var(--graph-tool); font: 12px/1.4 system-ui,sans-serif; }
+.drill-trail ol { display: flex; align-items: center; list-style: none; margin: 0; padding: 0; min-width: 0; overflow: auto; }
+.drill-trail li { display: inline-flex; align-items: center; white-space: nowrap; }
+.drill-trail li + li::before, .drill-back i { content: ''; display: inline-block; width: 5px; height: 5px; border-top: 1px solid; border-right: 1px solid; transform: rotate(45deg); }
+.drill-back i { transform: rotate(-135deg); }
+.drill-trail button, .drill-trail [aria-current] { padding: 4px 7px; font: inherit; color: inherit; }
+.drill-trail [aria-current] { font-weight: 650; }
+.drill-trail button { min-height: 28px; border: 0; background: transparent; }
+.drill-trail button:hover { background: #414a40; }
+.drill-trail .drill-back { display: inline-flex; align-items: center; gap: 5px; flex: none; border-right: 1px solid var(--graph-rule); border-radius: 0; }
+.drill-trail small { padding: 0 5px; flex: none; color: var(--graph-subtle); font: 10px var(--mono); }
+.stage:has(.perf-panel) .drill-trail { bottom: 62px; max-width: calc(100% - 308px); }
+.drill-controls input[type="search"] {
+  width: 100%; min-height: 34px; padding: 6px 9px; border: 1px solid #a5ab98; border-radius: 4px; background: var(--control-surface);
+}
+.drill-controls input::placeholder { color: var(--muted); }
+.drill-controls summary { margin-top: 5px; }
+.node-results { display: grid; max-height: 190px; overflow: auto; margin-top: 4px; }
+.node-results button { display: flex; justify-content: space-between; align-items: center; text-align: left; gap: 6px; border: none; border-bottom: 1px solid var(--rule); border-radius: 0; }
+.node-results button:hover { background: #e4e7db; }
+.node-results small { color: var(--muted); }
+.selection .selection-tools { flex-wrap: wrap; }
+.selection .drill-actions button:first-child { background: var(--text); color: var(--control-surface); border-color: var(--text); }
+.bubble-choice { display: flex; align-items: center; gap: 7px; }
+.bubble-choice label { flex: 1; min-width: 0; }
+.bubble-choice button { min-height: 25px; padding: 2px 7px; font-size: 11px; }
+@media (forced-colors: active) {
+  * { scrollbar-color: auto; }
+  .group-indicator::before, .group-indicator::after { background: ButtonText; }
+}
 .splitter {
   display: grid; place-items: center; cursor: col-resize; touch-action: none;
   background: var(--paper); border-inline: 1px solid var(--rule); outline-offset: -2px;
@@ -77,6 +153,12 @@
 .perf-panel dd { margin: 1px 0 0; font-size: 11px; white-space: nowrap; }
 .stage-tools button[aria-pressed="true"] { background: #39493d; color: #e0f4df; }
 @media (max-width: 700px) {
+  .legend { inset: 8px 8px auto; max-width: calc(100% - 16px); flex-wrap: nowrap; overflow-x: auto; pointer-events: auto; }
+  .legend > * { flex-shrink: 0; }
+  .legend button { min-height: 32px; }
+  .drill-trail { bottom: 55px; left: 10px; max-width: calc(100% - 20px); }
+  .stage:has(.perf-panel) .drill-trail { top: 51px; bottom: auto; max-width: calc(100% - 20px); }
+  footer span:nth-child(2) { display: none; }
   .studio-workspace { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--stage-height, 58dvh) 12px auto; }
   .studio-workspace .stage { height: 100%; min-height: 0; }
   .splitter { cursor: row-resize; border-inline: 0; border-block: 1px solid var(--rule); }

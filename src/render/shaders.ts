@@ -201,5 +201,5 @@ void main() {
   float lane=1.0-smoothstep(0.25,1.1,abs(index-floor(index+0.5))*laneData.y*screenData.z);
   float dash=1.0-smoothstep(0.35,0.52,fract(axis.y*screenData.z/9.0));
   float guide=lane*dash*laneData.z*float(index>=-0.5 && index<laneData.x-0.5);
-  color=vec4(mix(bg,gridData.rgb,max(dots,guide)),1);
+  color=vec4(gridData.rgb,max(dots,guide));
 }`

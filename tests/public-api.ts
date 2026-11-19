@@ -1,5 +1,6 @@
 import { createGraph, ink, type GraphNode, type GraphData, type GraphLink } from 'loom-core'
-import { compileTaxonomies, attachAnnotations, type TaxonomyConfig } from 'loom-core/taxonomy'
+import { compileTaxonomies, attachAnnotations, scopeTaxonomies, type TaxonomyConfig } from 'loom-core/taxonomy'
+import { createDrilldown, drilldownGroup, type DrilldownOptions } from 'loom-core/drilldown'
 import { observePerformance, type PerformanceSample } from 'loom-core/performance'
 import { clusterLayout, connectedComponents } from 'loom-core/clusters'
 import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
@@ -44,6 +45,23 @@ export function mountCatalogue(canvas: HTMLCanvasElement, layer: HTMLElement, da
   annotations.setOptions({ tooltips: false })
   graph.onFrame(({ width, height, points }) => { void [width, height, points[0]] })
   return graph
+}
+
+export function mountDrilldown(canvas: HTMLCanvasElement, underlay: HTMLElement, overlay: HTMLElement, data: GraphData<Paper, Citation>) {
+  const options = { groupAction: (group) => group.taxonomy === 'subject' ? 'expand' : 'isolate',
+    openAction: (paper) => paper.year > 2000 ? 'neighbors' : 'focus',
+    neighborhood: { direction: 'outgoing', includeLink: (citation) => citation.reviewed },
+    arrangement: 'rings', memberSpacing: 36, spread: 2, expansionBlend: 0.7,
+  } satisfies DrilldownOptions<Paper, Citation>
+  const controller = createDrilldown(data, options)
+  const snapshot = controller.getSnapshot()
+  const index = scopeTaxonomies(compileTaxonomies(data, vocabulary), snapshot.data.nodes)
+  const graph = createGraph(canvas, { ...snapshot.data, transparentBackground: true, ...controller.resolveLayout('cloud') })
+  controller.bind(graph, snapshot.data)
+  attachAnnotations(graph, overlay, index, { underlay, bubbles: { subject: true }, groupGesture: 'click',
+    onOpenGroup: (term) => controller.openGroup(drilldownGroup(term, snapshot.data.nodes)),
+    activeGroup: { id: 'physics', taxonomy: 'subject', boundary: 'outline' } })
+  return { controller, graph }
 }
 
 // @ts-expect-error A numeric field needs a classifier converting its value into a group id.

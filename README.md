@@ -207,6 +207,67 @@ export function mountCatalogue(host: HTMLElement) {
 
 `legend(id)` returns ordered groups, display properties and member indices. `describe(nodeId)` returns the title, formatted count and full membership. For custom tooltip content, supply `language.tooltip(node, description)` returning `{ title, lines }`. Text renders literally. Outlines and lane captions follow the camera, node drags and canvas resizes on the engine's existing paint cycle. `setOptions({ bubbles: {} })` hides every outline. Destroying the graph also releases its annotations.
 
+## Drilldowns and group interactions
+
+Open **Optics** in the legend or click the space between its nodes in the [Section atlas](https://castlemilk.github.io/loom/?example=drilldown). Its eight members spread out while its links to other sections stay visible. Click the same legend entry to collapse it. A click on a child selects it. Double-click or press Enter on a selection to explore its neighbors. Use Back, an ancestor breadcrumb or Escape on the canvas to return.
+
+In **Explore**, **Open a group** switches between in-place expansion, an isolated group with its internal links, and disabled navigation. **Drilldown settings** lets you choose the node actions, bubble gesture, open boundary, member arrangement, spacing, expansion strength and detail layout. The group buttons also work with a keyboard. Search finds nodes in the current view.
+
+| Library option | Behavior |
+| --- | --- |
+| `selectAction`, `openAction` | Choose `inspect`, `focus`, `neighbors` or `group`, globally or per node. Supply `groupFor(node)` for the group action. |
+| `groupAction` | Set `expand`, `isolate` or `none`, or return one per taxonomy or term from a callback. |
+| `arrangement`, `memberSpacing`, `spread` | Rings handle coincident nodes with deterministic, spaced targets. Radial expansion follows previous directions. Default ring targets are 28 world units × 2 apart. The studio scales spacing with node size. |
+| `expansionBlend` | Defaults to 0.7. Intermediate values let springs and repulsion respond to dragging. At 1, movable nodes use the exact targets. Pinned nodes keep their positions. |
+| `neighborhood`, `detail` | Set hop count, direction and a typed link filter. Each drilldown stays inside its parent view. Isolated detail uses free Drift by default. Pass an empty detail object to inherit the overview layout. |
+| Annotation options | `groupGesture` accepts `click`, `double-click` or `controls`. The opened boundary can use `outline`, `fade`, `hide` or `keep`. Child nodes and labels take priority over a boundary. |
+
+The framework-independent controller ships in `loom-core/drilldown`. Its snapshot supplies nodes and links in source order, a selection and a navigation path. On a scope change, remount with the new data. A bound in-place expansion keeps the same data and renderer. Apply the resolved layout when navigation or configuration changes. Back restores the parent positions and selection, incorporates current pins and refits the parent view.
+
+The example expects an underlay, canvas and overlay in that DOM order inside one positioned host. Give them the same bounds, set the host background to the graph theme and use `pointer-events: none` on the two annotation layers. The transparent WebGL canvas paints the links, nodes and labels above all bubble fills.
+
+```ts
+import { createGraph, ink, type GraphData, type GraphNode, type LoomGraph } from 'loom-core'
+import { createDrilldown, drilldownGroup } from 'loom-core/drilldown'
+import { attachAnnotations, compileTaxonomies, scopeTaxonomies, type GraphAnnotations } from 'loom-core/taxonomy'
+
+export function mountExplorer(data: GraphData, canvas: HTMLCanvasElement, underlay: HTMLElement, overlay: HTMLElement) {
+  const all = compileTaxonomies(data, { taxonomies: [{ id: 'type', label: 'Type', by: 'kind' }] })
+  const drill = createDrilldown(data, {
+    selectAction: 'inspect', openAction: 'neighbors',
+    groupAction: (term) => term.id === 'archive' ? 'isolate' : 'expand',
+    arrangement: 'rings', memberSpacing: 36, spread: 1.8, expansionBlend: 0.65,
+    neighborhood: { hops: 1, direction: 'outgoing' },
+  })
+  let graph: LoomGraph<GraphNode>, marks: GraphAnnotations
+  let previous: ReturnType<typeof drill.getSnapshot> | undefined
+
+  function render() {
+    const state = drill.getSnapshot()
+    const level = state.path.at(-1)!
+    const activeGroup = level.kind === 'group' ? { taxonomy: level.taxonomy, id: level.id } : undefined
+    const layout = drill.resolveLayout('cloud', { autoRotate: false })
+    if (state.data !== previous?.data) {
+      graph?.destroy()
+      const index = scopeTaxonomies(all, state.data.nodes)
+      graph = createGraph(canvas, { ...state.data, ...layout, theme: ink, transparentBackground: true })
+      marks = attachAnnotations(graph, overlay, index, { underlay, activeGroup, bubbles: { type: true },
+        groupGesture: 'click', onOpenGroup: (term) => drill.openGroup(drilldownGroup(term, state.data.nodes)) })
+      drill.bind(graph, state.data)
+    } else if (state.path !== previous.path || state.options !== previous.options) {
+      graph.setLayout(layout.layout)
+      graph.setMode(layout.mode)
+      marks.setOptions({ activeGroup })
+    }
+    previous = state
+  }
+
+  render()
+  const unsubscribe = drill.subscribe(render)
+  return { drill, destroy() { unsubscribe(); graph.destroy() } }
+}
+```
+
 ## Cluster placement and data-driven styling
 
 The optional `loom-core/clusters` and `loom-core/metrics` entry points prepare layout and style rules when your data changes. This example arranges papers into 3D sections, outlines each section and makes links to highly connected endpoints thicker.

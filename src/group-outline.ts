@@ -4,6 +4,31 @@ const normals = Array.from({ length: 12 }, (_, i) => {
   const angle = i * Math.PI / 6
   return [Math.cos(angle), Math.sin(angle)] as const
 })
+/** Return a new path only when projected discs have moved at least a quarter CSS pixel
+ * from the last contour. The renderer reuses its projection buffer across frames. */
+export function cacheOutline(outline: typeof groupOutline, members: readonly number[], padding: number) {
+  const previous = new Float32Array(members.length * 3)
+  let ready = false
+  return (points: Readonly<Float32Array>): string | undefined => {
+    if (ready) {
+      let same = true
+      for (let j = 0; j < members.length && same; j++) {
+        const k = members[j] * 4, p = j * 3
+        same = Math.abs(points[k] - previous[p]) < 0.25 &&
+          Math.abs(points[k + 1] - previous[p + 1]) < 0.25 && Math.abs(points[k + 2] - previous[p + 2]) < 0.25
+      }
+      if (same) return
+    }
+    for (let j = 0; j < members.length; j++) {
+      const k = members[j] * 4, p = j * 3
+      previous[p] = points[k]
+      previous[p + 1] = points[k + 1]
+      previous[p + 2] = points[k + 2]
+    }
+    ready = true
+    return outline(points, members, padding)
+  }
+}
 export function groupOutline(points: Readonly<Float32Array>, members: readonly number[], padding: number): string {
   if (!members.length) return ''
   const support = Array<number>(normals.length).fill(-Infinity)

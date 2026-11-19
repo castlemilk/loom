@@ -21,6 +21,10 @@
       "import": "./dist/console.js"
     },
     "./layout-worker.js": "./dist/layout-worker.js",
+    "./drilldown": {
+      "types": "./dist/drilldown.d.ts",
+      "import": "./dist/drilldown.js"
+    },
     "./clusters": {
       "types": "./dist/clusters.d.ts",
       "import": "./dist/clusters.js"
@@ -45,6 +49,7 @@
     "test:types": "tsc --strict --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext tests/public-api.ts",
     "test:browser": "node scripts/browser.mjs",
     "bench": "node scripts/browser.mjs --bench",
+    "bench:contours": "node scripts/measure-contours.mjs",
     "size": "node scripts/size.mjs",
     "dev": "node scripts/serve.mjs",
     "demo:build": "node scripts/build-studio.mjs",

@@ -7,7 +7,7 @@ interface Actions {
   pick(x: number, y: number, touch?: boolean): number
   hover(i: number): void
   select(i: number): void
-  open(): void
+  open(index?: number, point?: { x: number; y: number; clicks: number }): void
   positions(): Float32Array
   pin(i: number, x: number, y: number, fixed: number, z?: number, dragging?: boolean): void
   reduced(): boolean
@@ -43,7 +43,7 @@ export class Interaction {
     private actions: Actions,
   ) {
     const opts = { signal: this.#abort.signal }
-    const position = (e: PointerEvent | WheelEvent) => {
+    const position = (e: MouseEvent) => {
       const b = canvas.getBoundingClientRect()
       return { x: e.clientX - b.left - canvas.clientLeft, y: e.clientY - b.top - canvas.clientTop }
     }
@@ -138,6 +138,11 @@ export class Interaction {
     canvas.addEventListener('pointerup', (e) => release(e, false), opts)
     canvas.addEventListener('pointercancel', (e) => release(e, true), opts)
     canvas.addEventListener('lostpointercapture', (e) => release(e, true), opts)
+    canvas.addEventListener('click', (e) => {
+      if (this.#dragged || e.button || !e.detail || e.detail > 2) return
+      const point = position(e), node = actions.pick(point.x, point.y, e.pointerType === 'touch')
+      if (node < 0 || e.detail === 2) actions.open(node, { ...point, clicks: e.detail })
+    }, opts)
     canvas.addEventListener(
       'pointerleave',
       () => {

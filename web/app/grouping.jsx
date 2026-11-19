@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { compileTaxonomies, parseTaxonomy } from '../../dist/taxonomy.js'
+import { compileTaxonomies, parseTaxonomy, scopeTaxonomies } from '../../dist/taxonomy.js'
 import { connectedComponents } from '../../dist/clusters.js'
 import { knowledgeConsole } from '../../dist/index.js'
 import { kindOrder, marker, patterns } from './appearance'
@@ -19,7 +19,7 @@ const storageKey = 'loom.taxonomies.v1'
 
 const defaultWords = { singular: 'link', plural: 'links', ungrouped: 'Ungrouped' }
 
-export function useGrouping(data, theme, packed) {
+export function useGrouping(source, data, theme, packed) {
   const [custom, setCustom] = useState([])
   const [activeId, setActive] = useState('kind')
   const [bubbles, setBubbles] = useState({})
@@ -36,13 +36,14 @@ export function useGrouping(data, theme, packed) {
   }, [])
   const needComponents = activeId === 'component' || bubbles.component === true || !!bubbles.component?.length
   const definitions = useMemo(() => {
-    const component = { id: 'component', label: 'Connected component', by: needComponents ? connectedComponents(data) : () => undefined }
+    const component = { id: 'component', label: 'Connected component', by: needComponents ? connectedComponents(source) : () => undefined }
     const rules = new Map([types, category, section, component].map((d) => [d.id, d]))
     for (const d of custom) rules.set(d.id, d)
     return [...rules.values()]
-  }, [custom, data, needComponents])
-  const index = useMemo(() => compileTaxonomies(data, { taxonomies: definitions,
-    language: { ungrouped: words.ungrouped, connections: (n) => n + ' ' + (n === 1 ? words.singular : words.plural) } }), [data, definitions, words])
+  }, [custom, source, needComponents])
+  const root = useMemo(() => compileTaxonomies(source, { taxonomies: definitions,
+    language: { ungrouped: words.ungrouped, connections: (n) => n + ' ' + (n === 1 ? words.singular : words.plural) } }), [source, definitions, words])
+  const index = useMemo(() => data.nodes === source.nodes ? root : scopeTaxonomies(root, data.nodes), [root, data.nodes, source.nodes])
   const active = definitions.find((rule) => rule.id === activeId) ?? types
   const groups = index.legend(active.id)
   const laneBy = useMemo(() => index.laneBy(active.id), [active.id, index])
@@ -111,8 +112,9 @@ function DefinitionEditor({ group }) {
   </details>
 }
 
-export function Grouping({ group, packed, setPacked, gap, setGap }) {
+export function Grouping({ level, group, packed, setPacked, gap, setGap, openTerm }) {
   const [filter, setFilter] = useState('')
+  const groupVerb = (term) => level.kind === 'group' && level.action === 'expand' && level.id === term.id && level.taxonomy === term.taxonomy ? 'Collapse' : 'Open'
   const list = group.groups
   const visible = Object.hasOwn(group.annotations.bubbles, group.active.id) ? group.annotations.bubbles[group.active.id] : []
   const checked = (id) => visible === true || visible.includes(id)
@@ -145,9 +147,10 @@ export function Grouping({ group, packed, setPacked, gap, setGap }) {
         <Check id="all-bubbles" label={'All groups in ' + group.active.label} checked={all} onChange={(on) => group.setVisible(on ? true : [])} />
         {list.length > 12 && <input aria-label="Filter groups" type="search" value={filter} onChange={(e) => setFilter(e.target.value)} />}
         <div className="bubble-choices">{filtered.slice(0, 50).map((term) =>
-          <label className="check" key={term.key}><input type="checkbox" data-bubble-term={term.id}
+          <div className="bubble-choice" key={term.key}><label className="check"><input type="checkbox" data-bubble-term={term.id}
             checked={checked(term.id)} onChange={(e) => toggle(term.id, e.target.checked)} />
             <i style={{ backgroundColor: group.displayStyle(term).color }} />{term.label}<small>{term.members.length}</small></label>
+            {openTerm && <button type="button" aria-label={groupVerb(term) + ' group ' + term.label} onClick={() => openTerm(term)}>{groupVerb(term)}</button>}</div>
         )}</div>
         {filtered.length > 50 && <small>Filter to see the other {filtered.length - 50} groups.</small>}
       </> : <p>No matching groups in this dataset.</p>}

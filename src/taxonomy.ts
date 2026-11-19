@@ -159,6 +159,43 @@ export function compileTaxonomies<N extends GraphNode, E extends GraphLink>(
   }
 }
 
+/** Keep the source classification and language, with member indices in a visible subgraph's order. */
+export function scopeTaxonomies(source: TaxonomyIndex, nodes: readonly GraphNode[]): TaxonomyIndex {
+  const indices = new Map<string, number>(), local = new Map<number, number>()
+  nodes.forEach((node, i) => {
+    const original = source.nodeIndex(node.id)
+    if (original === undefined || indices.has(node.id)) throw new RangeError('Unknown or duplicate scoped node: ' + node.id)
+    indices.set(node.id, i)
+    local.set(original, i)
+  })
+  const groups: TaxonGroup[] = [], byKey = new Map<string, TaxonGroup>(), legends = new Map<string, TaxonGroup[]>()
+  for (const term of source.groups) {
+    const members: number[] = []
+    for (const original of term.members) {
+      const i = local.get(original)
+      if (i !== undefined) members.push(i)
+    }
+    if (!members.length) continue
+    const group = { ...term, members }
+    groups.push(group)
+    byKey.set(group.key, group)
+    const list = legends.get(group.taxonomy)
+    if (list) list.push(group)
+    else legends.set(group.taxonomy, [group])
+  }
+  function primary(id: string, taxonomy: string) {
+    const group = indices.has(id) && source.primary(id, taxonomy)
+    return group ? byKey.get(group.key) : undefined
+  }
+  return { groups, ungrouped: source.ungrouped, legend: (id) => legends.get(id) ?? [], primary,
+    nodeIndex: (id) => indices.get(id), laneBy: (taxonomy) => (node) => primary(node.id, taxonomy)?.id ?? '',
+    tooltip: (id) => indices.has(id) ? source.tooltip(id) : undefined,
+    describe(id) {
+      const detail = indices.has(id) && source.describe(id)
+      return detail ? { ...detail, groups: detail.groups.map((group) => byKey.get(group.key)!) } : undefined
+    } }
+}
+
 /** Read the declarative subset used by the studio's configuration editor. */
 export function parseTaxonomy(json: string): TaxonomyDefinition {
   const rule = JSON.parse(json)

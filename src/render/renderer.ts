@@ -94,7 +94,7 @@ export class Renderer {
       this.setTheme(theme, true)
       this.setLayout(options.layout ?? {}, options.mode ?? 'drift')
       gl.enable(gl.BLEND)
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+      gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
     } catch (error) {
       r.destroy()
       throw error
@@ -123,7 +123,8 @@ export class Renderer {
     }
     gl.bindVertexArray(null)
     const background = rgb(theme.bg).map((v) => v / 255)
-    gl.clearColor(background[0], background[1], background[2], 1)
+    if (this.#options.transparentBackground) gl.clearColor(0, 0, 0, 0)
+    else gl.clearColor(background[0], background[1], background[2], 1)
     this.#scene[15] = wires.opacity ?? wireOpacity(this.#model.n)
     for (const [i, color] of [theme.bg, theme.bezel, theme.accent, wires.color ?? theme.dim].entries())
       this.#scene.set(

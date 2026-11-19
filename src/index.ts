@@ -89,9 +89,11 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     gridDirty = true
     repaint()
   }
+  let projectionVersion = 0
   function ensureGrid() {
     if (gridDirty) {
       grid.rebuild(shown, camera)
+      projectionVersion++
       gridDirty = false
     }
   }
@@ -140,7 +142,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
   }
   size()
   const gl = canvas.getContext('webgl2', {
-    alpha: false,
+    alpha: !!options.transparentBackground,
     antialias: false,
     depth: true,
     stencil: false,
@@ -183,9 +185,10 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       }
     },
     select: choose,
-    open() {
-      const id = options.nodes[selected]?.id
+    open(i = selected, point) {
+      const id = options.nodes[i]?.id
       if (id !== undefined) emit('open', id)
+      else if (point) emit('backgroundclick', point)
     },
     positions: () => shown,
     pin: movePin,
@@ -248,7 +251,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       dirty = false
       if (observers.size) {
         const { width, height, zoom } = camera, vertical = forces.vertical
-        const view = { points: grid.projected, width, height, zoom, yaw: camera.yaw, pitch: camera.pitch, mode: camera.mode, vertical,
+        const view = { points: grid.projected, projectionVersion, width, height, zoom, yaw: camera.yaw, pitch: camera.pitch, mode: camera.mode, vertical,
           lanes: model.laneMap.offsets, laneOrigin: vertical ? height / 2 - camera.y * zoom : width / 2 - camera.x * zoom }
         for (const observer of observers) observer(view)
       }

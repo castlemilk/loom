@@ -5,9 +5,10 @@ import { createGraph } from '../../dist/index.js'
 import { attachAnnotations } from '../../dist/taxonomy.js'
 import { imageURL } from './workload.mjs'
 
-export function useGraph(data, engine, layout, theme, mode, taxonomy, annotationOptions) {
+export function useGraph(data, engine, layout, theme, mode, taxonomy, annotationOptions, drill) {
   const canvas = useRef(null)
   const layer = useRef(null)
+  const underlay = useRef(null)
   const annotations = useRef(null)
   const graph = useRef(null)
   const [instance, setInstance] = useState(null)
@@ -15,17 +16,18 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
   const [selected, select] = useState(null)
   const [pinned, setPinned] = useState(false)
   const [paused, setPaused] = useState(false)
+  const pausedOwner = useRef(null)
   const [stats, setStats] = useState(null)
   const [error, setError] = useState('')
   const base = process.env.NEXT_PUBLIC_BASE_PATH
 
   const create = useEffectEvent((element, dataset, sim) => {
     const instance = createGraph(element, {
-      ...dataset, layout, theme, mode, sim, workerURL: base + '/layout-worker.js',
+      ...dataset, layout, theme, mode, sim, transparentBackground: true, workerURL: base + '/layout-worker.js',
       art: { urlFor: (node) => imageURL(dataset, node, base) },
     })
     try {
-      annotations.current = attachAnnotations(instance, layer.current, taxonomy, annotationOptions)
+      annotations.current = attachAnnotations(instance, layer.current, taxonomy, { ...annotationOptions, underlay: underlay.current })
     } catch (error) {
       instance.destroy()
       throw error
@@ -38,7 +40,8 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
     const element = canvas.current
     select(null)
     setPinned(false)
-    setPaused(false)
+    const keepPaused = pausedOwner.current === drill
+    setPaused(keepPaused)
     setStats(null)
     setError('')
     let instance
@@ -50,19 +53,21 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
       return
     }
     graph.current = instance
+    if (keepPaused) instance.pause()
     setInstance(instance)
     element.dataset.ready = 'true'
     instance.on('hover', (id) => element.toggleAttribute('data-node', id !== null))
-    instance.on('open', (id) => instance.focus(id))
     instance.on('select', (id) => {
       select(id)
       setPinned(id !== null && instance.getPosition(id).pinned)
       setStats(instance.stats())
     })
+    const detach = drill.bind(instance, data)
     setStats(instance.stats())
     const frame = requestAnimationFrame(() => setStats(instance.stats()))
     return () => {
       cancelAnimationFrame(frame)
+      detach()
       instance.destroy()
       annotations.current = null
       graph.current = null
@@ -70,7 +75,7 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
       element.removeAttribute('data-ready')
       element.removeAttribute('data-node')
     }
-  }, [data, engine])
+  }, [data, engine, drill])
 
   useEffect(() => {
     const current = graph.current, previous = applied.current
@@ -96,11 +101,12 @@ export function useGraph(data, engine, layout, theme, mode, taxonomy, annotation
     if (!graph.current) return
     if (paused) graph.current.resume()
     else graph.current.pause()
+    pausedOwner.current = paused ? null : drill
     setPaused(!paused)
     setStats(graph.current.stats())
   }
   function refresh() {
     if (graph.current) setStats(graph.current.stats())
   }
-  return { graph, instance, canvas, layer, selected, pinned, paused, error, stats, syncPin, togglePin, togglePause, refresh }
+  return { graph, instance, canvas, layer, underlay, selected, pinned, paused, error, stats, syncPin, togglePin, togglePause, refresh }
 }
