@@ -14,7 +14,7 @@ Open the [Section atlas](https://castlemilk.github.io/loom/?example=clusters) to
 
 In **Taxonomies**, choose **Category** and open **Group bubbles** to outline a single knowledge category. Outlines from several taxonomies can be visible together. **Define a taxonomy** accepts JSON field or relationship mappings, and **Display language** edits the connection and unassigned-lane labels. Applied definitions and language are saved in this browser. Drag the separator to change the graph width, or its height on a narrow screen. The arrow keys adjust the separator and Enter restores its starting size.
 
-Use the illustrated **Groups** shortcut and switch off **Show group bubbles** to hide every boundary. Switch it on to restore the chosen groups. Layout clustering, lane labels and group navigation work with either setting. Add `bubbles=off` to a studio URL to start with clear boundaries.
+Use the illustrated **Groups** shortcut and switch off **Show group bubbles** to hide every boundary. Switch it on to restore the chosen groups. Layout clustering, lane labels and group navigation work with either setting. Add `bubbles=off` to a studio URL to start with boundaries hidden.
 
 Open **Test data**, choose **Image atlas**, then **Generate graph** to draw 1,024 image-bearing nodes. Select **Cloud** and drag the background to orbit. Open **Perf** to watch frame intervals and artwork decoding while you zoom or pull a node.
 
@@ -217,6 +217,8 @@ Open **Optics** in the legend or click the space between its nodes in the [Secti
 The [Optics members demo](https://castlemilk.github.io/loom/?example=drilldown&group=Optics&bubbles=off) opens the notebook hub and its seven child nodes in Orbit, with 14 internal links. Select a name under **Explore** to inspect that node. **In context** brings back the surrounding atlas. **Members only** isolates the same group again. Both views share a breadcrumb and the full member list. Larger groups show eight rows per page and search matches names and IDs across every page. The `group` parameter accepts the Section atlas term ID, including `Materials`, `Tides` and `Acoustics`.
 
 In **Explore**, **Open a group** switches between in-place expansion, an isolated group with its internal links, and disabled navigation. **Drilldown settings** lets you choose the node actions, bubble gesture, open boundary, member arrangement, spacing, expansion strength and detail layout. The group buttons also work with a keyboard. Search finds nodes in the current view.
+
+The Section atlas enables **Style → Style controls → Allow labels on either side**. This lets the renderer place a name to the left of its marker when it would cross the right edge. A single isolated group has dedicated space for its breadcrumb and toolbar.
 
 The release includes captures from the same browser interaction tests. [Desktop overview](https://castlemilk.github.io/loom/previews/atlas-desktop.png) · [Expanded desktop group](https://castlemilk.github.io/loom/previews/atlas-desktop-expanded.png) · [Optics members](https://castlemilk.github.io/loom/previews/atlas-optics-members.png) · [Mobile members](https://castlemilk.github.io/loom/previews/atlas-mobile-members.png)
 

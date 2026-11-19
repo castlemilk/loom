@@ -212,15 +212,23 @@ export async function studioConfiguration(page, url) {
   await control('pause').click()
   const members = await page.locator('[data-member]').evaluateAll((buttons) => buttons.map((b) => [b.dataset.member, b.querySelector('span').textContent]))
   assert.equal(members.length, 8)
-  for (const [id, name] of members) {
-    const point = await centre(page.locator('path[data-taxonomy="identity"][data-bubble="' + id + '"]'))
-    await master.uncheck()
-    assert.equal(await page.locator('.graph-boundaries path').count(), 0)
-    await page.mouse.click(point.x, point.y)
-    await control('selection').getByText(name, { exact: true }).waitFor()
-    await master.check()
+  for (const size of [{ width: 1160, height: 760 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size)
+    await paint()
+    for (const [id, name] of members) {
+      await control('graph').scrollIntoViewIfNeeded()
+      const box = await control('graph').boundingBox()
+      const point = await centre(page.locator('path[data-taxonomy="identity"][data-bubble="' + id + '"]'))
+      await master.uncheck()
+      assert.equal(await page.locator('.graph-boundaries path').count(), 0)
+      await control('graph').scrollIntoViewIfNeeded()
+      const visibleBox = await control('graph').boundingBox()
+      await page.mouse.click(visibleBox.x + point.x - box.x, visibleBox.y + point.y - box.y)
+      await control('selection').getByText(name, { exact: true }).waitFor()
+      await master.check()
+    }
   }
   assert.deepEqual(errors, [])
   return { desktopWidth: [initial, narrow], mobileHeight: height, defaultOrbit: hub, defaultRadius, selectedRadius,
-    atlasSections: 4, atlasComponents: 2, canvasPickedMembers: members.length }
+    atlasSections: 4, atlasComponents: 2, desktopCanvasPicks: members.length, mobileCanvasPicks: members.length }
 }

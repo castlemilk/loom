@@ -13,9 +13,13 @@ export async function studioDrilldown(page, url) {
   const bubble = page.locator('.graph-boundaries [data-taxonomy="section"][data-bubble="Optics"]')
   const shots = new URL('../artifacts/studio/', import.meta.url)
   await mkdir(shots, { recursive: true })
-  const capture = async (name) => {
+  const capture = async (name, expectedLabels) => {
     await control('perf-toggle').click()
     await page.locator('#perf-panel[data-state="Idle"]').waitFor({ timeout: 20000 })
+    if (expectedLabels !== undefined) {
+      const counts = await page.getByText('Draws / labels', { exact: true }).locator('..').locator('dd').textContent()
+      assert.equal(Number(counts.split(' / ')[1]), expectedLabels, 'Every isolated demo member should have a visible canvas label')
+    }
     await control('perf-toggle').click()
     await page.mouse.move(2, 2)
     await page.screenshot({ path: fileURLToPath(new URL(name + '.png', shots)), animations: 'disabled' })
@@ -118,7 +122,7 @@ export async function studioDrilldown(page, url) {
     return [img.naturalWidth, img.naturalHeight]
   })
   assert.deepEqual(artSize, [320,320])
-  await capture('atlas-optics-members')
+  await capture('atlas-optics-members', 8)
   const bubbles = page.getByRole('switch', { name: 'Show group bubbles' })
   await nav.getByRole('link', { name: 'Groups' }).click()
   assert.equal(await page.evaluate(() => document.activeElement.id), 'settings-groups')
@@ -158,7 +162,9 @@ export async function studioDrilldown(page, url) {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto(example.href)
   await totals('8 nodes · 14 links')
-  await capture('atlas-mobile-members')
+  await capture('atlas-mobile-members', 8)
+  const surface = await control('graph').boundingBox(), breadcrumb = await trail.boundingBox(), toolbar = await page.locator('.stage-tools').boundingBox()
+  assert.ok(breadcrumb.y + breadcrumb.height <= surface.y && surface.y + surface.height <= toolbar.y, 'Canvas controls overlap the member drawing area')
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.deepEqual(errors, [])
   return { overview: [45,88], isolated: [8,14], inspectedMembers: names.length, pagedMembers: 15,

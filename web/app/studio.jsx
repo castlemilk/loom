@@ -134,6 +134,8 @@ function Workbench({ sample }) {
   const engine = physics === 'worker' || physics === 'main' ? physics : undefined
   const effective = useMemo(() => drill.resolveLayout(mode, overviewLayout), [drill, mode, overviewLayout, snapshot.path, snapshot.options])
   const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill)
+  const singleGroupView = level.kind === 'group' && level.action === 'isolate' && effective.mode !== 'lanes' &&
+    grouping.active.id === level.taxonomy && grouping.groups.length === 1 && grouping.groups[0].id === level.id
   const lastRoute = useRef(null)
   useEffect(() => {
     if (lastRoute.current?.drill === drill && lastRoute.current.path !== snapshot.path && !document.activeElement?.closest('.member-views')) {
@@ -177,7 +179,8 @@ function Workbench({ sample }) {
       setMode('cloud')
       setPacked(true)
       setEncoding({ ...initialEncoding, node: 'contentSize', wire: 'weight', radii: [3, 8], widths: [0.5, 2.5] })
-      setStyle({ ...preset('ink'), opacity: 0.34, fill: 0.65, wires: { cites: { pattern: 'dashed' }, replicates: { pattern: 'dotted' } } })
+      setStyle({ ...preset('ink'), opacity: 0.34, fill: 0.65, alternateSide: true,
+        wires: { contains: { color: '#a9b4bd' }, cites: { pattern: 'dashed' }, replicates: { pattern: 'dotted' } } })
       setSettings((old) => ({ ...old, blend: 0.82, autoRotate: false }))
     }
     const option = countOptions.find((entry) => entry.value === value)
@@ -200,6 +203,7 @@ function Workbench({ sample }) {
     requestedGroup.current = null
     if (term) {
       setNavigation((old) => ({ ...old, detail: 'orbit' }))
+      setStyle((old) => ({ ...old, opacity: 0.6 }))
       drill.openGroup(drilldownGroup(term, data.nodes), 'isolate')
     }
   }, [dataset, grouping.active.id, grouping.groups, drill, data.nodes])
@@ -235,17 +239,19 @@ function Workbench({ sample }) {
       </div>
     </header>
     <main className="studio-workspace min-w-0">
-      <section id="studio-stage" className="stage isolate" aria-label="Graph viewport" style={{ backgroundColor: theme.bg }}
+      <section id="studio-stage" className="stage isolate" data-member-detail={singleGroupView || undefined} aria-label="Graph viewport" style={{ backgroundColor: theme.bg }}
         onPointerUp={view.syncPin} onPointerCancel={view.syncPin} onKeyDownCapture={(event) => {
           if (event.key === 'Escape' && event.target === view.canvas.current && snapshot.path.length > 1) {
             event.preventDefault(); event.stopPropagation(); drill.back()
           }
         }}>
-        <div ref={view.underlay} className="graph-boundaries" aria-hidden="true" />
-        <canvas id="graph" ref={view.canvas} aria-describedby={[level.kind !== 'overview' && 'drill-location', selected && 'selection'].filter(Boolean).join(' ') || undefined}
-          aria-label={effective.mode === 'cloud' ? '3D graph. Drag empty space or use arrow keys to orbit. Drag a node to move it. Enter opens the selection.' : 'Knowledge graph. Drag a node to move it. Arrow keys pan, plus and minus zoom. Enter opens the selection.'} />
-        <div ref={view.layer} className="graph-annotations" style={{ '--loom-overlay-bg': theme.bezel, '--loom-overlay-ink': theme.ink }} />
-        <div id="legend" className="legend" role="group" aria-label={grouping.active.label} hidden={effective.mode === 'lanes'} style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
+        <div className="graph-surface">
+          <div ref={view.underlay} className="graph-boundaries" aria-hidden="true" />
+          <canvas id="graph" ref={view.canvas} aria-describedby={[level.kind !== 'overview' && 'drill-location', selected && 'selection'].filter(Boolean).join(' ') || undefined}
+            aria-label={effective.mode === 'cloud' ? '3D graph. Drag empty space or use arrow keys to orbit. Drag a node to move it. Enter opens the selection.' : 'Knowledge graph. Drag a node to move it. Arrow keys pan, plus and minus zoom. Enter opens the selection.'} />
+          <div ref={view.layer} className="graph-annotations" style={{ '--loom-overlay-bg': theme.bezel, '--loom-overlay-ink': theme.ink }} />
+        </div>
+        <div id="legend" className="legend" role="group" aria-label={grouping.active.label} hidden={effective.mode === 'lanes' || singleGroupView} style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
           {grouping.groups.length > 0 && <span className="legend-title">{grouping.active.label}</span>}
           {grouping.groups.slice(0, 12).map((term) => {
             const item = grouping.displayStyle(term)
@@ -333,6 +339,7 @@ function Workbench({ sample }) {
             <Range id="wire-width" label={mapped.width ? 'Fallback link width' : 'Link width'} min={0} max={8} step={0.1} value={wireStyle.width ?? theme.wires.width ?? 1.3} outputId="width-value" format={(v) => v + ' px'} onChange={(width) => paintWire({ width })} />
             <Range id="wire-opacity" label="Wire opacity" min={0} max={100} value={Math.round(style.opacity * 100)} outputId="opacity-value" format={percent} onChange={(v) => paint('opacity', v / 100)} />
             <Select id="labels" label="Labels" options={labels} value={style.labels} onChange={(v) => paint('labels', v)} />
+            <Check id="label-sides" label="Allow labels on either side" checked={style.alternateSide} onChange={(v) => paint('alternateSide', v)} />
             <div className="checks"><Check id="artwork" label="Artwork" checked={style.artwork} onChange={(v) => paint('artwork', v)} />
               <Check id="guides" label="Lane guides" checked={settings.guides} onChange={(v) => adjust('guides', v)} />
               <Check id="grid" label="Grid" checked={style.grid} onChange={(v) => paint('grid', v)} /></div>

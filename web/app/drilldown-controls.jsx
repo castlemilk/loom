@@ -36,7 +36,7 @@ function GroupMembers({ level, members, selected, term, inspect, setView }) {
         <svg aria-hidden="true" viewBox="0 0 20 18"><path d="M6 2H2v4m12-4h4v4M2 12v4h4m12-4v4h-4m-9-6 4-5 5 5"/><circle cx="5" cy="10" r="1.5"/><circle cx="9" cy="5" r="1.5"/><circle cx="14" cy="10" r="1.5"/></svg>Members only</button>
     </div>
     <ul aria-label={level.label + ' members'} className="member-list">{filtered.slice(start, start + pageSize).map((node) =>
-      <li key={node.id}><button type="button" data-member={node.id} data-result={term ? node.id : undefined}
+      <li key={node.id}><button type="button" data-member={node.id} data-result={term ? node.id : undefined} title={node.id}
         aria-pressed={selected === node.id} onClick={() => inspect(node.id)}>
         <i aria-hidden="true" data-kind={node.kind}/><span>{node.label || node.id}</span><small>{node.kind}</small>
       </button></li>)}</ul>

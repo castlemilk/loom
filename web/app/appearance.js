@@ -9,7 +9,7 @@ export function preset(name) {
   return {
     name, nodeScale: base.nodes?.scale ?? 1, artwork: base.nodes?.artwork !== false,
     route: base.wires?.routing ?? 'arc', opacity: base.wires?.opacity ?? 0.45, pattern: 'solid',
-    labels: base.labels?.visibility ?? 'auto', grid: !!base.grid, nodes: {}, wires: {},
+    labels: base.labels?.visibility ?? 'auto', alternateSide: base.labels?.alternateSide ?? false, grid: !!base.grid, nodes: {}, wires: {},
   }
 }
 
@@ -25,7 +25,7 @@ export function makeTheme(style) {
     nodes: { ...base.nodes, scale: style.nodeScale, artwork: style.artwork, fill: style.fill ?? base.nodes?.fill,
       byKind: { ...base.nodes?.byKind, ...style.nodes } },
     wires: { ...wires, byKind, routing: style.route, opacity: style.opacity, pattern: style.pattern },
-    labels: { ...base.labels, visibility: style.labels },
+    labels: { ...base.labels, visibility: style.labels, alternateSide: style.alternateSide },
     grid: style.grid ? (base.grid ?? { spacing: 32, opacity: 0.18 }) : undefined,
   }
 }
