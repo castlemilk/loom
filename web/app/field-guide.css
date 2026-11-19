@@ -97,10 +97,11 @@ body:has(.field-guide) { margin: 0; height: auto; display: block; }
 .drawing-sheet { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; padding: 0; border-block: 1px solid var(--rule); }
 .field-guide .drawing-sheet { margin-top: 24px; }
 .drawing-sheet li + li { border-inline-start: 1px solid var(--rule); }
-.drawing-sheet a { display: grid; padding: 14px clamp(12px, 1.6vw, 25px); gap: 10px; }
+.drawing-sheet a { display: grid; grid-template-columns: minmax(0, 1fr); padding: 14px clamp(12px, 1.6vw, 25px); gap: 10px; }
 .drawing-sheet a:hover { background: var(--mineral); }
 .drawing-sheet img { display: block; width: min(100%, 165px); height: auto; justify-self: center; filter: contrast(1.24); mix-blend-mode: multiply; }
 .drawing-sheet span, .pigments > div { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.drawing-sheet span { flex-wrap: wrap; }
 .drawing-sheet strong { font-size: 16px; }
 .drawing-sheet small, .pigments dd { font: 11px var(--measure); color: var(--muted); }
 .art-model, .art-direction { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: clamp(24px, 6vw, 90px); align-items: center; }
@@ -146,6 +147,11 @@ body:has(.field-guide) { margin: 0; height: auto; display: block; }
   .example-list a { row-gap: 5px; }
   .code-caption, .code-specimen pre { padding-inline: 12px; }
   .model-plate button { font-size: 12px; padding-inline: 9px; }
+}
+@media (max-width: 360px) {
+  .field-guide { --gutter: 16px; }
+  .mast-inner { flex-wrap: wrap; gap: 0 10px; }
+  .guide-mast nav { flex-wrap: wrap; gap: 0 10px; }
 }
 @media (forced-colors: active) {
   .guide-primary, .model-plate button { border: 1px solid ButtonText; }

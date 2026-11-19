@@ -11,6 +11,16 @@ export async function fieldGuide(context, home) {
   const studio = new URL('studio/', home)
   const shots = new URL('../artifacts/studio/', import.meta.url)
   await mkdir(shots, { recursive: true })
+  async function checkWidth() {
+    const overflow = await page.evaluate(() => {
+      const viewport = document.documentElement.clientWidth
+      if (document.documentElement.scrollWidth <= viewport) return []
+      return [...document.body.querySelectorAll('*')].filter((el) => el.getBoundingClientRect().right > viewport + 0.5)
+        .map((el) => `${el.tagName}.${el.className} (${Math.round(el.getBoundingClientRect().right)}px)`).slice(0, 12)
+        .concat(`page ${document.documentElement.scrollWidth}px, viewport ${viewport}px`)
+    })
+    assert.deepEqual(overflow, [], 'Overflow at ' + page.url() + ': ' + overflow.join(', '))
+  }
   async function capture(name) {
     await page.evaluate(async () => {
       await document.fonts.ready
@@ -28,7 +38,7 @@ export async function fieldGuide(context, home) {
   await capture('field-guide-desktop')
   await page.setViewportSize({ width: 390, height: 844 })
   await capture('field-guide-mobile')
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  await checkWidth()
   assert.equal(await canvas.count(), 0)
   assert.equal(requests.some((path) => path.endsWith('wire-model.json') || path.includes('/graphs/knowledge.json')), false)
   const illustrations = await page.locator('.example-list img').evaluateAll((images) => images.map((img) => new URL(img.src).pathname.split('/').at(-1)))
@@ -61,7 +71,7 @@ export async function fieldGuide(context, home) {
   assert.equal(await page.locator('.pigments dt').count(), 4)
   await capture('field-guide-artwork')
   await page.setViewportSize({ width: 320, height: 720 })
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  await checkWidth()
   await page.getByRole('link', { name: 'Loom home' }).click()
   await page.setViewportSize({ width: 1160, height: 760 })
   await page.getByRole('link', { name: 'Open wire model in the studio' }).click()
