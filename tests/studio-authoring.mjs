@@ -114,7 +114,12 @@ export async function studioAuthoring(context, url, touch = false) {
   assert.equal(await bubbles.evaluate((e) => e.parentElement.open), false)
   await page.locator('#taxonomy').selectOption('kind')
   assert.equal(await bubbles.evaluate((e) => e.parentElement.open), true)
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+  const width = await page.evaluate(() => {
+    const elements = [...document.querySelectorAll('body *')].filter((el) => el.getBoundingClientRect().right > innerWidth + .5)
+      .slice(0,8).map((el) => [el.id || el.tagName, Math.round(el.getBoundingClientRect().right), innerWidth])
+    return { actual: document.documentElement.scrollWidth, viewport: innerWidth, elements }
+  })
+  assert.ok(width.actual <= width.viewport, JSON.stringify(width))
   assert.deepEqual(errors, [])
   await page.close()
   return { input:touch ? 'touch' : 'keyboard and pointer', nodes:27, links:31, revisions:7 }
