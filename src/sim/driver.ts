@@ -19,7 +19,6 @@ export class LayoutDriver {
   private heldNode = -1
   private movedSinceStep = false
   private paced = false
-  private selected = -1
   private active: boolean
   private suspended = false
   constructor(
@@ -38,7 +37,6 @@ export class LayoutDriver {
   private local() {
     this.transport = 'main'
     this.layout = new Layout(this.model, this.mode, this.forces, this.targets)
-    if (this.selected >= 0) this.layout.configure(this.mode, this.selected)
   }
   private init() {
     if (
@@ -78,7 +76,6 @@ export class LayoutDriver {
         type: 'init',
         data: { n, positions, lanes, fixed, endpoints, springs },
         mode: this.mode,
-        selected: this.selected,
         forces: this.forces,
         targets: this.targets,
         shared: this.shared.map((s) => s.buffer),
@@ -148,7 +145,7 @@ export class LayoutDriver {
   get needsFrame() {
     return this.active && !this.suspended && !this.worker
   }
-  configure(mode: Mode, selected: number, update: LayoutUpdate = {}) {
+  configure(mode: Mode, update: LayoutUpdate = {}) {
     if (update.lanes) this.model.lanes = update.lanes
     if (update.springs !== undefined) this.model.springs = update.springs
     if (update.forces) this.forces = update.forces
@@ -158,10 +155,9 @@ export class LayoutDriver {
     this.epoch++
     this.paced = this.heldNode >= 0
     this.mode = mode
-    this.selected = selected
     this.active = this.forces.blend < 1 && this.model.fixed.includes(0)
-    this.layout?.configure(mode, selected, update)
-    if (this.worker) this.post({ type: 'configure', mode, selected, update })
+    this.layout?.configure(mode, update)
+    if (this.worker) this.post({ type: 'configure', mode, update })
   }
   pin(i: number, x: number, y: number, fixed: number, z?: number, dragging?: boolean) {
     if (!fixed && this.forces.blend === 1 && this.targets) {

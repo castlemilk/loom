@@ -7,6 +7,8 @@ import { fixture } from '../../demo/fixture.js'
 import { Check, Color, Range, Select } from './fields'
 import { kindOrder, makeTheme, marker, preset } from './appearance'
 import { useGraph } from './use-graph'
+import { Grouping, useGrouping } from './grouping'
+import { Splitter } from './splitter'
 
 const datasets = [['sample', 'Knowledge console · excerpt'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
 const modes = ['Drift', 'Lanes', 'Orbit', 'Cloud']
@@ -42,7 +44,7 @@ function Workbench({ sample }) {
   const [kindChoice, chooseKind] = useState('study')
   const [wireChoice, chooseWire] = useState('concept')
   const [settings, setSettings] = useState({
-    blend: consoleLayout.blend, laneGap: 175, rowGap: 64, linkDistance: 46,
+    blend: consoleLayout.blend, laneGap: 175, rowGap: 64, orbitGap: 80, linkDistance: 46,
     springStrength: 1, repulsion: 1, direction: 'horizontal', guides: false, pinOnDrag: false,
   })
 
@@ -53,10 +55,18 @@ function Workbench({ sample }) {
   })
   const generated = useMemo(() => stress ? fixture(count, physics === 'seeded' ? 'seeded' : physics === 'fixed') : null, [stress, count, physics])
   const data = stress ? generated : dataset === 'full' && full.data ? full.data : sample
-  const theme = useMemo(() => makeTheme(style), [style])
-  const layout = useMemo(() => ({ ...settings, springsByKind: stress ? undefined : consoleLayout.springsByKind }), [settings, stress])
+  const palette = useMemo(() => makeTheme(style), [style])
+  const grouping = useGrouping(data, palette)
+  const theme = useMemo(() => grouping.nativeMarkers ? palette : { ...palette, nodes: { ...palette.nodes,
+    resolve: (node) => {
+      const term = grouping.index.primary(node.id, grouping.active.id)
+      return { color: term?.color ?? palette.dim, shape: term?.shape ?? 'circle' }
+    } } },
+    [palette, grouping.nativeMarkers, grouping.index, grouping.active.id])
+  const layout = useMemo(() => ({ ...settings, laneBy: grouping.laneBy, laneOrder: grouping.laneOrder,
+    springsByKind: stress ? undefined : consoleLayout.springsByKind }), [settings, stress, grouping.laneBy, grouping.laneOrder])
   const engine = physics === 'worker' || physics === 'main' ? physics : undefined
-  const view = useGraph(data, engine, layout, theme, mode)
+  const view = useGraph(data, engine, layout, theme, mode, grouping.index, grouping.annotations)
   const kinds = useMemo(() => {
     const present = new Set(data.nodes.map((node) => node.kind))
     return kindOrder.filter((kind) => present.has(kind))
@@ -67,7 +77,8 @@ function Workbench({ sample }) {
   const nodeStyle = marker(theme, kind)
   const wireStyle = theme.wires.byKind[wire] ?? {}
   const selected = useMemo(() => data.nodes.find((node) => node.id === view.selected), [data, view.selected])
-  const degree = useMemo(() => selected ? data.links.filter((link) => link.source === selected.id || link.target === selected.id).length : 0, [data, selected])
+  const description = selected && grouping.index.describe(selected.id)
+  const groupNames = description?.groups.filter((term) => term.taxonomy === grouping.active.id).map((term) => term.label)
   const stats = view.stats
   const adjust = (key, value) => setSettings((old) => ({ ...old, [key]: value }))
   const paint = (key, value) => setStyle((old) => ({ ...old, [key]: value }))
@@ -90,14 +101,16 @@ function Workbench({ sample }) {
         {datasets.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
       </select></label>
     </header>
-    <main className="min-w-0 min-[701px]:grid-cols-[minmax(0,1fr)_300px]">
-      <section className="stage isolate" aria-label="Graph viewport" onPointerUp={view.syncPin} onPointerCancel={view.syncPin}>
+    <main className="studio-workspace min-w-0">
+      <section id="studio-stage" className="stage isolate" aria-label="Graph viewport" onPointerUp={view.syncPin} onPointerCancel={view.syncPin}>
         <canvas id="graph" ref={view.canvas} aria-label="Knowledge graph. Drag a node to move it. Arrow keys pan, plus and minus zoom." />
-        <div id="legend" className="legend" aria-label="Node kinds" style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
-          {kinds.map((name) => {
-            const item = marker(theme, name)
-            return <span key={name}><i data-shape={item.shape} style={{ '--kind': item.color }} />{name}</span>
+        <div ref={view.layer} className="graph-annotations" style={{ '--loom-overlay-bg': theme.bezel, '--loom-overlay-ink': theme.ink }} />
+        <div id="legend" className="legend" aria-label={grouping.active.label} hidden={mode === 'lanes'} style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
+          {grouping.groups.slice(0, 12).map((term) => {
+            const item = grouping.displayStyle(term)
+            return <span key={term.key}><i data-shape={item.shape ?? 'circle'} style={{ '--kind': item.color }} />{term.label}</span>
           })}
+          {grouping.groups.length > 12 && <span>+{grouping.groups.length - 12} groups</span>}
         </div>
         <div className="stage-tools">
           <button id="fit" onClick={() => view.graph.current?.fit()}>Fit view</button>
@@ -109,13 +122,16 @@ function Workbench({ sample }) {
         </div>}
         <p id="error" role="alert" hidden={!view.error}>{view.error}</p>
       </section>
-      <aside aria-label="Graph controls" className="min-w-0 min-[701px]:overscroll-contain">
+      <Splitter />
+      <aside id="studio-controls" aria-label="Graph controls" className="min-w-0 min-[701px]:overscroll-contain">
         <section><h2>Layout</h2>
           <Range id="blend" label="Structure" min={0} max={100} value={Math.round(settings.blend * 100)} format={percent} onChange={(v) => adjust('blend', v / 100)} />
           <div className="range-ends"><span>Force directed</span><span>Node graph</span></div>
           <div className="modes" role="group" aria-label="Force mode">{modes.map((name) =>
             <button key={name} data-mode={name.toLowerCase()} aria-pressed={mode === name.toLowerCase()} onClick={() => setMode(name.toLowerCase())}>{name}</button>
           )}</div>
+          {mode === 'orbit' && <div className="orbit-settings"><p>Select a node to centre its orbit.</p>
+            <Range id="orbit-gap" label="Ring spacing" min={25} max={220} value={settings.orbitGap} onChange={(v) => adjust('orbitGap', v)} /></div>}
           <Select id="direction" label="Lane direction" options={directions} value={settings.direction} onChange={(v) => adjust('direction', v)} />
           <Check id="pin-drag" label="Pin nodes after dragging" checked={settings.pinOnDrag} onChange={(v) => adjust('pinOnDrag', v)} />
           <details><summary>Spacing &amp; forces</summary>
@@ -126,6 +142,7 @@ function Workbench({ sample }) {
             <Range id="repulsion" label="Repulsion" min={0} max={4} step={0.05} value={settings.repulsion} format={times} onChange={(v) => adjust('repulsion', v)} />
           </details>
         </section>
+        <Grouping group={grouping} />
         <section><h2>Appearance</h2>
           <Select id="theme" label="Theme" options={palettes} value={style.name} onChange={(v) => setStyle(preset(v))} />
           <Select id="route" label="Wires" options={routes} value={style.route} onChange={(v) => paint('route', v)} />
@@ -145,8 +162,8 @@ function Workbench({ sample }) {
           </details>
         </section>
         <section className="selection"><h2>Selection</h2>
-          <p id="selection" aria-live="polite">{selected?.label ?? 'Select a node to inspect its links.'}</p>
-          <p id="selection-meta">{selected && (selected.kind + ' · ' + degree + (degree === 1 ? ' link' : ' links') + (view.pinned ? ' · pinned' : ''))}</p>
+          <p id="selection" aria-live="polite">{description?.title ?? 'Select a node to inspect its links.'}</p>
+          <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
           <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
             <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
         </section>
@@ -168,6 +185,7 @@ function Workbench({ sample }) {
     <footer className="shrink-0 flex-wrap gap-x-3 gap-y-1 py-1">
       <span id="totals" className="whitespace-nowrap tabular-nums">{formatCount.format(data.nodes.length)} nodes · {formatCount.format(data.links.length)} links</span>
       <span>Drag a node to pull its neighbours. Drag the background to pan.</span>
+      <a className="underline underline-offset-2" href="https://github.com/castlemilk/loom#taxonomies-and-annotations">TypeScript API</a>
     </footer>
   </>
 }

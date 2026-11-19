@@ -20,12 +20,17 @@
       "types": "./dist/console.d.ts",
       "import": "./dist/console.js"
     },
-    "./layout-worker.js": "./dist/layout-worker.js"
+    "./layout-worker.js": "./dist/layout-worker.js",
+    "./taxonomy": {
+      "types": "./dist/taxonomy.d.ts",
+      "import": "./dist/taxonomy.js"
+    }
   },
   "scripts": {
     "build": "node scripts/build.mjs && tsc",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/unit.mjs",
+    "test:types": "tsc --strict --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext tests/public-api.ts",
     "test:browser": "node scripts/browser.mjs",
     "bench": "node scripts/browser.mjs --bench",
     "size": "node scripts/size.mjs",
@@ -33,6 +38,7 @@
     "demo:build": "node scripts/build-studio.mjs",
     "site:dev": "npm --prefix web run dev",
     "site:build": "npm --prefix web run build",
+    "package:site": "tsc && npm pack --ignore-scripts --pack-destination web/out",
     "test:site": "node scripts/test-site.mjs",
     "prepack": "npm run build && npm run size"
   },

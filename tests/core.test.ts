@@ -9,6 +9,77 @@ import { PickGrid, LabelGrid } from '../src/render/grid.js'
 import { parchment, fromBinary, toBinary, fromConsole } from '../src/index.js'
 import { mountConsoleGraph } from '../src/console.js'
 import { fixture } from '../demo/fixture.js'
+import { compileTaxonomies, parseTaxonomy } from '../src/taxonomy.js'
+import { groupOutline } from '../src/group-outline.js'
+import { orbitTargets } from '../src/sim/orbit.js'
+import { layoutForces, makeLanes } from '../src/constraints.js'
+
+test('taxonomy membership, vocabulary, exclusive lanes and overlapping relation groups share one index', () => {
+  const data = {
+    nodes: [{ id: 'a', kind: 'lab', topics: ['wave', 'field', 'wave'] }, { id: 'b', kind: 'lab' },
+      { id: 'x', label: 'Physics' }, { id: 'y', label: 'Optics' }, { id: 'alone' }],
+    links: [{ source: 'a', target: 'x', kind: 'in' }, { source: 'a', target: 'y', kind: 'in' },
+      { source: 'b', target: 'x', kind: 'in' }, { source: 'a', target: 'x', kind: 'in' }, { source: 'b', target: 'b', kind: 'cites' }],
+  }
+  const index = compileTaxonomies(data, {
+    taxonomies: [
+      { id: 'subject', label: 'Subject', by: { relation: 'in', groupEnd: 'target' } },
+      { id: 'family', label: 'Family', by: 'topics', remap: { wave: ['light', 'physics'], field: 'physics' },
+        terms: { physics: { label: 'Physical science', color: '#fed', description: 'Matter and energy' } } },
+      { id: 'connected', label: 'Degree', by: (node, ctx) => ctx.linksFor(node.id).length ? 'linked' : null },
+    ], language: { title: (node) => node.label ?? node.id.toUpperCase(), connections: (n) => n + ' references', ungrouped: 'Other' },
+  })
+  assert.deepEqual(index.legend('subject').map((g) => [g.label, g.members]), [['Optics', [0, 3]], ['Physics', [0, 1, 2]]])
+  assert.deepEqual(index.legend('family').map((g) => [g.id, g.members]), [['physics', [0]], ['light', [0]]])
+  assert.equal(index.primary('a', 'subject')?.label, 'Physics')
+  assert.equal(index.primary('a', 'family')?.id, 'light')
+  assert.equal(index.describe('b')?.connections, '2 references')
+  assert.deepEqual(index.tooltip('a'), { title: 'A', lines: ['Subject · Physics, Optics', 'Family · light, Physical science (Matter and energy)', 'Degree · linked', '3 references'] })
+  assert.equal(index.tooltip('unknown'), undefined)
+  assert.deepEqual(makeLanes(data.nodes, { laneBy: index.laneBy('subject') }).keys, ['x', 'x', 'x', 'y', ''])
+  assert.equal(index.ungrouped, 'Other')
+  const custom = compileTaxonomies(data, { taxonomies: [], language: { tooltip: (node) => ({ title: 'Inspect', lines: [node.id] }) } })
+  assert.deepEqual(custom.tooltip('a'), { title: 'Inspect', lines: ['a'] })
+  const rule = parseTaxonomy('{"id":"n","label":"N","by":"kind","terms":{"lab":{"label":"Laboratory","color":"#abc"}}}')
+  assert.equal(compileTaxonomies(data, { taxonomies: [rule] }).legend('n')[0].label, 'Laboratory')
+  assert.throws(() => compileTaxonomies(data, { taxonomies: [rule, rule] }), /duplicate/)
+  for (const bad of [{ by: { relation: 'in', groupEnd: 'left' } }, { terms: { lab: { label: 'Lab', color: ['#fff'] } } },
+    { remap: { wave: [2] } }]) assert.throws(() => parseTaxonomy(JSON.stringify({ ...rule, ...bad })), TypeError)
+})
+
+test('rounded group boundaries enclose projected discs and track movement, including a singleton', () => {
+  const points = new Float32Array([15, 25, 4, 0, 80, -5, 12, 0])
+  assert.equal(groupOutline(points, [], 8), '')
+  const single = groupOutline(points, [0], 7)
+  assert.ok(single.startsWith('M26.0 ') && single.endsWith('Z'))
+  const both = groupOutline(points, [0, 1], 7)
+  assert.ok(both.startsWith('M99.0 ') && !both.includes('NaN'))
+  points[4] = 145
+  assert.ok(groupOutline(points, [0, 1], 7).startsWith('M164.0 '))
+  assert.equal(groupOutline(points, [0], 7), single)
+})
+
+test('Orbit picks the hub, sorts neighbours into concentric rings, and re-centres on selection', () => {
+  const nodes = [{ id: 'leaf' }, { id: 'hub', x: 35, y: -20, pinned: false }, { id: 'arm' },
+    { id: 'far' }, { id: 'spare', x: 500, y: 200 }, { id: 'other' }]
+  const links = [['hub', 'leaf'], ['arm', 'hub'], ['arm', 'far'], ['hub', 'other']].map(([source, target]) => ({ source, target }))
+  const model = prepare({ nodes, links }, parchment, 'orbit'), targets = orbitTargets(model, -1, 90)
+  const radius = (values: Float32Array, stride: number, i: number, centre: number) =>
+    Math.hypot(values[i * stride] - values[centre * stride], values[i * stride + 1] - values[centre * stride + 1])
+  assert.deepEqual([...targets.slice(3, 6)], [35, -20, 0])
+  for (const [i, r] of [90, 0, 90, 180, 270, 90].entries()) assert.ok(Math.abs(radius(targets, 3, i, 1) - r) < 0.01)
+  assert.deepEqual(targets, orbitTargets(prepare({ nodes, links: [...links].reverse() }, parchment, 'orbit'), -1, 90))
+  const moved = orbitTargets(model, 3, 90)
+  for (const [i, r] of [270, 180, 90, 0, 270, 270].entries()) assert.ok(Math.abs(radius(moved, 3, i, 3) - r) < 0.01)
+  const sim = new Layout(model, 'orbit', layoutForces({ blend: 0.25 }), targets)
+  while (sim.alpha) sim.advance(20)
+  assert.ok(Math.abs(radius(model.positions, 4, 0, 1) - 90) < 16)
+  assert.ok(radius(model.positions, 4, 3, 1) > 150)
+  sim.configure('orbit', { forces: layoutForces({ blend: 1 }), targets: moved })
+  assert.ok(Math.abs(radius(model.positions, 4, 0, 3) - 270) < 0.01)
+  assert.deepEqual([...model.positions.slice(16, 18)], [500, 200])
+  assert.equal(orbitTargets(prepare({ nodes: [], links: [] }, parchment, 'orbit'), -1).length, 0)
+})
 
 test('spiral, topology and pinned zero coordinates are deterministic without mutating input', () => {
   const data = {
@@ -93,7 +164,7 @@ test('layout converges identically across slice sizes and holds pinned nodes in 
       const model = prepare(data, parchment, mode),
         before = model.positions.slice(),
         sim = new Layout(model, mode)
-      sim.configure(mode, 3)
+      sim.configure(mode)
       while (sim.alpha) sim.advance(budget)
       assert.deepEqual(model.positions.slice(0, 4), before.slice(0, 4))
       assert.notDeepEqual(model.positions, before)

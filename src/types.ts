@@ -16,9 +16,9 @@ export interface GraphLink {
   target: string
   kind?: string
 }
-export interface GraphData {
-  nodes: readonly GraphNode[]
-  links: readonly GraphLink[]
+export interface GraphData<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> {
+  nodes: readonly N[]
+  links: readonly E[]
 }
 export type NodeShape = 'circle' | 'ring' | 'square' | 'rounded-square'
 export interface NodeStyle {
@@ -37,7 +37,11 @@ export interface LayoutOptions {
   /** 0 uses the active force mode. 1 places movable nodes exactly on their anchors. */
   blend?: number
   laneOrder?: readonly string[]
+  /** Classify nodes into lanes. The default uses node.kind. */
+  laneBy?: (node: GraphNode, index: number) => string
   laneGap?: number
+  /** Minimum world-space distance between successive orbit rings. */
+  orbitGap?: number
   rowGap?: number
   direction?: 'horizontal' | 'vertical'
   anchor?:
@@ -92,6 +96,21 @@ export interface GraphEvents {
   hover: string | null
   open: string
   modechange: Mode
+  destroy: undefined
+}
+/** CSS-pixel screen coordinates are borrowed until the next draw, in input node order. */
+export interface GraphFrame {
+  /** Four floats per node: screen x, screen y, visible radius, camera depth. */
+  readonly points: Readonly<Float32Array>
+  readonly width: number
+  readonly height: number
+  readonly mode: Mode
+  readonly zoom: number
+  /** Screen coordinate of world zero on the lane axis. */
+  readonly laneOrigin: number
+  readonly vertical: boolean
+  /** Lane identifiers and their world-space offsets, in visual order. */
+  readonly lanes: ReadonlyMap<string, number>
 }
 export interface GraphStats {
   firstSubmitMs: number
@@ -104,6 +123,8 @@ export interface GraphStats {
   transport: 'main' | 'transfer' | 'shared'
 }
 export interface LoomGraph {
+  /** Subscribe to actual paints. The first subscription wakes an idle graph once. */
+  onFrame(listener: (frame: GraphFrame) => void): () => void
   select(id: string | null): void
   focus(id: string): void
   setMode(mode: Mode): void

@@ -10,6 +10,8 @@ Use Node.js 22 or later.
 
 The [hosted graph studio](https://castlemilk.github.io/loom/) is a Next.js static export. It includes the 25-node excerpt in the initial page and uses TanStack Query to fetch and cache the full graph on demand. Tailwind CSS styles the responsive controls. The framework dependencies live in `web/`.
 
+In **Taxonomies**, choose **Category** and open **Group bubbles** to outline a single knowledge category. Outlines from several taxonomies can be visible together. **Define a taxonomy** accepts JSON field or relationship mappings, and **Display language** edits the connection and unassigned-lane labels. Applied definitions and language are saved in this browser. Drag the separator to change the graph width, or its height on a narrow screen. The arrow keys adjust the separator and Enter restores its starting size.
+
 ```sh
 npm ci
 npm --prefix web ci
@@ -29,7 +31,11 @@ Open the URL printed by the server. The studio opens a 25-node, 30-link excerpt 
 
 ## Use the core
 
-Build with `npm run build`. The ESM entry point and TypeScript declarations live in `dist/`. The browser needs a canvas with a CSS width and height.
+Install the typed ESM package from the [Pages build](https://castlemilk.github.io/loom/loom-core-0.1.0.tgz), or build this checkout with `npm run build`. The package includes the core, optional annotation and console entry points, and the layout worker. A consuming app can pin the tarball integrity in its lockfile. The browser needs a canvas with a CSS width and height.
+
+```sh
+npm install https://castlemilk.github.io/loom/loom-core-0.1.0.tgz
+```
 
 ```html
 <canvas id="map" style="width: 100%; height: 480px"></canvas>
@@ -58,13 +64,14 @@ Build with `npm run build`. The ESM entry point and TypeScript declarations live
 | API | Behaviour |
 | --- | --- |
 | `createGraph(canvas, options)`, `create(canvas, options)` | Synchronously submit the first graph draw and return the handle. Duplicate IDs and unknown link endpoints raise errors. A missing WebGL2 context raises `WebGL2UnavailableError`. |
-| `setMode(mode)` | Switch between `drift`, kind-based `lanes`, selection-centred `orbit` rings and volumetric `cloud`. |
+| `setMode(mode)` | Switch between `drift`, configurable `lanes`, neighbourhood `orbit` rings and volumetric `cloud`. |
 | `setLayout(patch)` | Update the force/diagram blend, anchors, lane geometry, forces, drag pinning or lane guides. Omitted settings retain their current values. |
 | `setTheme(theme)` | Apply a complete theme to the mounted graph. Colour, label and wire edits preserve simulation state. Radius changes update collision handling. |
 | `getPosition(id)`, `pin(id, position?)`, `unpin(id)` | Read visible world coordinates and pin status, fix a node at its current or supplied coordinates, or return it to its layout. |
 | `select(id)`, `select(null)` | Highlight the node, its incident wires and its immediate neighbours, or clear the selection. |
 | `focus(id)`, `fit()`, `reset()` | Centre a node, fit the graph bounds, or clear selection and restore the fitted camera. |
-| `on(event, callback)` | Subscribe to `select`, `hover`, `open` or `modechange`. The return value unsubscribes. Selection and hover deliver a node ID or `null`. |
+| `on(event, callback)` | Subscribe to `select`, `hover`, `open`, `modechange` or `destroy`. The return value unsubscribes. Selection and hover deliver a node ID or `null`. |
+| `onFrame(callback)` | Subscribe to painted frames for a custom overlay. Screen positions and radii use CSS pixels in input node order. Copy the borrowed points if you need to retain them across frames. |
 | `pause()`, `resume()`, `resize()` | Control scheduling and refresh the backing size. Resize and intersection observers handle ordinary layout changes. |
 | `stats()`, `destroy()` | Read frame, tick, label, transport and submission counters, or release listeners, workers, textures, buffers and programs. |
 
@@ -96,6 +103,72 @@ graph.setLayout({ direction: 'vertical' })
 Built-in diagram anchors sort IDs within each kind. `laneOrder` puts the named kinds first, with other present kinds following in lexical order. `laneGap` separates kinds and `rowGap` separates peers. `direction` rotates the lanes and the patch-wire tangents together. The lanes force mode also respects lane order, spacing and direction at zero blend. To reproduce an authored drawing, pass `anchor: node => positions.get(node.id)`. Missing entries use the built-in lanes. Use `anchor: null` to return every movable node to those lanes. Set `guides: true` to show the built-in lane guides in flat views.
 
 `repulsion` and `springStrength` are multipliers. `linkDistance` sets the gap between node boundaries in world units. `springsByKind` can adjust the distance or strength of an individual relationship kind. The console preset gives concept links 1.55× spring strength and category links a longer rest distance. Layout callbacks run on the calling thread and the worker receives numeric arrays.
+
+Orbit opens around the highest-degree node. Ties use lexical node ID order. Selecting a node makes it the centre, and clearing the selection returns to the default. Direct neighbours occupy the first ring, two-hop neighbours the second and all remaining nodes the outer ring. `orbitGap` sets the minimum spacing in world units. At full structure the rings are exact. Lower structure keeps spring response and individual dragging. Explicit pins retain their positions.
+
+## Taxonomies and annotations
+
+Import `loom-core/taxonomy` to use the same domain vocabulary for grouping, colours, legends, tooltips and lanes. This entry point is optional and has no framework dependencies. Here the host element supplies the dimensions, and the overlay and canvas share its bounds.
+
+```ts
+import { createGraph, ink, type GraphData, type GraphNode } from 'loom-core'
+import { attachAnnotations, compileTaxonomies, type TaxonomyConfig } from 'loom-core/taxonomy'
+
+interface Entry extends GraphNode {
+  topics?: readonly string[]
+}
+
+const catalogue = {
+  taxonomies: [
+    { id: 'subject', label: 'Subject', by: 'topics',
+      remap: { optics: 'light', waves: ['light', 'motion'] },
+      terms: { light: { label: 'Light & optics', color: '#6cbca9' }, motion: { label: 'Wave motion' } } },
+    { id: 'category', label: 'Filed under', by: { relation: 'filed-in', groupEnd: 'target' } },
+  ],
+  language: {
+    connections: (n) => n + (n === 1 ? ' reference' : ' references'),
+    ungrouped: 'Unclassified',
+  },
+} satisfies TaxonomyConfig<Entry>
+
+export function mountCatalogue(host: HTMLElement) {
+  const data: GraphData<Entry> = {
+    nodes: [
+      { id: 'prism', label: 'Prism', topics: ['optics'] },
+      { id: 'packet', label: 'Wave packet', topics: ['waves'] },
+      { id: 'physics', label: 'Physics' },
+    ],
+    links: [{ source: 'prism', target: 'physics', kind: 'filed-in' },
+      { source: 'packet', target: 'physics', kind: 'filed-in' }],
+  }
+  host.style.position = 'relative'
+  host.style.height = '480px'
+  const canvas = document.createElement('canvas')
+  const overlay = document.createElement('div')
+  canvas.style.cssText = 'display:block;width:100%;height:100%'
+  overlay.style.cssText = 'position:absolute;inset:0;pointer-events:none'
+  host.append(canvas, overlay)
+
+  const terms = compileTaxonomies(data, catalogue)
+  const graph = createGraph(canvas, { ...data, mode: 'lanes',
+    layout: { blend: 0.55, laneBy: terms.laneBy('subject'), guides: true },
+    theme: { ...ink, nodes: { ...ink.nodes, resolve: (node) => terms.primary(node.id, 'subject') } },
+  })
+  const annotations = attachAnnotations(graph, overlay, terms, {
+    laneTaxonomy: 'subject', bubbles: { subject: ['light'], category: ['physics'] }, padding: 10,
+  })
+  return {
+    graph,
+    legend: terms.legend('subject'),
+    showAllSubjects() { annotations.setOptions({ bubbles: { subject: true, category: ['physics'] } }) },
+    destroy() { graph.destroy(); canvas.remove(); overlay.remove() },
+  }
+}
+```
+
+`by` accepts a string-valued field, an array-valued field, a relationship endpoint, or a typed classifier such as `(node, context) => context.linksFor(node.id).length ? 'connected' : 'isolated'`. Relationship groups include their hub and its incident members. `remap` translates raw values to one or more term IDs. Multiple memberships are deduplicated. All apply to bubbles and tooltips, and the first determines exclusive lane placement. Unassigned nodes get their own lane. Term labels, descriptions and colours are independent of the raw IDs.
+
+`legend(id)` returns ordered groups, display properties and member indices. `describe(nodeId)` returns the title, formatted count and full membership. For custom tooltip content, supply `language.tooltip(node, description)` returning `{ title, lines }`. Text renders literally. Outlines and lane captions follow the camera, node drags and canvas resizes on the engine's existing paint cycle. `setOptions({ bubbles: {} })` hides every outline. Destroying the graph also releases its annotations.
 
 ## Style a mounted graph
 
@@ -156,6 +229,7 @@ With the flag enabled, the adapter reads the host’s inherited `--kg-ink`, `--k
 
 ```sh
 npm run build
+npm run test:types
 npm test
 npm run size
 npx playwright install chromium

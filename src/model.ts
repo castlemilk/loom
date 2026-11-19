@@ -1,6 +1,6 @@
 import type { GraphData, LayoutOptions, Mode, Theme } from './types.js'
 import { appearance } from './appearance.js'
-import { forceLanes, makeSprings } from './constraints.js'
+import { makeLanes, makeSprings } from './constraints.js'
 
 const goldenAngle = Math.PI * (3 - Math.sqrt(5))
 export function pinFlag(value: boolean) {
@@ -16,13 +16,11 @@ export function prepare(data: GraphData, theme: Theme, mode: Mode, layout: Layou
   const fixed = new Uint8Array(n),
     degree = new Uint32Array(n)
   const endpoints = new Uint32Array(data.links.length * 2)
-  const kinds = new Set<string>()
   for (let i = 0; i < n; i++) {
-    const { id, kind } = data.nodes[i]
+    const { id } = data.nodes[i]
     if (typeof id !== 'string' || !id.length || byId.has(id))
       throw new TypeError('Missing or duplicate node id: ' + id)
     byId.set(id, i)
-    kinds.add(kind ?? '')
   }
   for (let i = 0; i < data.links.length; i++) {
     const link = data.links[i],
@@ -35,7 +33,7 @@ export function prepare(data: GraphData, theme: Theme, mode: Mode, layout: Layou
     degree[a]++
     degree[b]++
   }
-  const lanes = forceLanes(data.nodes, layout, kinds)
+  const laneMap = makeLanes(data.nodes, layout)
   let movable = 0
   for (let i = 0; i < n; i++) {
     const node = data.nodes[i],
@@ -63,7 +61,7 @@ export function prepare(data: GraphData, theme: Theme, mode: Mode, layout: Layou
   const look = appearance(data, degree, theme)
   for (let i = 0; i < n; i++) positions[i * 4 + 3] = look.radii[i]
   const springs = makeSprings(data.links, layout.springsByKind)
-  return { n, byId, positions, fixed, look, degree, endpoints, lanes, springs, movable, kinds }
+  return { n, byId, positions, fixed, look, degree, endpoints, lanes: laneMap.lanes, springs, movable, laneMap }
 }
 export type Model = ReturnType<typeof prepare>
 export function cloudDepth(i: number, count: number) {

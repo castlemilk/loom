@@ -31,6 +31,7 @@ export function layoutForces(options: LayoutOptions): Forces {
   }
   range(options.laneGap ?? 210, 1, 1e6, 'lane gap')
   range(options.rowGap ?? 46, 1, 1e6, 'row gap')
+  range(options.orbitGap ?? 80, 1, 1e6, 'orbit gap')
   if (options.direction && !['horizontal', 'vertical'].includes(options.direction))
     throw new RangeError('Invalid lane direction')
   if (options.laneOrder && new Set(options.laneOrder).size !== options.laneOrder.length)
@@ -64,35 +65,24 @@ export function makeSprings(
   return springs
 }
 
-export function forceLanes(
-  nodes: readonly GraphNode[],
-  options: LayoutOptions,
-  kinds: Set<string>,
-): Float32Array {
-  const offsets = laneOffsets(
-    kinds,
-    options.laneOrder ?? laneOrder,
-    options.laneGap ?? Math.max(85, 12 * Math.sqrt(nodes.length)),
-  )
-  return Float32Array.from(nodes, (node) => offsets.get(node.kind ?? '')!)
+export function makeLanes(nodes: readonly GraphNode[], options: LayoutOptions) {
+  const keys = nodes.map((node, i) => options.laneBy?.(node, i) ?? node.kind ?? '')
+  const offsets = laneOffsets(new Set(keys), options.laneOrder ?? laneOrder, options.laneGap ?? 210)
+  const lanes: Float32Array = Float32Array.from(keys, (key) => offsets.get(key)!)
+  return { keys, offsets, lanes }
 }
 
 // Compile callbacks on the caller's thread. Only packed coordinates cross the worker boundary.
-export function makeTargets(nodes: readonly GraphNode[], options: LayoutOptions) {
+export function makeTargets(nodes: readonly GraphNode[], options: LayoutOptions, lanes = makeLanes(nodes, options)) {
   const groups = new Map<string, number[]>()
   for (let i = 0; i < nodes.length; i++) {
-    const kind = nodes[i].kind ?? '',
+    const kind = lanes.keys[i],
       group = groups.get(kind)
     if (group) group.push(i)
     else groups.set(kind, [i])
   }
   const targets = new Float32Array(nodes.length * 3)
-  const offsets = laneOffsets(
-    new Set(groups.keys()),
-    options.laneOrder ?? laneOrder,
-    options.laneGap ?? 210,
-  )
-  offsets.forEach((across, kind) => {
+  lanes.offsets.forEach((across, kind) => {
     const indices = groups.get(kind)!
     indices.sort((a, b) => (nodes[a].id < nodes[b].id ? -1 : nodes[a].id > nodes[b].id ? 1 : 0))
     indices.forEach((i, row) => {

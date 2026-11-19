@@ -1,6 +1,6 @@
 import type { Model } from '../model.js'
 import type { Camera } from '../camera.js'
-import type { GraphOptions, LayoutOptions, Theme } from '../types.js'
+import type { GraphOptions, LayoutOptions, Mode, Theme } from '../types.js'
 import { rgb } from '../theme.js'
 import { wireOpacity } from '../appearance.js'
 import { Resources, uniforms } from './gl.js'
@@ -82,7 +82,7 @@ export class Renderer {
       this.scene[14] = this.segments
       this.sceneBuffer = r.uniformBlock(this.scene)
       this.setTheme(theme, true)
-      this.setLayout(options.layout ?? {})
+      this.setLayout(options.layout ?? {}, options.mode ?? 'drift')
       gl.enable(gl.BLEND)
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
     } catch (error) {
@@ -135,10 +135,10 @@ export class Renderer {
     this.scene[43] = theme.grid ? (theme.grid.opacity ?? 0.2) : 0
     this.labels?.setTheme(theme)
   }
-  setLayout(layout: LayoutOptions) {
-    this.scene[44] = this.model.kinds.size
+  setLayout(layout: LayoutOptions, mode: Mode) {
+    this.scene[44] = this.model.laneMap.offsets.size
     this.scene[45] = layout.laneGap ?? 210
-    this.scene[46] = layout.guides && !layout.anchor ? (layout.blend ?? 0) * 0.32 : 0
+    this.scene[46] = layout.guides && !layout.anchor && mode !== 'orbit' ? (mode === 'lanes' ? 1 : layout.blend ?? 0) * 0.32 : 0
     this.scene[47] = Number(layout.direction === 'vertical')
   }
   pickLabel(x: number, y: number) {

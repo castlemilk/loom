@@ -10,3 +10,4 @@ const options = {
 }
 await build({ ...options, entryPoints: { index: 'src/index.ts', 'layout-worker': 'src/sim/worker.ts' } })
 await build({ ...options, entryPoints: ['src/console.ts'], external: ['./index.js'] })
+await build({ ...options, entryPoints: ['src/taxonomy.ts'] })

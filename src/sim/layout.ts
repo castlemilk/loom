@@ -26,8 +26,6 @@ export class Layout {
   private buckets: Int32Array
   private chain: Int32Array
   private coordinates: Int32Array
-  private rings: Uint8Array
-  private selected = -1
   private volume: boolean
   constructor(
     public data: LayoutData,
@@ -43,7 +41,6 @@ export class Layout {
     this.chain = new Int32Array(n)
     this.coordinates = new Int32Array(n * 3)
     this.buckets = new Int32Array(2 ** Math.ceil(Math.log2(Math.max(8, n * 2))))
-    this.rings = new Uint8Array(n)
     this.alpha = this.forces.blend < 1 && data.fixed.includes(0) ? 1 : 0
     this.sizeCells()
   }
@@ -59,7 +56,7 @@ export class Layout {
         this.data.positions[i * 4 + 2] = cloudDepth(i, this.data.n)
     }
   }
-  configure(mode: Mode, selected: number, update: LayoutUpdate = {}) {
+  configure(mode: Mode, update: LayoutUpdate = {}) {
     if (update.lanes) this.data.lanes = update.lanes
     if (update.springs !== undefined) this.data.springs = update.springs
     if (update.forces) this.forces = update.forces
@@ -74,19 +71,6 @@ export class Layout {
       if (this.volume) this.seedDepth()
     }
     this.mode = mode
-    this.selected = selected
-    if (mode === 'orbit' && selected >= 0) {
-      this.rings.fill(3)
-      this.rings[selected] = 0
-      const e = this.data.endpoints
-      for (let hop = 1; hop <= 2; hop++)
-        for (let j = 0; j < e.length; j += 2) {
-          const a = e[j],
-            b = e[j + 1]
-          if (this.rings[a] === hop - 1) this.rings[b] = Math.min(this.rings[b], hop)
-          if (this.rings[b] === hop - 1) this.rings[a] = Math.min(this.rings[a], hop)
-        }
-    }
     if (this.forces.blend === 1 && this.targets)
       placeOnTargets(this.data.positions, this.data.fixed, this.targets)
     this.reheat()
@@ -159,7 +143,7 @@ export class Layout {
       before = this.ticks
     const { n, positions: p, fixed, endpoints: e, lanes, springs } = this.data,
       v = this.velocity
-    const structure = this.forces.blend ** 2,
+    const structure = this.mode === 'orbit' ? 0.7 + 0.3 * this.forces.blend ** 2 : this.forces.blend ** 2,
       free = 1 - structure
     do {
       const freeAlpha = this.alpha * free
@@ -230,17 +214,14 @@ export class Layout {
             v[j] += ((laneX ? lanes[i] : 0) - p[k]) * (laneX ? 0.12 : 0.009) * freeAlpha
             v[j + 1] += ((laneY ? lanes[i] : 0) - p[k + 1]) * (laneY ? 0.12 : 0.009) * freeAlpha
             if (this.volume) v[j + 2] -= p[k + 2] * 0.009 * freeAlpha
-            if (this.mode === 'orbit' && this.selected >= 0) {
-              const radius = this.rings[i] * Math.max(48, Math.sqrt(n) * 6)
-              const f = (radius / (Math.hypot(p[k], p[k + 1]) || 1) - 1) * 0.18 * freeAlpha
-              v[j] += p[k] * f
-              v[j + 1] += p[k + 1] * f
-            }
             for (let axis = 0; axis < (this.volume ? 3 : 2); axis++) {
-              if (this.targets && this.forces.blend) {
-                v[j + axis] += (this.targets[j + axis] - p[k + axis]) * structure * 0.22 * this.alpha
+              let limit = 20
+              if (this.targets && structure) {
+                const delta = this.targets[j + axis] - p[k + axis]
+                if (this.mode === 'orbit') limit = Math.max(limit, Math.abs(delta) * 0.25)
+                v[j + axis] += delta * structure * 0.22 * this.alpha
               }
-              v[j + axis] = Math.max(-20, Math.min(20, v[j + axis] * 0.68))
+              v[j + axis] = Math.max(-limit, Math.min(limit, v[j + axis] * 0.68))
               p[k + axis] += v[j + axis]
             }
             break

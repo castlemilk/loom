@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { studio } from '../tests/studio.mjs'
+import { studioConfiguration } from '../tests/studio-config.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
@@ -51,7 +52,18 @@ try {
       Number(document.getElementById('ticks').textContent) > 0
   })
   assert.deepEqual(failures, [])
-  console.log({ ...result, worker: await page.locator('#transport').textContent(), snapshotRequests: snapshots })
+  const worker = await page.locator('#transport').textContent()
+  await page.close()
+  const configPage = await context.newPage()
+  configPage.setDefaultTimeout(15000)
+  const configuration = await studioConfiguration(configPage, url)
+  const packageHeader = await configPage.evaluate(async () => {
+    const response = await fetch(new URL('loom-core-0.1.0.tgz', location.href))
+    if (!response.ok) throw new Error('TypeScript package HTTP ' + response.status)
+    return [...new Uint8Array(await response.arrayBuffer()).slice(0, 2)]
+  })
+  assert.deepEqual(packageHeader, [0x1f, 0x8b], 'Studio should serve the installable npm archive')
+  console.log({ ...result, worker, snapshotRequests: snapshots, configuration })
 } finally {
   await browser.close()
 }

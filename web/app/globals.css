@@ -7,3 +7,38 @@
   --color-graphite: #272920;
   --color-rust: #b44a26;
 }
+
+.studio-workspace {
+  --panel-width: 300px;
+  grid-template-columns: minmax(0, 1fr) 12px var(--panel-width);
+}
+.graph-annotations { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.splitter {
+  display: grid; place-items: center; cursor: col-resize; touch-action: none;
+  background: var(--paper); border-inline: 1px solid var(--rule); outline-offset: -2px;
+}
+.splitter i { height: 42px; width: 3px; background: #8c9182; border-radius: 3px; }
+.splitter:hover i, .splitter:focus-visible i, .splitter:active i { background: var(--accent); }
+.splitter:focus-visible, .definition textarea:focus-visible { outline: 2px solid var(--accent); }
+#studio-controls { border-inline-start: 0; }
+.bubble-choices { display: grid; gap: 6px; margin: 9px 0 2px 8px; }
+.bubble-choices label { display: flex; }
+.bubble-choices i { width: 7px; height: 7px; border-radius: 50%; }
+.bubble-choices small { margin-left: auto; color: var(--muted); font: 10px var(--mono); }
+.definition textarea, .grouping input[type="search"] {
+  width: 100%; background: #faf9f3; border: 1px solid var(--rule); border-radius: 5px; margin: 5px 0 8px; padding: 6px;
+}
+.definition textarea { font: 11px/1.5 var(--mono); resize: vertical; tab-size: 2; }
+.definition button { font-size: 11px; }
+.grouping form input {
+  min-width: 0; width: 52%; border: 1px solid var(--rule); background: #faf9f3; border-radius: 4px; padding: 4px 6px;
+}
+.definition [role="status"]:empty { display: none; }
+.definition [role="status"], .orbit-settings p { color: var(--muted); margin: 6px 0; font-size: 12px; }
+@media (max-width: 700px) {
+  .studio-workspace { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--stage-height, 58dvh) 12px auto; }
+  .studio-workspace .stage { height: 100%; min-height: 0; }
+  .splitter { cursor: row-resize; border-inline: 0; border-block: 1px solid var(--rule); }
+  .splitter i { width: 42px; height: 3px; }
+  #studio-controls { border-block-start: 0; }
+}

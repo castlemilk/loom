@@ -31,10 +31,9 @@ scope.onmessage = ({ data: m }) => {
     case 'init':
       layout = new Layout(m.data, m.mode, m.forces, m.targets)
       shared = m.shared.map((b) => new Float32Array(b))
-      if (m.selected >= 0) layout.configure(m.mode, m.selected)
       break
     case 'configure':
-      layout.configure(m.mode, m.selected, m.update)
+      layout.configure(m.mode, m.update)
       break
     case 'pin':
       layout.pin(m.i, m.x, m.y, m.fixed, m.z)

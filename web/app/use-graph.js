@@ -2,9 +2,12 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { createGraph } from '../../dist/index.js'
+import { attachAnnotations } from '../../dist/taxonomy.js'
 
-export function useGraph(data, engine, layout, theme, mode) {
+export function useGraph(data, engine, layout, theme, mode, taxonomy, annotationOptions) {
   const canvas = useRef(null)
+  const layer = useRef(null)
+  const annotations = useRef(null)
   const graph = useRef(null)
   const applied = useRef(null)
   const [selected, select] = useState(null)
@@ -19,7 +22,13 @@ export function useGraph(data, engine, layout, theme, mode) {
       ...dataset, layout, theme, mode, sim, workerURL: base + '/layout-worker.js',
       art: { urlFor: (node) => dataset.artwork?.[node.art] ? base + '/' + dataset.artwork[node.art] : undefined },
     })
-    applied.current = { layout, theme, mode }
+    try {
+      annotations.current = attachAnnotations(instance, layer.current, taxonomy, annotationOptions)
+    } catch (error) {
+      instance.destroy()
+      throw error
+    }
+    applied.current = { layout, theme, mode, taxonomy, annotationOptions }
     return instance
   })
 
@@ -51,6 +60,7 @@ export function useGraph(data, engine, layout, theme, mode) {
     return () => {
       cancelAnimationFrame(frame)
       instance.destroy()
+      annotations.current = null
       graph.current = null
       applied.current = null
       element.removeAttribute('data-ready')
@@ -64,8 +74,10 @@ export function useGraph(data, engine, layout, theme, mode) {
     if (previous.layout !== layout) current.setLayout(layout)
     if (previous.theme !== theme) current.setTheme(theme)
     if (previous.mode !== mode) current.setMode(mode)
-    applied.current = { layout, theme, mode }
-  }, [layout, theme, mode])
+    if (previous.taxonomy !== taxonomy) annotations.current.setIndex(taxonomy)
+    if (previous.annotationOptions !== annotationOptions) annotations.current.setOptions(annotationOptions)
+    applied.current = { layout, theme, mode, taxonomy, annotationOptions }
+  }, [layout, theme, mode, taxonomy, annotationOptions])
 
   function syncPin() {
     if (selected && graph.current) setPinned(graph.current.getPosition(selected).pinned)
@@ -86,5 +98,5 @@ export function useGraph(data, engine, layout, theme, mode) {
   function refresh() {
     if (graph.current) setStats(graph.current.stats())
   }
-  return { graph, canvas, selected, pinned, paused, error, stats, syncPin, togglePin, togglePause, refresh }
+  return { graph, canvas, layer, selected, pinned, paused, error, stats, syncPin, togglePin, togglePause, refresh }
 }

@@ -1,8 +1,9 @@
-import type { GraphEvents, GraphOptions, LayoutOptions, LoomGraph, Mode } from './types.js'
+import type { GraphEvents, GraphFrame, GraphOptions, LayoutOptions, LoomGraph, Mode } from './types.js'
 import { parchment } from './theme.js'
 import { prepare, neighbors } from './model.js'
 import { appearance } from './appearance.js'
-import { forceLanes, layoutForces, makeSprings, makeTargets, placeOnTargets } from './constraints.js'
+import { makeLanes, layoutForces, makeSprings, makeTargets, placeOnTargets } from './constraints.js'
+import { orbitTargets } from './sim/orbit.js'
 import { Camera } from './camera.js'
 import { Resolution, Scheduler } from './scheduler.js'
 import { Renderer } from './render/renderer.js'
@@ -30,9 +31,13 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
   let layout: LayoutOptions = { ...options.layout }
   let forces = layoutForces(layout)
   const model = prepare(options, theme, mode, layout)
-  let targets = forces.blend ? makeTargets(options.nodes, layout) : undefined
+  function targetsFor(mode: Mode, centre: number, config: LayoutOptions, lanes = model.laneMap) {
+    if (mode === 'orbit') return orbitTargets(model, centre, config.orbitGap)
+    if (config.blend) return makeTargets(options.nodes, config, lanes)
+  }
+  let targets = targetsFor(mode, -1, layout)
   if (targets) placeOnTargets(model.positions, model.fixed, targets, forces.blend ** 2, options.nodes)
-  let fitWhenSettled = !!forces.blend && forces.blend < 1
+  let fitWhenSettled = !!targets && forces.blend < 1
   const camera = new Camera(mode),
     grid = new PickGrid(model.n)
   const resolution = new Resolution(Math.min(2, window.devicePixelRatio || 1))
@@ -65,6 +70,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
   let ownsWidth = false,
     ownsHeight = false
   const listeners = new EventTarget()
+  const observers = new Set<(frame: GraphFrame) => void>()
   const emit = <K extends keyof GraphEvents>(type: K, value: GraphEvents[K]) =>
     listeners.dispatchEvent(new CustomEvent(type, { detail: value }))
   const schedule = new Scheduler(frame)
@@ -232,6 +238,12 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       render.paint(camera, selected, hovered, grid.projected, adjacent)
       frames++
       dirty = false
+      if (observers.size) {
+        const { width, height, zoom } = camera, vertical = forces.vertical
+        const view = { points: grid.projected, width, height, zoom, mode: camera.mode, vertical,
+          lanes: model.laneMap.offsets, laneOrigin: vertical ? height / 2 - camera.y * zoom : width / 2 - camera.x * zoom }
+        for (const observer of observers) observer(view)
+      }
     }
     lastMoving = moving
     if (resolution.sample(performance.now() - begin, elapsed, time)) sizeDirty = true
@@ -244,7 +256,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     selected = i
     adjacent = neighbors(model, i)
     if (!gl!.isContextLost()) render.neighborhood(adjacent)
-    if (camera.mode === 'orbit') sim.configure('orbit', selected)
+    if (camera.mode === 'orbit') changeGeometry()
     emit('select', options.nodes[i]?.id ?? null)
     repaint()
   }
@@ -252,6 +264,16 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     const i = model.byId.get(id)
     if (i === undefined) throw new RangeError('Unknown node: ' + id)
     return i
+  }
+  function changeGeometry() {
+    targets = targetsFor(camera.mode, selected, layout)
+    sim.configure(camera.mode, { targets })
+    if (forces.blend === 1) {
+      shown = reduced ? model.positions.slice() : model.positions
+      uploadNeeded = true
+    }
+    fitWhenSettled = autoFit
+    viewChanged()
   }
   function suspend(reason: string, value: boolean) {
     if (dead) return
@@ -315,7 +337,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     'webglcontextrestored',
     () => {
       render = new Renderer(gl!, model, options, theme, repaint)
-      render.setLayout(layout)
+      render.setLayout(layout, camera.mode)
       render.neighborhood(adjacent)
       uploadNeeded = true
       gridDirty = dirty = true
@@ -333,6 +355,13 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     }
   }
   return {
+    onFrame(observer) {
+      if (!dead) {
+        observers.add(observer)
+        repaint()
+      }
+      return () => { observers.delete(observer) }
+    },
     select(id) {
       if (!dead) choose(id === null ? -1 : lookup(id))
     },
@@ -341,8 +370,9 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       if (!modes.has(next)) throw new TypeError('Unknown graph mode: ' + next)
       input.reset()
       camera.mode = next
-      sim.configure(next, selected)
+      render.setLayout(layout, next)
       fit()
+      changeGeometry()
       idle()
       emit('modechange', next)
     },
@@ -350,18 +380,15 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       if (dead) return
       const next = { ...layout, ...patch },
         nextForces = layoutForces(next)
-      const lanesChanged = next.laneGap !== layout.laneGap || next.laneOrder !== layout.laneOrder
+      const lanesChanged = next.laneGap !== layout.laneGap || next.laneOrder !== layout.laneOrder || next.laneBy !== layout.laneBy
       const geometryChanged =
         lanesChanged ||
         next.rowGap !== layout.rowGap ||
         next.direction !== layout.direction ||
-        next.anchor !== layout.anchor
+        next.anchor !== layout.anchor || next.orbitGap !== layout.orbitGap
+      const nextLanes = lanesChanged ? makeLanes(options.nodes, next) : model.laneMap
       const nextTargets =
-        nextForces.blend && (!targets || geometryChanged)
-          ? makeTargets(options.nodes, next)
-          : geometryChanged
-            ? undefined
-            : targets
+        !targets || geometryChanged ? targetsFor(camera.mode, selected, next, nextLanes) : targets
       const springs =
         next.springsByKind !== layout.springsByKind
           ? makeSprings(options.links, next.springsByKind)
@@ -373,15 +400,16 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
         (Object.keys(forces) as (keyof typeof forces)[]).some((k) => forces[k] !== nextForces[k])
       const guideChanged = layout.guides !== next.guides
       layout = next
-      if (!gl!.isContextLost()) render.setLayout(layout)
+      model.laneMap = nextLanes
+      if (!gl!.isContextLost()) render.setLayout(layout, camera.mode)
       if (!changed) {
         if (guideChanged || geometryChanged) repaint()
         return
       }
-      sim.configure(camera.mode, selected, {
+      sim.configure(camera.mode, {
         forces: nextForces,
         targets: nextTargets !== targets ? nextTargets : undefined,
-        lanes: lanesChanged ? forceLanes(options.nodes, next, model.kinds) : undefined,
+        lanes: lanesChanged ? model.laneMap.lanes : undefined,
         springs,
       })
       forces = nextForces
@@ -404,7 +432,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
           model.positions[i * 4 + 3] = look.radii[i]
           shown[i * 4 + 3] = look.radii[i]
         }
-        sim.configure(camera.mode, selected, { radii: look.radii })
+        sim.configure(camera.mode, { radii: look.radii })
         uploadNeeded = true
         gridDirty = true
       }
@@ -477,6 +505,8 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     destroy() {
       if (dead) return
       dead = true
+      emit('destroy', undefined)
+      observers.clear()
       schedule.destroy()
       clearTimeout(timer)
       events.abort()
