@@ -6,4 +6,4 @@
 :HL["/loom/illustrations/layout.webp","image"]
 :HL["/loom/illustrations/groups.webp","image"]
 :HL["/loom/illustrations/style.webp","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"artwork","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"ifYNGNu_IVp200YxfztY6"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"artwork","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"K2Ut4MXqndYulismv-guw"}
