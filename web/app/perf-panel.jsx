@@ -28,7 +28,7 @@ export function PerfPanel({ graph, data, paused, onClose }) {
       {intervals.map((n, i) => <i key={i} style={{ height: Math.min(100, n / 50 * 100) + '%', opacity: n > 16.7 ? 1 : 0.55 }} />)}
     </div>
     <dl>{[
-      ['Main thread', ms(sample?.mainThreadMs), 'Elapsed work in a Loom scheduler callback. Worker execution is separate.'],
+      ['CPU · main thread', ms(sample?.mainThreadMs), 'Elapsed work in a Loom scheduler callback. Worker execution is separate.'],
       ['GPU draw', gpu, 'Asynchronous WebGL timer query, when the browser exposes it.'],
       ['JS heap', mib(sample?.heapBytes), 'Browser-reported JavaScript heap for this page.'],
       ['Positions + links', bytes(sample?.geometryBytes), 'Packed node coordinates, radii and edge endpoints.'],

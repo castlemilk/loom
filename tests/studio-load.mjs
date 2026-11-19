@@ -35,8 +35,7 @@ export async function studioLoad(page, url) {
   await byId('blend').focus(); await byId('blend').press('End')
   await graph.focus()
   for (let i = 0; i < 12; i++) { await graph.press('ArrowRight'); await page.waitForTimeout(22) }
-  await page.waitForFunction(() => +document.getElementById('perf-fps').textContent > 0 && document.querySelectorAll('.frame-chart i').length >= 1 ||
-    +document.getElementById('perf-fps').textContent > 0 && document.querySelector('#perf-panel').dataset.state === 'Active')
+  await page.waitForFunction(() => +document.getElementById('perf-fps').textContent > 0 && document.querySelectorAll('.frame-chart i').length >= 1)
   const gpu = await metric('GPU draw').textContent()
   assert.match(gpu, /ms|Awaiting sample|Unavailable|Interrupted/)
   await page.locator('#perf-panel[data-state="Idle"]').waitFor()

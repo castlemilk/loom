@@ -83,8 +83,13 @@ test('performance monitoring resolves async GPU queries, reports disjoint and un
       while (!check()) { assert.ok(performance.now() < deadline); await new Promise((r) => setTimeout(r, 20)) }
     }
     draw()
+    const eventStart = performance.now() + 10
+    probe.sample(eventStart, 2, 0, true)
+    probe.sample(eventStart + 16, 2, 0, true)
+    probe.sample(eventStart + 32, 2, 0, true)
     await until(() => snap?.gpuStatus === (supported ? 'measured' : 'unavailable'))
     assert.equal(snap.gpuMs, supported ? 2.5 : null); assert.equal(snap.mainThreadMs, 2)
+    assert.deepEqual(snap.frameIntervals.slice(-2), [16, 16])
     if (supported) {
       disjoint = true; draw(); await until(() => snap?.gpuStatus === 'disjoint')
       assert.equal(snap.gpuMs, null)

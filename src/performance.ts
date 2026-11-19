@@ -114,7 +114,9 @@ export function observePerformance(graph: Pick<LoomGraph, 'onTiming' | 'on' | 's
   const off = graph.onTiming({
     beginDraw: (gl) => gpu.begin(gl), endDraw: () => gpu.end(),
     sample(at, work, elapsed, painted) {
-      if (!elapsed) previousPaint = 0
+      // Pointer events can request consecutive paints while the scheduler sleeps
+      // between them. Drop the gap only when a new burst follows an idle period.
+      if (!elapsed && at - previousPaint > 250) previousPaint = 0
       const interval = painted && previousPaint ? at - previousPaint : 0
       if (painted) previousPaint = at
       if (interval > 0) {

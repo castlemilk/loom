@@ -16,7 +16,7 @@ Open **Test data**, choose **Image atlas**, then **Generate graph** to draw 1,02
 
 The generator accepts up to 25,000 nodes and 100,000 links. Choose local clusters, hubs or random connections. Set the image coverage, choose from 256 bundled WebP specimens and switch between titles, notes and full articles. Select a node to inspect its image and text. Reusing a seed keeps the same topology when you change the payload. **Append batch** adds nodes and a connecting edge to the graph on screen. **Export JSON** saves the current data, including artwork references.
 
-**Import JSON** reads a local file with `nodes` and `links` (or `edges`). Give each node a unique string `id`; links reference these IDs with `source` and `target`. Nodes can carry `label`, `kind`, `summary`, `content` and `art`. An optional `artwork` dictionary maps art keys to URLs. Raster data URLs, bundled `graphs/` paths and HTTP(S) image URLs are accepted. External image hosts must allow CORS for WebGL atlas uploads.
+**Import JSON** reads a local file with `nodes` and `links` (or `edges`). Give each node a unique string `id`. Links reference these IDs with `source` and `target`. Nodes can carry `label`, `kind`, `summary`, `content` and `art`. An optional `artwork` dictionary maps art keys to URLs. Raster data URLs, bundled `graphs/` paths and HTTP(S) image URLs are accepted. External image hosts must allow CORS for WebGL atlas uploads.
 
 ```sh
 npm ci
@@ -122,7 +122,7 @@ graph.setLayout({ blend: 0.4, cloudDepth: 1.5, autoRotate: false })
 
 ## Live performance
 
-The **Perf** button attaches a monitor to the graph on screen. It reports graph draw submissions per second, the last 48 active frame intervals and their recent p95. The chart marks a 16.7 ms frame. The **Main thread** reading measures elapsed work in Loom scheduler callbacks and excludes worker execution. **GPU draw** measures a submitted draw using an asynchronous WebGL timer when supported. **JS heap** shows the browser's reported heap usage when available. The panel also shows packed geometry bytes, decoded versus requested image tiles, draw calls, labels, pixel ratio and cumulative frames.
+The **Perf** button attaches a monitor to the graph on screen. It reports graph draw submissions per second, the last 48 active frame intervals and their recent p95. The chart marks a 16.7 ms frame. The **CPU · main thread** reading measures elapsed work in Loom scheduler callbacks and excludes worker execution. **GPU draw** measures a submitted draw using an asynchronous WebGL timer when supported. **JS heap** shows the browser's reported heap usage when available. The panel also shows packed geometry bytes, decoded versus requested image tiles, draw calls, labels, pixel ratio and cumulative frames.
 
 The monitor updates at most four times per second. A settled graph shows zero graph FPS, and the monitor goes to sleep after pending GPU measurements resolve or time out. Each graph supports one timing observer. Unsubscribe to close its timers and release the GPU query. Destroying the graph also detaches it.
 
