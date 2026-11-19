@@ -1033,6 +1033,11 @@ export async function bubbleLayers() {
   let points
   const detach = g.onFrame((frame) => { points = frame.points })
   await until(() => !!points && !g.stats().pendingFrame, 'Boundary layers did not settle')
+  let rejected = false
+  try { marks.setOptions({ boundaryFor: (group) => group.taxonomy === 'field' ? { fillOpacity: 1 } : { width: -1 } }) }
+  catch (error) { rejected = error instanceof RangeError }
+  check(rejected && underlay.querySelector('[data-taxonomy="field"]').getAttribute('fill-opacity') === '0',
+    'An invalid per-group style must leave all displayed boundaries intact')
   const center = [points[0], points[1]], gap = [(points[0]+points[4]+points[8])/3, (points[1]+points[5]+points[9])/3]
   function click([x,y], count) {
     pointer(c, 'pointerdown', x, y)

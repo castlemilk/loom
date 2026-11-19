@@ -152,20 +152,25 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   function configure() {
     const nextPaths: typeof paths = []
     const existing = new Map(paths.map((entry) => [entry.group, entry]))
+    const styles: { group: TaxonGroup; policy: 'outline' | 'fade' | 'keep'; style: BoundaryStyle; color: string }[] = []
     for (const group of index.groups) {
       const active = options.bubbles && Object.hasOwn(options.bubbles, group.taxonomy) && options.bubbles[group.taxonomy]
       if (active !== true && !(active && active.includes(group.id))) continue
       const opened = options.activeGroup
       const policy = opened?.taxonomy === group.taxonomy && opened.id === group.id ? opened.boundary ?? 'outline' : 'keep'
       if (policy === 'hide') continue
-      const previous = existing.get(group)
-      const path = previous?.path ?? doc.createElementNS(ns, 'path')
-      path.dataset.taxonomy = group.taxonomy
-      path.dataset.bubble = group.id
       const style = { ...options.boundary, ...options.boundaryFor?.(group) }
       if (opened?.taxonomy === group.taxonomy && opened.id === group.id && opened.shape) style.shape = opened.shape
       validateStyle(style)
       const color = style.color ?? options.colorFor?.(group) ?? group.color
+      styles.push({ group, policy, style, color })
+    }
+    // Evaluate every user rule before touching a live path. Rejected patches leave the current graph intact.
+    for (const { group, policy, style, color } of styles) {
+      const previous = existing.get(group)
+      const path = previous?.path ?? doc.createElementNS(ns, 'path')
+      path.dataset.taxonomy = group.taxonomy
+      path.dataset.bubble = group.id
       const width = style.width ?? 1
       path.dataset.shape = style.shape ?? 'hull'
       path.setAttribute('fill', color)

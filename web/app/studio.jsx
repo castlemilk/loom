@@ -213,7 +213,8 @@ function Workbench({ sample }) {
           }
         }}>
         <div ref={view.underlay} className="graph-boundaries" aria-hidden="true" />
-        <canvas id="graph" ref={view.canvas} aria-describedby={level.kind === 'overview' ? undefined : 'drill-location'} aria-label={effective.mode === 'cloud' ? '3D graph. Drag empty space or use arrow keys to orbit. Drag a node to move it. Enter opens the selection.' : 'Knowledge graph. Drag a node to move it. Arrow keys pan, plus and minus zoom. Enter opens the selection.'} />
+        <canvas id="graph" ref={view.canvas} aria-describedby={[level.kind !== 'overview' && 'drill-location', selected && 'selection'].filter(Boolean).join(' ') || undefined}
+          aria-label={effective.mode === 'cloud' ? '3D graph. Drag empty space or use arrow keys to orbit. Drag a node to move it. Enter opens the selection.' : 'Knowledge graph. Drag a node to move it. Arrow keys pan, plus and minus zoom. Enter opens the selection.'} />
         <div ref={view.layer} className="graph-annotations" style={{ '--loom-overlay-bg': theme.bezel, '--loom-overlay-ink': theme.ink }} />
         <div id="legend" className="legend" role="group" aria-label={grouping.active.label} hidden={effective.mode === 'lanes'} style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
           {grouping.groups.length > 0 && <span className="legend-title">{grouping.active.label}</span>}
