@@ -8,9 +8,11 @@ On the M2 Max, the bundle including the optional worker measured 23,945 bytes mi
 
 Use Node.js 22 or later.
 
-The [hosted graph studio](https://castlemilk.github.io/loom/) is a Next.js static export. It includes the 25-node excerpt in the initial page and uses TanStack Query to fetch and cache the full graph on demand. Tailwind CSS styles the responsive controls. The framework dependencies live in `web/`.
+The [Loom field guide](https://castlemilk.github.io/loom/) is the entry point for the demos. Run the wire model on the page, open a preset in the full editor, or visit the [artwork catalogue](https://castlemilk.github.io/loom/artwork/) for the four settings illustrations, model geometry, mark and palette. The [art direction](DESIGN.md) documents the visual system.
 
-Open the [Section atlas](https://castlemilk.github.io/loom/?example=clusters) to explore 45 nodes and 88 relationships across four synthetic notebooks. Rotate the Cloud or drag a node to see its section boundary follow. In **Taxonomies**, switch **Group by** to **Connected component** to find the two sets joined by citations. **Group bubbles** controls contour shape, padding, fill, stroke and individual group visibility. **Appearance** maps node radius and wire thickness to fields, with editable scale curves and output ranges. **Style controls → Kind stroke** assigns a pattern to a specific relationship.
+The [hosted graph studio](https://castlemilk.github.io/loom/studio/) is a Next.js static export. It includes the 25-node excerpt in the initial page and uses TanStack Query to fetch and cache the full graph on demand. Tailwind CSS styles the responsive controls. The framework dependencies live in `web/`.
+
+Open the [Section atlas](https://castlemilk.github.io/loom/studio/?example=clusters) to explore 45 nodes and 88 relationships across four synthetic notebooks. Rotate the Cloud or drag a node to see its section boundary follow. In **Taxonomies**, switch **Group by** to **Connected component** to find the two sets joined by citations. **Group bubbles** controls contour shape, padding, fill, stroke and individual group visibility. **Appearance** maps node radius and wire thickness to fields, with editable scale curves and output ranges. **Style controls → Kind stroke** assigns a pattern to a specific relationship.
 
 In **Taxonomies**, choose **Category** and open **Group bubbles** to outline a single knowledge category. Outlines from several taxonomies can be visible together. **Define a taxonomy** accepts JSON field or relationship mappings, and **Display language** edits the connection and unassigned-lane labels. Applied definitions and language are saved in this browser. Drag the separator to change the graph width, or its height on a narrow screen. The arrow keys adjust the separator and Enter restores its starting size.
 
@@ -32,7 +34,7 @@ npm --prefix web ci
 npm run site:dev
 ```
 
-Visit `http://localhost:3000/loom/`. To reproduce the Pages build, run `npm run site:build`. GitHub Actions tests the export under the repository path before deploying it. Set `PAGES_BASE_PATH` to an empty string for a root-domain export.
+Visit `http://localhost:3000/loom/` for the guide and `http://localhost:3000/loom/studio/` for the editor. Existing root links with studio settings or example parameters forward to the editor. To reproduce the Pages build, run `npm run site:build`. GitHub Actions tests the export under the repository path before deploying it. Set `PAGES_BASE_PATH` to an empty string for a root-domain export.
 
 For the standalone core demo, run:
 
@@ -212,9 +214,9 @@ export function mountCatalogue(host: HTMLElement) {
 
 ## Drilldowns and group interactions
 
-Open **Optics** in the legend or click the space between its nodes in the [Section atlas](https://castlemilk.github.io/loom/?example=drilldown). Its eight members spread out while its links to other sections stay visible. Click the same legend entry to collapse it. A click on a child selects it. Double-click or press Enter on a selection to explore its neighbors. Use Back, an ancestor breadcrumb or Escape on the canvas to return.
+Open **Optics** in the legend or click the space between its nodes in the [Section atlas](https://castlemilk.github.io/loom/studio/?example=drilldown). Its eight members spread out while its links to other sections stay visible. Click the same legend entry to collapse it. A click on a child selects it. Double-click or press Enter on a selection to explore its neighbors. Use Back, an ancestor breadcrumb or Escape on the canvas to return.
 
-The [Optics members demo](https://castlemilk.github.io/loom/?example=drilldown&group=Optics&bubbles=off) opens the notebook hub and its seven child nodes in Orbit, with 14 internal links. Select a name under **Explore** to inspect that node. **In context** brings back the surrounding atlas. **Members only** isolates the same group again. Both views share a breadcrumb and the full member list. Larger groups show eight rows per page and search matches names and IDs across every page. The `group` parameter accepts the Section atlas term ID, including `Materials`, `Tides` and `Acoustics`.
+The [Optics members demo](https://castlemilk.github.io/loom/studio/?example=drilldown&group=Optics&bubbles=off) opens the notebook hub and its seven child nodes in Orbit, with 14 internal links. Select a name under **Explore** to inspect that node. **In context** brings back the surrounding atlas. **Members only** isolates the same group again. Both views share a breadcrumb and the full member list. Larger groups show eight rows per page and search matches names and IDs across every page. The `group` parameter accepts the Section atlas term ID, including `Materials`, `Tides` and `Acoustics`.
 
 In **Explore**, **Open a group** switches between in-place expansion, an isolated group with its internal links, and disabled navigation. **Drilldown settings** lets you choose the node actions, bubble gesture, open boundary, member arrangement, spacing, expansion strength and detail layout. The group buttons also work with a keyboard. Search finds nodes in the current view.
 

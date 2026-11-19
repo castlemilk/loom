@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Range, Select } from './fields'
+import { opticsURL } from '../site'
 
 export const navigationDefaults = {
   selectAction: 'inspect', openAction: 'neighbors', groupAction: 'expand', groupGesture: 'click',
@@ -15,8 +16,6 @@ export function detailOptions(value) {
   if (value === 'inherit') return {}
   return { mode: value === 'force' ? 'drift' : value, layout: { anchor: null, blend: 0, guides: false } }
 }
-
-export const opticsExample = (process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/?example=drilldown&group=Optics&bubbles=off'
 
 const pageSize = 8
 const matches = (node, term) => (node.label ?? '').toLowerCase().includes(term) || node.id.toLowerCase().includes(term)
@@ -67,7 +66,7 @@ function NodeBrowser({ snapshot, select, inspect, setView }) {
     return hits
   }, [term, data.nodes, level.action, memberIds])
   return <><div className="explore-heading"><h2 id="settings-explore" tabIndex={-1}>Explore</h2>
-    {level.kind === 'overview' && <a className="example-link" href={opticsExample}>Try Optics <span aria-hidden="true">↗</span></a>}
+    {level.kind === 'overview' && <a className="example-link" href={opticsURL}>Try Optics <span aria-hidden="true">↗</span></a>}
     </div>
     <label className="sr-only" htmlFor="find-node">Find a node in this view</label>
     <input id="find-node" type="search" autoComplete="off" placeholder={level.action === 'isolate' ? 'Filter members by name or ID' : 'Find a node by name or ID'} value={query} onChange={(e) => setQuery(e.target.value)} />

@@ -1,4 +1,27 @@
-# Loom Graph Studio
+# Loom
+
+## Art direction
+
+Loom presents graph layout as a material study. A copper rod shows a connection. An ivory, graphite or terracotta joint shows a node. The field guide pairs a photographic-style wire sculpture with the working graph engine so a visitor can handle a spatial interpretation of the illustration. The product audience is someone evaluating a graph library or configuring a real graph.
+
+The field guide at `/` leads to a running example or the full editor. `/artwork/` publishes individual files and their usage. `/studio/` is the working surface. The studio wordmark returns to the guide. Historical example links at the root forward their query and fragment to the editor.
+
+| Material | Guide colour | Use |
+| --- | --- | --- |
+| Paper | `#f5f3ea` | Reading surface and ground for ink drawings |
+| Graphite | `#202721` | Titles and navigation |
+| Copper | `#9b4427` | Display italic, mark-family accent and active links |
+| Mineral | `#e8ece5` | Background of the example index |
+
+Instrument Serif in roman and italic sets guide titles. The font files are self-hosted, with their licence in `web/public/licenses/`. The example index uses ruled rows, a small drawing, the name of the study and one measurement from the graph. Body text and controls use the studio's sans-serif stack. Joint counts, measurements and source code use monospace.
+
+### Artwork and geometry
+
+The four 224-pixel WebPs in `web/public/illustrations/` are independent crops of the original generated drawing sheet. Explore uses the magnifier, Layout uses parallel lanes, Groups uses enclosing contours, and Style uses a drawing nib. The guide and studio reference the same individual files. The artwork catalogue makes each downloadable. The original `settings-guide.webp` remains available at its existing public address for earlier studio clients.
+
+The wire-study still uses two WebP widths, 640 and 1280 pixels, in a 3:2 frame. It is an original generated illustration. Its spatial interpretation has 21 named movable joints and 41 rods in `web/public/examples/wire-model.json`. The preview and full editor read the same file, anchor positions, palette and wire weights. The still reserves the display space before decoding. The live renderer starts on request and releases its graph when closed. Escape returns focus to the preview button. With WebGL2 unavailable, visitors can still browse and download the artwork.
+
+## Graph studio
 
 The graph is the working surface. The studio is for people authoring graph views who need to see how a change affects reading, picking and dragging a real node. The dark canvas and warm instrument panel come from the existing knowledge console. Keep both legible when authors switch graph themes.
 
@@ -10,7 +33,7 @@ Use the existing Inter/system sans stack for navigation, object names and contro
 
 ## Interaction
 
-The sidebar opens with four illustrated links to Explore, Layout, Groups and Style. The illustrations share one 320-pixel WebP with four quadrants. Each link includes its text label and lands keyboard focus on its heading. The global bubble switch is the first control under Taxonomies. It preserves the per-group choices. On small screens the controls follow the graph in document flow. The splitter resizes graph height there.
+The sidebar opens with four illustrated links to Explore, Layout, Groups and Style. Each link pairs its own drawing with a text label and lands keyboard focus on its heading. The global bubble switch is the first control under Taxonomies. It preserves the per-group choices. On small screens the controls follow the graph in document flow. The splitter resizes graph height there.
 
 Explore lists every member of an open group in source order. The two view buttons change how much of the graph is visible. The list keeps eight rows per page for large groups, and a name or ID search reaches every member. A member button selects the corresponding marker and inspector even when the canvas label is omitted.
 

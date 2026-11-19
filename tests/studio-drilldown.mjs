@@ -115,13 +115,11 @@ export async function studioDrilldown(page, url) {
   assert.deepEqual(await roster.locator('button > span').allTextContents(), names)
   const nav = page.getByRole('navigation', { name: 'Graph settings' })
   assert.deepEqual(await nav.getByRole('link').allTextContents(), ['Explore', 'Layout', 'Groups', 'Style'])
-  const artSize = await nav.locator('.settings-art').first().evaluate(async (el) => {
-    const img = new Image()
-    img.src = getComputedStyle(el).backgroundImage.match(/url\(["']?(.*?)["']?\)/)[1]
+  const settingsArt = await nav.locator('img').evaluateAll(async (images) => Promise.all(images.map(async (img) => {
     await img.decode()
-    return [img.naturalWidth, img.naturalHeight]
-  })
-  assert.deepEqual(artSize, [320,320])
+    return [new URL(img.src).pathname.split('/').at(-1), img.naturalWidth, img.naturalHeight]
+  })))
+  assert.deepEqual(settingsArt, ['explore','layout','groups','style'].map((id) => [id + '.webp',224,224]))
   await capture('atlas-optics-members', 8)
   const bubbles = page.getByRole('switch', { name: 'Show group bubbles' })
   await nav.getByRole('link', { name: 'Groups' }).click()
@@ -168,5 +166,5 @@ export async function studioDrilldown(page, url) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.deepEqual(errors, [])
   return { overview: [45,88], isolated: [8,14], inspectedMembers: names.length, pagedMembers: 15,
-    settingsArt: artSize, nested: [2,1], expandedBoundary: 'outline', mobileOverflow: overflow }
+    settingsArt, nested: [2,1], expandedBoundary: 'outline', mobileOverflow: overflow }
 }

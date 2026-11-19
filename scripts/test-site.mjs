@@ -6,10 +6,12 @@ import { studio } from '../tests/studio.mjs'
 import { studioConfiguration } from '../tests/studio-config.mjs'
 import { studioLoad } from '../tests/studio-load.mjs'
 import { studioDrilldown } from '../tests/studio-drilldown.mjs'
+import { fieldGuide } from '../tests/field-guide.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
-const url = liveURL || 'https://loom.test' + base
+const home = liveURL || 'https://loom.test' + base
+const url = new URL('studio/', home).href
 const root = fileURLToPath(new URL('../web/out/', import.meta.url))
 const browser = await chromium.launch({
   channel: process.env.LOOM_BROWSER_CHANNEL,
@@ -21,7 +23,8 @@ try {
     await context.route('**/*', async (route) => {
       const request = new URL(route.request().url())
       if (request.host !== 'loom.test' || !request.pathname.startsWith(base)) return route.abort()
-      const file = path.resolve(root, request.pathname.slice(base.length) || 'index.html')
+      const relative = request.pathname.slice(base.length)
+      const file = path.resolve(root, relative + (request.pathname.endsWith('/') ? 'index.html' : ''))
       if (!file.startsWith(root)) return route.abort()
       try {
         await route.fulfill({ path: file })
@@ -30,6 +33,7 @@ try {
       }
     })
   }
+  const guide = await fieldGuide(context, home)
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)
   const drilldown = await studioDrilldown(drillPage, url)
@@ -63,22 +67,22 @@ try {
   const configPage = await context.newPage()
   configPage.setDefaultTimeout(15000)
   const configuration = await studioConfiguration(configPage, url)
-  const packageHeader = await configPage.evaluate(async ({ live, expected }) => {
-    const revisionURL = new URL('revision.txt', location.href)
+  const packageHeader = await configPage.evaluate(async ({ home, live, expected }) => {
+    const revisionURL = new URL('revision.txt', home)
     if (expected) revisionURL.searchParams.set('sha', expected)
     const revision = live ? (await (await fetch(revisionURL, { cache: 'no-store' })).text()).trim() : ''
     if (live && (!/^[a-f\d]{40}$/.test(revision) || (expected && expected !== revision))) throw new Error('Unexpected package revision')
     const prefix = live ? 'packages/' + revision + '/' : ''
-    const response = await fetch(new URL(prefix + 'loom-core-0.1.0.tgz', location.href))
+    const response = await fetch(new URL(prefix + 'loom-core-0.1.0.tgz', home))
     if (!response.ok) throw new Error('TypeScript package HTTP ' + response.status)
     return [...new Uint8Array(await response.arrayBuffer()).slice(0, 2)]
-  }, { live: Boolean(liveURL), expected: process.env.GITHUB_SHA })
+  }, { home, live: Boolean(liveURL), expected: process.env.GITHUB_SHA })
   assert.deepEqual(packageHeader, [0x1f, 0x8b], 'Studio should serve the installable npm archive')
   await configPage.close()
   const loadPage = await context.newPage()
   loadPage.setDefaultTimeout(18000)
   const workload = await studioLoad(loadPage, url)
-  console.log({ ...result, worker, snapshotRequests: snapshots, configuration, drilldown, workload })
+  console.log({ guide, ...result, worker, snapshotRequests: snapshots, configuration, drilldown, workload })
 } finally {
   await browser.close()
 }

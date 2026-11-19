@@ -17,8 +17,10 @@ import { useGraph } from './use-graph'
 import { Grouping, useGrouping } from './grouping'
 import { Splitter } from './splitter'
 import { DrillControls, DrillTrail, detailOptions, navigationDefaults } from './drilldown-controls'
+import { artURL, fetchGraphFile, homeURL, modelURL, settingsSections } from '../site'
+import { wireAnchor, wireForces, wireStyle } from './wire-study'
 
-const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
+const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas'], ['model', 'Wire model'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
 const modes = ['Drift', 'Lanes', 'Orbit', 'Cloud']
 const simulations = [['auto', 'Automatic'], ['main', 'Main thread'], ['worker', 'Worker']]
 const positioned = [['seeded', 'Positioned · movable'], ['fixed', 'Positioned · pinned']]
@@ -30,20 +32,13 @@ const labels = [['auto', 'Automatic'], ['focus', 'Focus only'], ['none', 'Hidden
 const formatCount = new Intl.NumberFormat('en')
 const percent = (value) => value + '%'
 const times = (value) => value + '×'
-const settingsSections = [['explore', 'Explore'], ['layout', 'Layout'], ['groups', 'Groups'], ['style', 'Style']]
 
 function SettingsNav() {
-  return <nav className="settings-nav" aria-label="Graph settings" style={{ '--settings-art': 'url("' + process.env.NEXT_PUBLIC_BASE_PATH + '/settings-guide.webp")' }}>
-    {settingsSections.map(([id, label]) => <a key={id} href={'#settings-' + id}>
-      <span aria-hidden="true" className={'settings-art art-' + id} />{label}
+  return <nav className="settings-nav" aria-label="Graph settings">
+    {settingsSections.map(({ id, label }) => <a key={id} href={'#settings-' + id}>
+      <img className="settings-art" src={artURL(id + '.webp')} width="35" height="35" alt="" />{label}
     </a>)}
   </nav>
-}
-
-async function fetchKnowledge({ signal }) {
-  const response = await fetch(process.env.NEXT_PUBLIC_BASE_PATH + '/graphs/knowledge.json', { signal })
-  if (!response.ok) throw new Error('Could not load the full graph (HTTP ' + response.status + ').')
-  return response.json()
 }
 
 export default function Studio({ sample }) {
@@ -79,8 +74,9 @@ function Workbench({ sample }) {
   })), [workload.config])
   const countOption = countOptions.find((option) => option.value === dataset)
   const stress = dataset === 'stress' || !!countOption
-  const full = useQuery({
-    queryKey: ['knowledge-console', 'full'], queryFn: fetchKnowledge, enabled: dataset === 'full',
+  const remoteURL = dataset === 'model' ? modelURL : dataset === 'full' ? homeURL + 'graphs/knowledge.json' : null
+  const remote = useQuery({
+    queryKey: ['studio-graph', remoteURL], queryFn: ({ signal }) => fetchGraphFile(remoteURL, signal), enabled: !!remoteURL,
     staleTime: Infinity, gcTime: Infinity, retry: 1,
   })
   const placement = physics === 'seeded' ? 'seeded' : physics === 'fixed'
@@ -90,7 +86,7 @@ function Workbench({ sample }) {
     return null
   }, [stress, countOption, workload, placement])
   const atlas = useMemo(() => dataset === 'sections' ? sectionAtlas() : null, [dataset])
-  const source = atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : dataset === 'full' && full.data ? full.data : sample)
+  const source = atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : remote.data ?? sample)
   const drill = useMemo(() => createDrilldown(source), [source])
   const snapshot = useSyncExternalStore(drill.subscribe, drill.getSnapshot, drill.getSnapshot)
   const data = useMemo(() => snapshot.data === source ? source : { ...source, ...snapshot.data }, [source, snapshot.data])
@@ -129,8 +125,9 @@ function Workbench({ sample }) {
   const clusters = useMemo(() => packed ? clusterLayout(data.nodes, grouping.laneBy,
     { gap, dimensions: mode === 'cloud' ? 3 : 2, depth: settings.cloudDepth }) : null,
     [packed, data, grouping.laneBy, gap, mode, settings.cloudDepth])
-  const overviewLayout = useMemo(() => ({ ...settings, anchor: clusters?.anchor ?? null, laneBy: grouping.laneBy, laneOrder: grouping.laneOrder,
-    springsByKind: stress ? undefined : consoleLayout.springsByKind }), [settings, stress, clusters, grouping.laneBy, grouping.laneOrder])
+  const showWireShape = dataset === 'model' && !!remote.data && (mode === 'cloud' || mode === 'drift')
+  const overviewLayout = useMemo(() => ({ ...settings, anchor: clusters?.anchor ?? (showWireShape ? wireAnchor : null), laneBy: grouping.laneBy, laneOrder: grouping.laneOrder,
+    springsByKind: stress || dataset === 'model' ? undefined : consoleLayout.springsByKind }), [settings, stress, clusters, grouping.laneBy, grouping.laneOrder, dataset, showWireShape])
   const engine = physics === 'worker' || physics === 'main' ? physics : undefined
   const effective = useMemo(() => drill.resolveLayout(mode, overviewLayout), [drill, mode, overviewLayout, snapshot.path, snapshot.options])
   const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill)
@@ -172,6 +169,14 @@ function Workbench({ sample }) {
     setDataset(next)
   }
   function pickGraph(value) {
+    if (value === 'model') {
+      setMode('cloud')
+      setPacked(false)
+      setEncoding(initialEncoding)
+      setStyle(wireStyle())
+      grouping.setActive('kind')
+      setSettings((old) => ({ ...old, ...wireForces }))
+    }
     if (value === 'sections') {
       grouping.setActive('section')
       grouping.setBoundary({ shape: 'cloud', padding: 10, fillOpacity: 0.085 })
@@ -191,9 +196,25 @@ function Workbench({ sample }) {
   const requestedGroup = useRef(null)
   useEffect(() => {
     const params = new URLSearchParams(location.search)
-    if (['clusters', 'drilldown'].includes(params.get('example'))) {
-      if (params.get('example') === 'drilldown') requestedGroup.current = params.get('group')
+    const example = params.get('example')
+    if (example === 'wire-model') pickGraph('model')
+    if (['clusters', 'drilldown', 'lanes', 'wires'].includes(example)) {
+      if (example === 'drilldown') requestedGroup.current = params.get('group')
       pickGraph('sections')
+      if (example === 'lanes') {
+        setMode('lanes')
+        setPacked(false)
+        setSettings((old) => ({ ...old, blend: 1, guides: true }))
+        grouping.setBubblesVisible(false)
+      }
+      if (example === 'wires') {
+        requestedGroup.current = 'Materials'
+        grouping.setBubblesVisible(false)
+        setEncoding((old) => ({ ...old, widths: [1, 5] }))
+        setStyle((old) => ({ ...old, route: 'arc', wires: {
+          contains: { color: '#d1cfc0' }, cites: { color: '#e29973', pattern: 'dashed' }, replicates: { color: '#94c9ba', pattern: 'dotted' },
+        } }))
+      }
     }
     if (params.get('bubbles') === 'off') grouping.setBubblesVisible(false)
   }, [])
@@ -218,7 +239,7 @@ function Workbench({ sample }) {
 
   return <>
     <header className="shrink-0">
-      <div className="identity"><span className="wordmark"><i aria-hidden="true" />Loom</span>
+      <div className="identity"><a className="wordmark studio-home" href={homeURL} aria-label="Loom field guide"><img src={artURL('loom-mark.svg')} width="20" height="18" alt="" />Loom</a>
         <span className="slash" aria-hidden="true">/</span><h1>Graph studio</h1></div>
       <label className="dataset">Graph<select id="dataset" value={dataset} onChange={(e) => pickGraph(e.target.value)}>
         {datasets.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -272,8 +293,8 @@ function Workbench({ sample }) {
           <button id="pause" onClick={view.togglePause}>{view.paused ? 'Resume' : 'Pause'}</button>
           <button id="perf-toggle" aria-pressed={perf} aria-controls="perf-panel" onClick={() => setPerf(!perf)}>Perf</button>
         </div>
-        {dataset === 'full' && !full.data && <div role="status" className="absolute inset-x-4 top-14 mx-auto w-fit rounded-md bg-paper px-3 py-2 text-graphite shadow-md">
-          {full.isError ? <>{full.error.message} <button onClick={() => full.refetch()}>Retry</button></> : 'Loading the full graph…'}
+        {remoteURL && !remote.data && <div role="status" className="absolute inset-x-4 top-14 mx-auto w-fit rounded-md bg-paper px-3 py-2 text-graphite shadow-md">
+          {remote.isError ? <>{remote.error.message} <button onClick={() => remote.refetch()}>Retry</button></> : 'Loading the graph…'}
         </div>}
         <p id="error" role="alert" hidden={!view.error}>{view.error}</p>
       </section>

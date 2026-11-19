@@ -1,8 +1,10 @@
-import './globals.css'
+import { artURL } from '../site'
 
 export const metadata = {
-  title: 'Loom · Graph studio',
-  description: 'Explore a knowledge graph and shape its layout, springs, artwork and connections.',
+  metadataBase: new URL('https://castlemilk.github.io'),
+  title: { default: 'Loom · A field guide to graphs', template: '%s · Loom' },
+  description: 'Explore graph layout, grouping and relationships with Loom, a WebGL2 graph studio and TypeScript library.',
+  icons: { icon: { url: artURL('loom-mark.svg'), type: 'image/svg+xml' } },
 }
 
 export default function RootLayout({ children }) {
