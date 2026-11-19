@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loom editor transaction v1",
+  "description": "Operations are evaluated in order and applied atomically. Read the current revision before submitting a guarded edit.",
+  "type": "object",
+  "required": [
+    "version",
+    "operations"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "documentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expectedRevision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Add a node with a new stable ID.",
+            "required": [
+              "op",
+              "value"
+            ],
+            "properties": {
+              "op": {
+                "const": "node.add"
+              },
+              "value": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "z": {
+                    "type": "number"
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "degree": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "art": {
+                    "type": "string"
+                  },
+                  "section": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "contentSize": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "complexity": {
+                    "type": "number"
+                  },
+                  "metrics": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Set or unset fields. Identity stays stable and link endpoints must exist.",
+            "required": [
+              "op",
+              "id"
+            ],
+            "properties": {
+              "op": {
+                "const": "node.update"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "changes": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "id": false,
+                  "label": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "z": {
+                    "type": "number"
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "degree": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "art": {
+                    "type": "string"
+                  },
+                  "section": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "contentSize": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "complexity": {
+                    "type": "number"
+                  },
+                  "metrics": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "unset": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "not": {
+                    "enum": [
+                      "id"
+                    ]
+                  }
+                }
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "changes"
+                ]
+              },
+              {
+                "required": [
+                  "unset"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "description": "Remove a node. Set cascade to remove incident links in the same transaction.",
+            "required": [
+              "op",
+              "id"
+            ],
+            "properties": {
+              "op": {
+                "const": "node.remove"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cascade": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Connect two existing nodes. Parallel links may have distinct IDs.",
+            "required": [
+              "op",
+              "value"
+            ],
+            "properties": {
+              "op": {
+                "const": "link.add"
+              },
+              "value": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "source",
+                  "target"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": "number"
+                  },
+                  "metrics": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Set or unset fields. Identity stays stable and link endpoints must exist.",
+            "required": [
+              "op",
+              "id"
+            ],
+            "properties": {
+              "op": {
+                "const": "link.update"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "changes": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "id": false,
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": "number"
+                  },
+                  "metrics": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "unset": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "not": {
+                    "enum": [
+                      "id",
+                      "source",
+                      "target"
+                    ]
+                  }
+                }
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "changes"
+                ]
+              },
+              {
+                "required": [
+                  "unset"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "description": "Remove one link by its stable ID.",
+            "required": [
+              "op",
+              "id"
+            ],
+            "properties": {
+              "op": {
+                "const": "link.remove"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  }
+}
