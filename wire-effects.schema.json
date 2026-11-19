@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "separation": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 96,
+      "default": 14,
+      "description": "Midpoint spacing of parallel paths in CSS pixels."
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "none",
+        "arrow",
+        "flow"
+      ],
+      "default": "arrow",
+      "description": "Source-to-target direction indicator."
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "selected",
+        "all"
+      ],
+      "default": "selected",
+      "description": "Apply direction to incident links of the selection or to all links."
+    },
+    "speed": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 240,
+      "default": 48,
+      "description": "Flow speed in CSS pixels per second; zero holds static arrows."
+    }
+  }
+}
