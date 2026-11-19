@@ -14,6 +14,10 @@ In **Taxonomies**, choose **Category** and open **Group bubbles** to outline a s
 
 Open **Test data**, choose **Image atlas**, then **Generate graph** to draw 1,024 image-bearing nodes. Select **Cloud** and drag the background to orbit. Open **Perf** to watch frame intervals and artwork decoding while you zoom or pull a node.
 
+The **Node size** control in the header scales every marker from 0.30× to 16×. Drag the slider for fine adjustments, use **−** and **+** for larger steps, or click the multiplier to restore the theme size. Scroll or pinch over the canvas to zoom the camera independently.
+
+To increase the number of nodes, open **Graph → Generated node counts** and pick **1,000**, **5,000**, **10,000** or **25,000**. The hosted studio reuses the seed, artwork, content and connection settings from the last generated workload. Each option shows its link count. Dense workloads use fewer links per node at sizes that would exceed 100,000 links. **Append batch** in Test data adds nodes to the current dataset.
+
 The generator accepts up to 25,000 nodes and 100,000 links. Choose local clusters, hubs or random connections. Set the image coverage, choose from 256 bundled WebP specimens and switch between titles, notes and full articles. Select a node to inspect its image and text. Reusing a seed keeps the same topology when you change the payload. **Append batch** adds nodes and a connecting edge to the graph on screen. **Export JSON** saves the current data, including artwork references.
 
 **Import JSON** reads a local file with `nodes` and `links` (or `edges`). Give each node a unique string `id`. Links reference these IDs with `source` and `target`. Nodes can carry `label`, `kind`, `summary`, `content` and `art`. An optional `artwork` dictionary maps art keys to URLs. Raster data URLs, bundled `graphs/` paths and HTTP(S) image URLs are accepted. External image hosts must allow CORS for WebGL atlas uploads.

@@ -3,11 +3,12 @@
 import { useMemo, useState } from 'react'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { consoleLayout } from '../../dist/console.js'
-import { buildWorkload, initialWorkload, imageURL } from './workload.mjs'
+import { buildWorkload, initialWorkload, imageURL, maxLinks } from './workload.mjs'
+import { maxNodeSize, minNodeSize, nodeCounts, sizeLabel, stepNodeSize } from '../../demo/node-controls.js'
 import { WorkloadControls } from './workload-controls'
 import { CloudCompass, PerfPanel } from './perf-panel'
 import { Check, Color, Range, Select } from './fields'
-import { kindOrder, makeTheme, marker, preset } from './appearance'
+import { kindOrder, makeTheme, marker, palettes as themePresets, preset } from './appearance'
 import { useGraph } from './use-graph'
 import { Grouping, useGrouping } from './grouping'
 import { Splitter } from './splitter'
@@ -40,10 +41,13 @@ function Workbench({ sample }) {
   const [dataset, setDataset] = useState('sample')
   const [physics, setPhysics] = useState('auto')
   const [workload, setWorkload] = useState({ config: initialWorkload, data: null })
+  const [workloadDraft, editWorkload] = useState(initialWorkload)
   const [custom, setCustom] = useState(null)
   const [perf, setPerf] = useState(false)
   const [mode, setMode] = useState('drift')
   const [style, setStyle] = useState(() => preset('console'))
+  const nodeSize = Math.round(style.nodeScale * 100)
+  const defaultSize = Math.round((themePresets[style.name].nodes?.scale ?? 1) * 100)
   const [kindChoice, chooseKind] = useState('study')
   const [wireChoice, chooseWire] = useState('concept')
   const [settings, setSettings] = useState({
@@ -51,13 +55,22 @@ function Workbench({ sample }) {
     springStrength: 1, repulsion: 1, direction: 'horizontal', guides: false, pinOnDrag: false, cloudDepth: 1, autoRotate: true,
   })
 
-  const stress = dataset === 'stress'
+  const countOptions = useMemo(() => nodeCounts.map((nodes) => ({
+    value: 'count-' + nodes,
+    config: { ...workload.config, nodes, degree: Math.min(workload.config.degree, Math.floor(maxLinks / nodes)) },
+  })), [workload.config])
+  const countOption = countOptions.find((option) => option.value === dataset)
+  const stress = dataset === 'stress' || !!countOption
   const full = useQuery({
     queryKey: ['knowledge-console', 'full'], queryFn: fetchKnowledge, enabled: dataset === 'full',
     staleTime: Infinity, gcTime: Infinity, retry: 1,
   })
   const placement = physics === 'seeded' ? 'seeded' : physics === 'fixed'
-  const generated = useMemo(() => stress ? (!placement && workload.data || buildWorkload(workload.config, placement)) : null, [stress, workload, placement])
+  const generated = useMemo(() => {
+    if (countOption) return buildWorkload(countOption.config, placement)
+    if (stress) return !placement && workload.data || buildWorkload(workload.config, placement)
+    return null
+  }, [stress, countOption, workload, placement])
   const data = stress ? generated : dataset === 'custom' && custom ? custom.data : dataset === 'full' && full.data ? full.data : sample
   const palette = useMemo(() => makeTheme(style), [style])
   const grouping = useGrouping(data, palette)
@@ -87,6 +100,7 @@ function Workbench({ sample }) {
   const stats = view.stats
   const adjust = (key, value) => setSettings((old) => ({ ...old, [key]: value }))
   const paint = (key, value) => setStyle((old) => ({ ...old, [key]: value }))
+  const sizeNodes = (percent) => paint('nodeScale', percent / 100)
   function paintKind(patch) {
     setStyle((old) => ({ ...old, nodes: { ...old.nodes, [kind]: { ...nodeStyle, ...patch } } }))
   }
@@ -94,18 +108,37 @@ function Workbench({ sample }) {
     setStyle((old) => ({ ...old, wires: { ...old.wires, [wire]: { ...old.wires[wire], ...patch } } }))
   }
   function switchDataset(next) {
-    if (next !== 'stress' && ['fixed', 'seeded'].includes(physics)) setPhysics('auto')
+    if (next !== 'stress' && !next.startsWith('count-') && ['fixed', 'seeded'].includes(physics)) setPhysics('auto')
     setDataset(next)
+  }
+  function pickGraph(value) {
+    const option = countOptions.find((entry) => entry.value === value)
+    if (option) editWorkload(option.config)
+    else if (value === 'stress') editWorkload(workload.config)
+    switchDataset(value)
   }
 
   return <>
     <header className="shrink-0">
       <div className="identity"><span className="wordmark"><i aria-hidden="true" />Loom</span>
         <span className="slash" aria-hidden="true">/</span><h1>Graph studio</h1></div>
-      <label className="dataset">Graph<select id="dataset" value={dataset} onChange={(e) => switchDataset(e.target.value)}>
+      <label className="dataset">Graph<select id="dataset" value={dataset} onChange={(e) => pickGraph(e.target.value)}>
         {datasets.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         {custom && <option value="custom">{custom.name}</option>}
+        <optgroup label="Generated node counts">{countOptions.map(({ value, config }) =>
+          <option key={value} value={value}>{formatCount.format(config.nodes)} nodes · {formatCount.format(config.nodes * config.degree)} links</option>)}</optgroup>
       </select></label>
+      <div className="node-sizing" role="group" aria-label="Node sizing">
+        <label htmlFor="node-size">Node size</label>
+        <button type="button" id="size-down" aria-label="Decrease node size" disabled={nodeSize <= minNodeSize}
+          onClick={() => sizeNodes(stepNodeSize(nodeSize, -1))}>−</button>
+        <input id="node-size" type="range" min={minNodeSize} max={maxNodeSize} step="1" value={nodeSize}
+          aria-valuetext={sizeLabel(nodeSize)} onChange={(e) => sizeNodes(Number(e.target.value))} />
+        <button type="button" id="size-up" aria-label="Increase node size" disabled={nodeSize >= maxNodeSize}
+          onClick={() => sizeNodes(stepNodeSize(nodeSize, 1))}>+</button>
+        <button type="button" id="size-default" aria-label="Reset node size" title={'Reset to theme size (' + sizeLabel(defaultSize) + ')'}
+          onClick={() => sizeNodes(defaultSize)}><output id="size-value" htmlFor="node-size">{sizeLabel(nodeSize)}</output><span aria-hidden="true">↺</span></button>
+      </div>
     </header>
     <main className="studio-workspace min-w-0">
       <section id="studio-stage" className="stage isolate" aria-label="Graph viewport" onPointerUp={view.syncPin} onPointerCancel={view.syncPin}>
@@ -133,7 +166,7 @@ function Workbench({ sample }) {
       </section>
       <Splitter />
       <aside id="studio-controls" aria-label="Graph controls" className="min-w-0 min-[701px]:overscroll-contain">
-        <WorkloadControls data={data} active={stress || dataset === 'custom'}
+        <WorkloadControls data={data} active={stress || dataset === 'custom'} draft={workloadDraft} edit={editWorkload}
           onGenerate={(config, next) => { setWorkload({ config, data: next }); switchDataset('stress') }}
           onLoad={(next, name) => { setCustom({ data: next, name }); switchDataset('custom') }} />
         <section><h2>Layout</h2>
@@ -161,7 +194,6 @@ function Workbench({ sample }) {
         <section><h2>Appearance</h2>
           <Select id="theme" label="Theme" options={palettes} value={style.name} onChange={(v) => setStyle(preset(v))} />
           <Select id="route" label="Wires" options={routes} value={style.route} onChange={(v) => paint('route', v)} />
-          <Range id="node-size" label="Node scale" min={30} max={300} value={Math.round(style.nodeScale * 100)} outputId="size-value" format={(v) => (v / 100).toFixed(2) + '×'} onChange={(v) => paint('nodeScale', v / 100)} />
           <details><summary>Style controls</summary>
             <Select id="kind" label="Node kind" options={kinds.map((k) => [k, k])} value={kind} onChange={chooseKind} />
             <Color id="kind-color" label="Marker colour" value={nodeStyle.color} onChange={(color) => paintKind({ color })} />

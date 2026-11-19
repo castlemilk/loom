@@ -71,8 +71,46 @@ export async function studioLoad(page, url) {
   assert.equal(exported.nodes.length, new Set(exported.nodes.map((n) => n.id)).size)
   assert.ok(exported.nodes.every((n) => n.content && n.art))
   const upload = (data) => byId('workload-file').setInputFiles({ name: 'my-fixture.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)) })
-  await upload({ nodes: [{ id: 'a', kind: 'custom', label: 'My specimen', summary: 'A supplied note.' }], links: [] })
+  await upload({ nodes: [{ id: 'a', kind: 'custom', label: 'My specimen', summary: 'A supplied note.', x: 0, y: 0 }], links: [] })
   await page.getByText('1 node · 0 links', { exact: true }).waitFor()
+  const hitRadius = () => graph.evaluate(async (el) => {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    const box = el.getBoundingClientRect(), x = box.x + box.width / 2, y = box.y + box.height / 2
+    for (let dy = 0; dy < box.height / 2; dy++) {
+      el.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y - dy, pointerType: 'mouse' }))
+      if (!el.hasAttribute('data-node')) return dy
+    }
+    return box.height / 2
+  })
+  const paintedRadius = async () => {
+    const image = await graph.screenshot({ scale: 'css' })
+    return page.evaluate(async (png) => {
+      const bytes = Uint8Array.from(atob(png), (c) => c.charCodeAt(0))
+      const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
+      const ctx = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d')
+      ctx.drawImage(bitmap, 0, 0)
+      bitmap.close()
+      const { width, height } = ctx.canvas, cy = Math.floor(height / 2)
+      const background = ctx.getImageData(1, cy, 1, 1).data
+      const line = ctx.getImageData(Math.floor(width / 2), 0, 1, cy + 1).data
+      for (let dy = 0; dy < cy; dy++) {
+        const i = (cy - dy) * 4
+        if (Math.abs(line[i] - background[0]) + Math.abs(line[i + 1] - background[1]) + Math.abs(line[i + 2] - background[2]) < 12) return dy
+      }
+      return cy
+    }, image.toString('base64'))
+  }
+  await byId('fit').click()
+  const originalRadius = await hitRadius()
+  const originalPaint = await paintedRadius()
+  for (let i = 0; i < 5; i++) await byId('size-up').click()
+  const enlargedRadius = await hitRadius()
+  const enlargedPaint = await paintedRadius()
+  assert.equal(await byId('size-value').textContent(), '4×')
+  assert.ok(originalRadius > 5 && enlargedRadius > 2 * originalRadius, 'A larger marker must grow its actual pick area')
+  assert.ok(originalPaint > 2 && enlargedPaint > 2 * originalPaint, 'The WebGL marker must visibly grow')
+  await byId('size-default').click()
+  assert.equal(await hitRadius(), originalRadius)
   await upload({ nodes: [], links: [{ source: 'bad', target: 'ref' }] })
   await page.getByText(/Every link needs existing/).waitFor()
   assert.equal(await byId('totals').textContent(), '1 node · 0 links')
@@ -80,9 +118,14 @@ export async function studioLoad(page, url) {
   await byId('perf-toggle').click()
   await byId('perf-panel').waitFor()
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
-  await byId('workload-preset').selectOption('scale')
+  await byId('workload-preset').selectOption('hubs')
+  await byId('workload-nodes').fill('20')
   await create()
-  await page.getByText('25,000 nodes · 100,000 links', { exact: true }).waitFor()
+  await byId('totals').getByText('20 nodes · 240 links', { exact: true }).waitFor()
+  await byId('dataset').selectOption('count-25000')
+  await byId('totals').getByText('25,000 nodes · 100,000 links', { exact: true }).waitFor()
+  assert.equal(await byId('workload-nodes').inputValue(), '25000')
+  assert.equal(await byId('workload-degree').inputValue(), '4')
   await graph.scrollIntoViewIfNeeded()
   await graph.press('ArrowRight')
   await page.waitForFunction(() => {
@@ -93,7 +136,11 @@ export async function studioLoad(page, url) {
   const draws = parseInt(await metric('Draws / labels').textContent())
   assert.ok(draws > 0 && draws <= 4, '25k-node cloud should fit within four draw calls')
   assert.equal(await graph.evaluate((el) => el.getContext('webgl2').getError()), 0)
+  await byId('dataset').selectOption('count-1000')
+  await byId('totals').getByText('1,000 nodes · 12,000 links', { exact: true }).waitFor()
+  assert.equal(await byId('workload-degree').inputValue(), '12')
   assert.deepEqual(errors, [])
   return { loadedTiles: 4, exportedNodes: exported.nodes.length, payloadCharacters: exported.nodes[0].content.length,
+    markerHitRadius: [originalRadius, enlargedRadius], markerPaintRadius: [originalPaint, enlargedPaint],
     scale: { nodes: 25000, links: 100000, draws }, gpu }
 }

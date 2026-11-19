@@ -2,6 +2,7 @@ import { createGraph, fromConsole, ink, parchment, blueprint, knowledgeConsole }
 import { consoleLayout } from '../dist/console.js'
 import snapshot from './knowledge.json' with { type: 'json' }
 import { fixture } from './fixture.js'
+import { maxNodeSize, minNodeSize, nodeCounts, sizeLabel, stepNodeSize } from './node-controls.js'
 
 const byId = (id) => document.getElementById(id)
 const canvas = byId('graph')
@@ -31,6 +32,7 @@ let graph,
   edits = {},
   wireEdits = {}
 const base = () => themes[byId('theme').value]
+const generated = () => byId('dataset').value === 'stress' || byId('dataset').value.startsWith('count-')
 function currentTheme() {
   const theme = base(),
     wires = theme.wires ?? {},
@@ -65,7 +67,7 @@ function currentLayout() {
     linkDistance: Number(byId('link-distance').value),
     springStrength: Number(byId('spring').value),
     repulsion: Number(byId('repulsion').value),
-    springsByKind: byId('dataset').value === 'stress' ? undefined : consoleLayout.springsByKind,
+    springsByKind: generated() ? undefined : consoleLayout.springsByKind,
     guides: byId('guides').checked,
     pinOnDrag: byId('pin-drag').checked,
   }
@@ -116,11 +118,19 @@ function styleInputs() {
   byId('artwork').checked = t.nodes?.artwork !== false
   byId('labels').value = t.labels?.visibility ?? 'auto'
 }
+function showNodeSize() {
+  const size = Number(byId('node-size').value)
+  byId('size-value').value = sizeLabel(size)
+  byId('node-size').setAttribute('aria-valuetext', sizeLabel(size))
+  byId('size-down').disabled = size <= minNodeSize
+  byId('size-up').disabled = size >= maxNodeSize
+  byId('size-default').title = 'Reset to theme size (' + sizeLabel(Math.round((base().nodes?.scale ?? 1) * 100)) + ')'
+}
 function restyle() {
   const t = currentTheme()
   graph?.setTheme(t)
   legend(t)
-  byId('size-value').value = t.nodes.scale.toFixed(2) + '×'
+  showNodeSize()
   byId('opacity-value').value = Math.round(t.wires.opacity * 100) + '%'
 }
 function diagnostics() {
@@ -147,7 +157,7 @@ function inspect() {
 }
 function mount() {
   const dataset = byId('dataset').value,
-    stress = dataset === 'stress'
+    stress = generated()
   const simulation = byId('physics')
   for (const value of ['fixed', 'seeded'])
     simulation.querySelector('[value="' + value + '"]').disabled = !stress
@@ -228,6 +238,13 @@ byId('theme').onchange = () => {
 }
 for (const id of ['route', 'grid', 'artwork', 'labels']) byId(id).onchange = restyle
 for (const id of ['node-size', 'wire-opacity']) byId(id).oninput = restyle
+function sizeNodes(percent) {
+  byId('node-size').value = String(percent)
+  restyle()
+}
+byId('size-down').onclick = () => sizeNodes(stepNodeSize(Number(byId('node-size').value), -1))
+byId('size-up').onclick = () => sizeNodes(stepNodeSize(Number(byId('node-size').value), 1))
+byId('size-default').onclick = () => sizeNodes(Math.round((base().nodes?.scale ?? 1) * 100))
 byId('kind').onchange = kindControls
 byId('wire-kind').onchange = wireControls
 function editWire() {
@@ -254,7 +271,18 @@ byId('shape').onchange = editKind
 byId('count').oninput = (e) => {
   byId('countLabel').value = Number(e.target.value).toLocaleString()
 }
-for (const id of ['dataset', 'count', 'physics']) byId(id).onchange = mount
+for (const n of nodeCounts) byId('node-counts').append(new Option(n.toLocaleString('en') + ' nodes · ' + (n * 4).toLocaleString('en') + ' links', 'count-' + n))
+byId('dataset').onchange = () => {
+  const value = byId('dataset').value
+  if (value.startsWith('count-')) {
+    const n = Number(value.slice(6))
+    byId('count').value = String(n)
+    byId('countLabel').value = n.toLocaleString('en')
+  }
+  mount()
+}
+byId('count').onchange = () => { byId('dataset').value = 'stress'; mount() }
+byId('physics').onchange = mount
 byId('fit').onclick = () => graph?.fit()
 byId('reset').onclick = () => graph?.reset()
 byId('pause').onclick = () => {
@@ -282,6 +310,6 @@ byId('refresh').onclick = diagnostics
 byId('blend').value = String(consoleLayout.blend * 100)
 byId('blend-value').value = byId('blend').value + '%'
 styleInputs()
-byId('size-value').value = (Number(byId('node-size').value) / 100).toFixed(2) + '×'
+showNodeSize()
 byId('opacity-value').value = byId('wire-opacity').value + '%'
 mount()

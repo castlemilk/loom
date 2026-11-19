@@ -30,6 +30,18 @@ export async function studio(page, url) {
   await page.mouse.click(hit.clientX, hit.clientY)
   await byId('focus').click()
   await nextPaint()
+  const selectedBeforeSizing = await byId('selection').textContent()
+  await page.getByRole('button', { name: 'Increase node size' }).click()
+  check(await byId('size-value').textContent() === '1.25×', 'Node size step failed')
+  await byId('node-size').focus()
+  await byId('node-size').press('End')
+  check(await byId('size-value').textContent() === '16×' && await byId('size-up').isDisabled(), 'Maximum node size failed')
+  await byId('node-size').press('Home')
+  check(await byId('size-value').textContent() === '0.3×' && await byId('size-down').isDisabled(), 'Minimum node size failed')
+  await page.getByRole('button', { name: 'Reset node size' }).click()
+  await nextPaint()
+  check(await byId('size-value').textContent() === '1.15×' && await byId('selection').textContent() === selectedBeforeSizing,
+    'Resizing lost the selected node or theme size')
   const box = await canvas.boundingBox()
   const x = box.x + box.width / 2
   const y = box.y + box.height / 2
@@ -75,6 +87,8 @@ export async function studio(page, url) {
   check(full === '508 nodes · 746 links', 'Full knowledge snapshot failed')
   await byId('dataset').selectOption('stress')
   check((await byId('totals').textContent()) === '180 nodes · 720 links', 'Stress graph failed')
+  await byId('dataset').selectOption('count-1000')
+  await byId('totals').getByText('1,000 nodes · 4,000 links', { exact: true }).waitFor()
   await byId('theme').selectOption('parchment')
   await page.getByText('Simulation & diagnostics', { exact: true }).click()
   await byId('physics').selectOption('fixed')
@@ -88,6 +102,8 @@ export async function studio(page, url) {
     overflow: document.documentElement.scrollWidth > innerWidth,
   }))
   check(!mobile.overflow && mobile.canvas > 280, 'Mobile viewport overflowed')
+  const sizeControl = await byId('size-up').boundingBox()
+  check(sizeControl && sizeControl.x >= 0 && sizeControl.x + sizeControl.width <= 390, 'Mobile size control is clipped')
   const notice = await byId('error').isVisible()
   check(!notice && !errors.length, 'Studio error: ' + errors.join(', '))
   return { full, structure: await byId('blend-value').textContent(), linkWidth: 8, mobile }

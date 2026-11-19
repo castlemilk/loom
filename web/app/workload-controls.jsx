@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { initialWorkload, presets, importWorkload, buildWorkload, mergeWorkload, maxNodes } from './workload.mjs'
+import { presets, importWorkload, buildWorkload, mergeWorkload, maxNodes } from './workload.mjs'
 import { Select } from './fields'
 
-export function WorkloadControls({ data, active, onGenerate, onLoad }) {
-  const [open, expand] = useState(active), [preset, choose] = useState('mixed')
-  const [draft, edit] = useState(initialWorkload), [message, report] = useState('')
+export function WorkloadControls({ data, active, draft, edit, onGenerate, onLoad }) {
+  const [open, expand] = useState(active), [notice, setNotice] = useState(null)
+  const preset = Object.keys(presets).find((key) => presets[key].label === draft.label)
+  const report = (text) => setNotice({ draft, text })
   const file = useRef(null), read = useRef(0)
   useEffect(() => { if (active) expand(true) }, [active])
   useEffect(() => () => { read.current++ }, [data])
@@ -47,7 +48,7 @@ export function WorkloadControls({ data, active, onGenerate, onLoad }) {
   return <details className="workload-panel" open={open} onToggle={(e) => expand(e.currentTarget.open)}>
     <summary>Test data</summary>
     <Select id="workload-preset" label="Preset" options={Object.entries(presets).map(([k, v]) => [k, v.label])}
-      value={preset} onChange={(key) => { choose(key); edit({ ...presets[key], seed: draft.seed }); report('') }} />
+      value={preset} onChange={(key) => { edit({ ...presets[key], seed: draft.seed }); report('') }} />
     <div className="workload-numbers">
       {Object.entries({ nodes: ['Nodes', 1, maxNodes], degree: ['Links per node', 0, 16],
         coverage: ['Images (%)', 0, 100], variety: ['Unique image pool', 1, 256] }).map(([key, [name, min, max]]) =>
@@ -64,6 +65,6 @@ export function WorkloadControls({ data, active, onGenerate, onLoad }) {
       <button onClick={() => apply(true)}>Append batch</button></div>
     <div className="workload-files"><button onClick={() => file.current?.click()}>Import JSON</button>
       <button onClick={download}>Export JSON</button><input ref={file} type="file" id="workload-file" accept=".json,application/json" hidden onChange={loadFile} /></div>
-    <p role="status" className="workload-message">{message}</p>
+    <p role="status" className="workload-message">{notice?.draft === draft ? notice.text : ''}</p>
   </details>
 }

@@ -18,8 +18,16 @@
           <option value="sample">Knowledge console · excerpt</option>
           <option value="full">Knowledge console · full</option>
           <option value="stress">Generated stress graph</option>
+          <optgroup id="node-counts" label="Generated node counts"></optgroup>
         </select></label
       >
+      <div class="node-sizing" role="group" aria-label="Node sizing">
+        <label for="node-size">Node size</label>
+        <button type="button" id="size-down" aria-label="Decrease node size">−</button>
+        <input id="node-size" type="range" min="30" max="1600" step="1" value="115" />
+        <button type="button" id="size-up" aria-label="Increase node size">+</button>
+        <button type="button" id="size-default" aria-label="Reset node size"><output id="size-value" for="node-size">1.15×</output><span aria-hidden="true">↺</span></button>
+      </div>
     </header>
     <main>
       <section class="stage" aria-label="Graph viewport">
@@ -90,8 +98,6 @@
               <option value="straight">Straight lines</option>
             </select>
           </div>
-          <label for="node-size">Node scale <output id="size-value" for="node-size"></output></label
-          ><input id="node-size" type="range" min="30" max="300" value="115" />
           <details>
             <summary>Style controls</summary>
             <div class="field">
