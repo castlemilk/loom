@@ -1,7 +1,7 @@
 :HL["/loom/_next/static/media/eb965ae505bc6f90-s.p.woff","font",{"crossOrigin":"","type":"font/woff"}]
 :HL["/loom/_next/static/media/ecd59a4f1610f257-s.p.woff","font",{"crossOrigin":"","type":"font/woff"}]
-:HL["/loom/_next/static/css/e5ebbda90c20cd32.css","style"]
+:HL["/loom/_next/static/css/c687f528671f9f9e.css","style"]
 :HL["/loom/_next/static/css/1be3467a9042ad29.css","style"]
 :HL["/loom/illustrations/loom-logo.png","image"]
 :HL["/loom/illustrations/graph-mcp.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"docs","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chapter","param":{"type":"d","key":"editing","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"O6ePrN8SBrwoToZOe_B4Q"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"docs","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chapter","param":{"type":"d","key":"editing","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"KQAvS8UbDGCNnBPvJ21Oo"}
