@@ -97,14 +97,14 @@ html:has(.field-guide) {
   }
 }
 @media (min-width: 741px) and (max-width: 930px) {
-  .guide-mast { width: calc(100% - 28px); }
-  .mast-inner { grid-template-columns: auto 1fr auto; gap: 6px; padding-inline-start: 14px; }
+  .guide-mast { width: calc(100% - 24px); }
+  .mast-inner { grid-template-columns: auto 1fr auto; gap: 5px; padding-inline-start: 12px; }
   .guide-nav { justify-self: center; }
   .mast-inner .guide-brand { gap: 6px; font-size: 25px; }
   .mast-inner .guide-brand img { width: 30px; height: 30px; }
   .mast-link, .mast-launch { font-size: 14px; }
-  .mast-link { gap: 6px; padding-inline: 10px; }
-  .field-guide .mast-launch { padding-inline: 15px; gap: 8px; }
+  .mast-link { gap: 6px; padding-inline: 7px; }
+  .field-guide .mast-launch { padding-inline: 13px; gap: 8px; }
 }
 @media (max-width: 740px) {
   html:has(.field-guide) { --mast-height: 54px; }
@@ -133,13 +133,13 @@ html:has(.field-guide) {
   .mast-feature { display: none; }
   .guide-mast .mast-overview { margin-block-start: 0; }
 }
-@media (max-width: 360px) {
+@media (max-width: 380px) {
   .guide-mast { width: calc(100% - 16px); }
-  .mast-inner { gap: 3px; padding-inline: 9px 4px; }
+  .mast-inner { gap: 2px; padding-inline: 8px 4px; }
   .mast-inner .guide-brand { gap: 4px; font-size: 22px; }
   .mast-inner .guide-brand img { width: 24px; height: 24px; }
-  .mast-menu-trigger { gap: 5px; padding-inline: 9px; }
-  .field-guide .mast-launch { gap: 5px; padding-inline: 11px; }
+  .mast-menu-trigger { gap: 5px; padding-inline: 7px; }
+  .field-guide .mast-launch { gap: 4px; padding-inline: 9px; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .mast-link, .mast-launch, .mast-row { transition: background-color .15s ease, color .15s ease; }

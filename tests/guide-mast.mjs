@@ -92,11 +92,17 @@ export async function guideMast(context, home, touch = false) {
     await page.waitForURL('**/docs/')
     if (touch) await menu.tap()
     assert.equal(await nav.getByRole('link', { name: 'SDK docs', exact: true }).getAttribute('aria-current'), 'location')
-    if (!touch) {
-      await page.setViewportSize({ width: 741, height: 720 })
-      const capsule = await bar.boundingBox()
-      const launch = await page.getByRole('link', { name: 'Open Studio', exact: true }).boundingBox()
-      assert.ok(launch.x + launch.width <= capsule.x + capsule.width, 'The Studio action fits at the first desktop width')
+    if (touch) await menu.tap()
+    await page.evaluate(() => document.fonts.ready)
+    for (const width of touch ? [320, 361, 390] : [741, 768, 931]) {
+      await page.setViewportSize({ width, height: 720 })
+      const gaps = await bar.evaluate(el => {
+        const brand = el.querySelector('.guide-brand').getBoundingClientRect()
+        const nav = el.querySelector('nav').getBoundingClientRect()
+        const studio = el.querySelector('.mast-launch').getBoundingClientRect()
+        return [nav.left - brand.right, studio.left - nav.right, el.getBoundingClientRect().right - studio.right]
+      })
+      assert.ok(gaps.every(gap => gap >= 1), 'Navigation spacing at ' + width + 'px: ' + gaps.join(', '))
     }
   } finally { await page.close() }
 }
