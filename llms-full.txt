@@ -330,6 +330,8 @@ For an app hosted at `/loom/`, create the session with `await openAtlas(canvas, 
 
 `atlasConnections(manifest, topicId)` ranks other topics by incoming and outgoing link counts. Open both topics, then call `atlas.crossings(a, b)` for actual article IDs, titles and directions. The studio loads archived source excerpts separately so the inspector can point to the paragraph that contains the link. [Inspect Mathematics and Computing →](https://castlemilk.github.io/loom/studio/wikispeedia/?connections=mathematics,computing)
 
+For example, the archived Music article links the word “sounds” in its introduction to the Sound article. Open the link below, then choose **Show link on map** to locate both ends. **Permalink to this connection** gives you a URL that reopens the same article pair and passage. [Follow Music → Sound](https://castlemilk.github.io/loom/studio/wikispeedia/?connections=music,science\&edge=74%3A2863)
+
 Compare the readers with `await atlas.setLoading('full')` and `await atlas.setLoading('on-demand')`. The snapshot’s `reads`, `loaded`, `pending` and `error` fields let a host show data costs and retry failed reads. Changing the layout alone reads no new topic blocks.
 
 ## Fetch a node image
