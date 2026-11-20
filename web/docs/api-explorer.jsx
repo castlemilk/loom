@@ -17,7 +17,7 @@ const modules = {
   clusters: ['Compute connected components and pack groups around stable anchors.', 'drawing'],
   metrics: ['Map numeric data to node radii and wire widths.', 'drawing'],
   editor: ['Preview, apply and undo revision-guarded document edits.', 'editing'],
-  performance: ['Sample rendering work, layout ticks and GPU timing.', ''],
+  performance: ['Sample rendering work, layout ticks and GPU timing.', 'performance'],
   console: ['Adapt a knowledge-console snapshot and read its host theme.', ''],
 }
 function groups(index, query) {

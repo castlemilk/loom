@@ -1,10 +1,9 @@
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
+import { readExample } from './examples.mjs'
 import { common, createLowlight } from 'lowlight'
 import { CopyButton } from './copy-button'
 
 const highlighter = createLowlight(common)
-const languages = { ts: 'TypeScript', js: 'JavaScript', bash: 'Terminal', sh: 'Terminal', html: 'HTML', json: 'JSON' }
+const languages = { ts: 'TypeScript', js: 'JavaScript', bash: 'Terminal', sh: 'Terminal', html: 'HTML', json: 'JSON', text: 'Plain text' }
 function token(node, index) {
   if (node.type === 'text') return node.value
   return <span key={index} className={node.properties.className?.join(' ')}>{node.children.map(token)}</span>
@@ -22,7 +21,6 @@ export function CodeFence({ children }) {
   return <CodeBlock name={languages[language] ?? language} language={language} source={children.props.children} />
 }
 export async function ExampleFile({ name }) {
-  if (!/^[\w-]+\.(ts|html)$/.test(name)) throw new Error('Unknown example file ' + name)
-  const source = await readFile(path.resolve(process.cwd(), '../docs/examples', name), 'utf8')
+  const source = await readExample(name)
   return <CodeBlock name={name} language={name.split('.').pop()} source={source} />
 }

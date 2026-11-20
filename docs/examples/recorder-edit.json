@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "documentId": "synth",
+  "expectedRevision": 0,
+  "operations": [
+    { "op": "node.add", "value": { "id": "recorder", "label": "Recorder", "kind": "output" } },
+    { "op": "link.add", "value": { "id": "amp-recorder", "source": "amp", "target": "recorder", "kind": "signal" } }
+  ]
+}

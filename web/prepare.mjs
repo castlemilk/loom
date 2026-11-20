@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { writeSpecimens } from './specimen-art.mjs'
+import { writeAssistantDocs } from './docs/markdown.mjs'
 
 const root = new URL('../', import.meta.url)
 const target = (path) => new URL(path, import.meta.url)
@@ -10,7 +11,10 @@ execFileSync('npm', ['run', 'build'], { cwd: fileURLToPath(root), stdio: 'inheri
 await mkdir(target('./public/graphs/art/'), { recursive: true })
 await mkdir(target('./.generated/'), { recursive: true })
 await mkdir(target('./public/docs/'), { recursive: true })
+await mkdir(target('./public/benchmarks/'), { recursive: true })
+await copyFile(new URL('benchmarks/m2-max.json', root), target('./public/benchmarks/m2-max.json'))
 await copyFile(new URL('dist/api-index.json', root), target('./public/docs/api-index.json'))
+await writeAssistantDocs(target('./public/'), new URL('dist/api-index.json', root))
 await writeSpecimens(target('./public/graphs/specimens/v1/'))
 const atlases = JSON.parse(await readFile(new URL('demo/atlases/catalog.json', root), 'utf8'))
 for (const name of Object.keys(atlases)) {

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { mountSignalPath, signalPath } from '../../docs/examples/signal-path'
 
 const layouts = ['lanes', 'orbit', 'cloud']
-export function SignalPreview() {
+export function SignalPreview({ observe }) {
   const canvas = useRef(null), [graph, setGraph] = useState(null)
   const [mode, setMode] = useState('lanes'), [picked, setPicked] = useState(null), [error, setError] = useState('')
   useEffect(() => {
@@ -13,11 +13,12 @@ export function SignalPreview() {
       setGraph(instance)
       instance.on('modechange', setMode)
       instance.on('select', id => setPicked(signalPath.nodes.find(n => n.id === id)?.label))
-      return () => instance.destroy()
+      const stop = observe?.(instance)
+      return () => { stop?.(); instance.destroy() }
     } catch (cause) {
       setError(cause.name === 'WebGL2UnavailableError' ? 'The live example requires WebGL2.' : 'The graph could not be opened.')
     }
-  }, [])
+  }, [observe])
   function choose(layout) {
     if (!graph) return
     graph.setMode(layout)

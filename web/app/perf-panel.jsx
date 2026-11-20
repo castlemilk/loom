@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { observePerformance } from '../../dist/performance.js'
+import { docsURL } from '../site'
 
 const ms = (n) => n == null ? '—' : n.toFixed(2) + ' ms'
 const mib = (n) => n == null ? 'Unavailable' : (n / 1048576).toFixed(1) + ' MiB'
@@ -37,6 +38,7 @@ export function PerfPanel({ graph, data, paused, onClose }) {
       ['Pixel ratio', sample ? sample.dpr.toFixed(2) + '×' : '—'],
       ['Frames drawn', sample?.frames.toLocaleString() ?? '—'],
     ].map(([label, value, hint]) => <div key={label} title={hint}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+    <a className="underline underline-offset-2" href={docsURL + 'performance/#read-the-frame-timings'} target="_blank" rel="noreferrer">Read the timing guide ↗</a>
   </section>
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
-import { homeURL } from '../site'
+import { docsURL, homeURL } from '../site'
 import { InspectorSection, InspectorSummary } from './fields'
 import { shapes } from './appearance'
 
@@ -134,7 +134,9 @@ function JsonForm({ model, run }) {
     } catch (e) { setReview(null); report(e.message) }
   }
   return <div className="transaction-form">
-    <div className="editor-meta"><span>Revision {current.revision}</span><a href={homeURL + 'editor.schema.json'} target="_blank" rel="noreferrer">JSON Schema ↗</a></div>
+    <div className="editor-meta"><span>Revision {current.revision}</span>
+      <a href={docsURL + 'ai-tooling/'} target="_blank" rel="noreferrer">AI tooling guide ↗</a>
+      <a href={homeURL + 'editor.schema.json'} target="_blank" rel="noreferrer">JSON Schema ↗</a></div>
     <label>Transaction<textarea value={text} spellCheck={false} rows={8} onChange={(e) => { write(e.target.value); setReview(null); report('') }} /></label>
     <div className="edit-actions"><button type="button" onClick={preview}>Preview</button><button type="button" className="commit-edit" disabled={!fresh || !review.changes.length}
       onClick={() => { const result = run({ ...review.body, expectedRevision: review.revision }); if (result.ok) { setReview(null); report('Applied at revision ' + result.revision) } }}>Apply changes</button></div>

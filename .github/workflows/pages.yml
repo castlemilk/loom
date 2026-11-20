@@ -119,11 +119,13 @@ jobs:
           consumer_dir=$(mktemp -d)
           printf '%s\n' '{"private":true,"type":"module"}' > "$consumer_dir/package.json"
           cp tests/public-api.ts "$consumer_dir/consumer.mts"
+          cp tests/installed-agent-tools.mjs "$consumer_dir/check-agent.mjs"
           npm install --prefix "$consumer_dir" --ignore-scripts --no-audit --no-fund "${PAGES_URL%/}/packages/$GITHUB_SHA/loom-core-0.1.0.tgz"
           node_modules/.bin/tsc --strict --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext "$consumer_dir/consumer.mts"
           cp -R "$consumer_dir/node_modules/loom-core/docs/examples" "$consumer_dir/examples"
           node_modules/.bin/tsc --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --outDir "$consumer_dir/compiled" "$consumer_dir"/examples/*.ts
           cd "$consumer_dir"
+          node check-agent.mjs
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict'
           import index from 'loom-core/api-index.json' with { type: 'json' }
