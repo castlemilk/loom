@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { writeSpecimens } from './specimen-art.mjs'
 
@@ -15,6 +15,7 @@ for (const name of Object.keys(atlases)) {
   await copyFile(new URL('demo/atlases/' + name + '.json', root), target('./public/examples/' + name + '.json'))
 }
 await copyFile(new URL('dist/layout-worker.js', root), target('./public/layout-worker.js'))
+await cp(new URL('dist/atlas-runtime/', root), target('./public/atlas-runtime/0.8.12/'), {recursive:true})
 await copyFile(new URL('dist/editor.schema.json', root), target('./public/editor.schema.json'))
 await copyFile(new URL('dist/wire-effects.schema.json', root), target('./public/wire-effects.schema.json'))
 await copyFile(new URL('dist/drawing-style.schema.json', root), target('./public/drawing-style.schema.json'))

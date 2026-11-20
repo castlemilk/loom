@@ -3,6 +3,7 @@
 out/
 public/graphs/
 public/layout-worker.js
+public/atlas-runtime/
 public/editor.schema.json
 public/wire-effects.schema.json
 public/drawing-style.schema.json

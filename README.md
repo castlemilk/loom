@@ -40,7 +40,61 @@ Stable link IDs determine the order of parallel paths across input reordering an
 
 ## Explore the Wikipedia atlases
 
-Open **Wikipedia atlases** in the field guide or choose either collection from the studio’s **Graph** menu.
+### Wikispeedia at 4,604 articles
+
+Open a topic to reveal its articles. Opening another adds the hyperlinks between them and keeps existing nodes and the camera in place. Pick an article to read it on Wikipedia or open a labeled card view of its visible neighbors. Links to the studio preserve the open topics and loading mode. [Try the topic map](https://castlemilk.github.io/loom/studio/wikispeedia/) · [Start in Mathematics](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=mathematics)
+
+**On demand** starts with 16 topic summaries. A dedicated SQLite/WASM worker reads indexed database pages over HTTP byte ranges on the first expansion. Reopening a cached topic costs no graph reads. **All at once** loads the same articles and edges from one JSON file. Switch modes with topics open to compare the same view, or turn off **Keep camera in place** to center each new topic. The sidebar reports uncompressed graph payload bytes and data reads. The overview and the separately cached SQLite runtime have their own download cost. [Full-download comparison](https://castlemilk.github.io/loom/studio/wikispeedia/?loading=full)
+
+The historical Wikispeedia graph contains 119,882 directed hyperlinks. Each article uses its first listed subject, with six unclassified articles. The overview draws each subject’s two strongest connections. Expanding every subject reveals every recorded hyperlink. Regenerate both data files with `python3 scripts/build-wikispeedia.py`. The script verifies the source archive against a recorded SHA-256 digest. [Stanford SNAP dataset and citations](https://snap.stanford.edu/data/wikispeedia.html)
+
+```ts
+import { parchment } from 'loom-core'
+import { createAtlas, createFullAtlasReader } from 'loom-core/atlas'
+import { createSQLiteAtlasReader } from 'loom-core/atlas-sqlite'
+import { mountAtlasMap } from 'loom-core/atlas-map'
+
+const base = new URL('./examples/wikispeedia/', siteURL)
+const manifest = await (await fetch(new URL('manifest.json', base))).json()
+const atlas = createAtlas(manifest, {
+  'on-demand': () => createSQLiteAtlasReader({
+    database: new URL(manifest.database, base), pageSize: manifest.pageSize,
+    worker: new URL('sqlite.worker.js', runtimeURL), wasm: new URL('sql-wasm.wasm', runtimeURL),
+  }),
+  full: () => createFullAtlasReader(new URL(manifest.full, base)),
+})
+const map = mountAtlasMap(canvas, atlas, { theme: parchment, keepView: true,
+  onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) },
+})
+await atlas.setExpanded([8]) // Mathematics in this edition
+await atlas.setLoading('full')
+// On unmount
+map.destroy()
+atlas.close()
+```
+
+Host the two files from `loom-core/atlas-runtime/` together under `runtimeURL` on the page’s origin. Serve the SQLite file with byte-range support and identity encoding. A custom `AtlasReader` can supply the same topic blocks from another source. Its article IDs occupy each manifest topic’s contiguous range starting at `first`. Each block owns its articles’ outgoing edges, including links into other topics. [SQLite HTTP reader](https://github.com/phiresky/sql.js-httpvfs)
+
+### Relationship cards
+
+The SVG renderer accepts ordinary Loom nodes and links. Give cards explicit world coordinates to reproduce an existing diagram, or supply a root and let Loom arrange the surrounding cards. Logo images fall back to initials. Pills name relationships where space permits. Selecting a card highlights its links. Drag it or use its arrow keys to move it. The demo inspector links each relationship to its source. [Around Canva](https://castlemilk.github.io/loom/studio/cards/)
+
+In the regular studio, select any node and choose **View relationship cards** to inspect up to eight neighbors, including nodes in imported graphs. The library helper `cardNeighborhood(data, root, limit)` retains directed links, reciprocal links and self-loops for the neighbors shown. Set `useNodePositions: false` to arrange cards for readability or `showArrows: true` to display edge direction.
+
+```ts
+import { createCardGraph } from 'loom-core/cards'
+
+const cards = createCardGraph(svg, data, {
+  root: 'startup:canva', image: node => node.logoURL, badge: node => node.kind,
+  relationship: edge => edge.label, onSelect: node => inspect(node.id),
+})
+cards.setOptions({ appearance: 'dots', showLabels: false, showPorts: false })
+cards.destroy()
+```
+
+### Curated Wikipedia collections
+
+Choose either collection from the studio’s **Graph** menu.
 
 | Collection | Articles | Directed links | Topics |
 | --- | ---: | ---: | --- |

@@ -37,7 +37,9 @@ export default function FieldGuide() {
         <div className="guide-width guide-index atlas-index">
           <div className="index-intro"><h2>Wikipedia atlases</h2>
             <p>Open a topic, pick an article and follow the references across the map.</p></div>
-          <ul className="example-list atlas-examples">{Object.entries(atlases).map(([key, atlas]) =>
+          <ul className="example-list atlas-examples"><li><a href={studioURL+'wikispeedia/'} aria-labelledby="example-wikispeedia">
+            <div className="example-copy"><h3 id="example-wikispeedia">Wikispeedia</h3><p>Open topics in place and compare on-demand SQLite with a full download.</p></div>
+            <span className="example-measure">4,604 articles</span><span className="example-arrow" aria-hidden="true">↗</span></a></li>{Object.entries(atlases).map(([key, atlas]) =>
             <li key={key}><a href={studioURL + '?example=' + key} aria-labelledby={'example-' + key}>
               <div className="example-copy"><h3 id={'example-' + key}>{atlas.title}</h3><p>{atlas.description}</p></div>
               <span className="example-measure">{Object.values(atlas.sections).reduce((n, group) => n + group.articles.length, 0)} articles</span>
@@ -46,7 +48,7 @@ export default function FieldGuide() {
         </div>
         <div className="guide-width guide-index">
           <div className="index-intro"><h2 id="examples-title">Studio examples</h2>
-            <p>Four starting points for exploring the data. Each opens with its layout and settings ready to edit.</p>
+            <p>Explore layouts, connections and relationship cards. Each study opens in the studio.</p>
           </div>
           <ul className="example-list">{settingsSections.map(({ id }) => {
             const example = examples[id]
@@ -55,7 +57,8 @@ export default function FieldGuide() {
               <div className="example-copy"><h3 id={'example-' + id}>{example.name}</h3><p>{example.note}</p></div>
               <span className="example-measure">{example.measure}</span><span className="example-arrow" aria-hidden="true">↗</span>
             </a></li>
-          })}</ul>
+          })}<li><a href={studioURL+'cards/'} aria-label="Around Canva"><div className="example-copy" style={{gridColumn:'span 2'}}><h3>Around Canva</h3>
+            <p>Inspect a founder or investor and follow the evidence behind each connection.</p></div><span className="example-measure">7 entities</span><span className="example-arrow" aria-hidden="true">↗</span></a></li></ul>
         </div>
       </section>
       <section className="guide-library" id="typescript" aria-labelledby="library-title">

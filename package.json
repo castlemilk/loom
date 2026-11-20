@@ -41,6 +41,23 @@
       "types": "./dist/explore.d.ts",
       "import": "./dist/explore.js"
     },
+    "./atlas": {
+      "types": "./dist/atlas.d.ts",
+      "import": "./dist/atlas.js"
+    },
+    "./atlas-map": {
+      "types": "./dist/atlas-map.d.ts",
+      "import": "./dist/atlas-map.js"
+    },
+    "./atlas-sqlite": {
+      "types": "./dist/atlas-sqlite.d.ts",
+      "import": "./dist/atlas-sqlite.js"
+    },
+    "./atlas-runtime/*": "./dist/atlas-runtime/*",
+    "./cards": {
+      "types": "./dist/cards.d.ts",
+      "import": "./dist/cards.js"
+    },
     "./clusters": {
       "types": "./dist/clusters.d.ts",
       "import": "./dist/clusters.js"
@@ -76,8 +93,10 @@
     "prepack": "npm run build && npm run size"
   },
   "devDependencies": {
+    "comlink": "4.3.0",
     "esbuild": "0.25.12",
     "playwright": "1.60.0",
+    "sql.js-httpvfs": "0.8.12",
     "terser": "5.51.2",
     "typescript": "5.9.3"
   },

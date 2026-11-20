@@ -1,0 +1,99 @@
+{
+  "nodes": [
+    {
+      "id": "partner:airtree",
+      "label": "Airtree",
+      "kind": "partner",
+      "x": -325,
+      "y": -216
+    },
+    {
+      "id": "partner:blackbird-ventures",
+      "label": "Blackbird Ventures",
+      "kind": "partner",
+      "x": -60,
+      "y": -175,
+      "image": "card-art/blackbird.svg"
+    },
+    {
+      "id": "partner:square-peg",
+      "label": "Square Peg",
+      "kind": "partner",
+      "x": -322,
+      "y": -85
+    },
+    {
+      "id": "person:cameron-adams",
+      "label": "Cameron Adams",
+      "kind": "person",
+      "x": 292,
+      "y": 47
+    },
+    {
+      "id": "person:cliff-obrecht",
+      "label": "Cliff Obrecht",
+      "kind": "person",
+      "x": 525,
+      "y": 105
+    },
+    {
+      "id": "person:melanie-perkins",
+      "label": "Melanie Perkins",
+      "kind": "person",
+      "x": 314,
+      "y": 195
+    },
+    {
+      "id": "startup:canva",
+      "label": "Canva",
+      "kind": "startup",
+      "x": 2,
+      "y": 53,
+      "image": "card-art/canva.png"
+    }
+  ],
+  "links": [
+    {
+      "source": "partner:airtree",
+      "target": "startup:canva",
+      "kind": "supports",
+      "label": "Listed in portfolio",
+      "evidence": "https://www.airtree.vc/companies/canva"
+    },
+    {
+      "source": "partner:blackbird-ventures",
+      "target": "startup:canva",
+      "kind": "supports",
+      "label": "Listed in portfolio",
+      "evidence": "https://www.blackbird.vc/portfolio/canva"
+    },
+    {
+      "source": "partner:square-peg",
+      "target": "startup:canva",
+      "kind": "supports",
+      "label": "Listed in portfolio",
+      "evidence": "https://www.squarepeg.vc/portfolio/canva"
+    },
+    {
+      "source": "person:cameron-adams",
+      "target": "startup:canva",
+      "kind": "founded",
+      "label": "Founder",
+      "evidence": "https://www.canva.com/newsroom/news/melanie-perkins-21-questions-part-1/"
+    },
+    {
+      "source": "person:cliff-obrecht",
+      "target": "startup:canva",
+      "kind": "founded",
+      "label": "Founder",
+      "evidence": "https://www.canva.com/newsroom/news/canva-announces-usd-40-billion-valuation-fueled-global-demand-visual-communication/"
+    },
+    {
+      "source": "person:melanie-perkins",
+      "target": "startup:canva",
+      "kind": "founded",
+      "label": "Founder",
+      "evidence": "https://www.canva.com/newsroom/news/canva-announces-usd-40-billion-valuation-fueled-global-demand-visual-communication/"
+    }
+  ]
+}

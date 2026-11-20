@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { serveExport } from './serve-export.mjs'
 import { chromium } from 'playwright'
 import { studio } from '../tests/studio.mjs'
 import { studioConfiguration } from '../tests/studio-config.mjs'
@@ -11,33 +10,19 @@ import { studioMenu } from '../tests/studio-menu.mjs'
 import { studioAuthoring } from '../tests/studio-authoring.mjs'
 import { studioWires } from '../tests/studio-wires.mjs'
 import { studioAtlases } from '../tests/studio-atlases.mjs'
+import { studioProgressive } from '../tests/studio-progressive.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
-const home = liveURL || 'https://loom.test' + base
+const local = liveURL ? null : await serveExport(base)
+const home = liveURL || local.url
 const url = new URL('studio/', home).href
-const root = fileURLToPath(new URL('../web/out/', import.meta.url))
 const browser = await chromium.launch({
   channel: process.env.LOOM_BROWSER_CHANNEL,
   args: ['--enable-unsafe-swiftshader'],
 })
-async function siteContext(options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1160, height: 760 }, reducedMotion: 'reduce', ...options })
-  if (!liveURL) {
-    await context.route('**/*', async (route) => {
-      const request = new URL(route.request().url())
-      if (request.host !== 'loom.test' || !request.pathname.startsWith(base)) return route.abort()
-      const relative = request.pathname.slice(base.length)
-      const file = path.resolve(root, relative + (request.pathname.endsWith('/') ? 'index.html' : ''))
-      if (!file.startsWith(root)) return route.abort()
-      try {
-        await route.fulfill({ path: file })
-      } catch {
-        await route.fulfill({ status: 404, body: 'Missing export asset' })
-      }
-    })
-  }
-  return context
+function siteContext(options = {}) {
+  return browser.newContext({ viewport: { width: 1160, height: 760 }, reducedMotion: 'reduce', ...options })
 }
 try {
   const context = await siteContext()
@@ -49,8 +34,10 @@ try {
   const wires = await studioWires(context, url)
   const desktopAtlases = await studioAtlases(context, home)
   const mobileAtlases = await studioAtlases(mobile, home, true)
+  const progressive = await studioProgressive(context, home)
+  const mobileProgressive = await studioProgressive(mobile, home, true)
   await mobile.close()
-  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires, desktopAtlases, mobileAtlases })
+  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires, desktopAtlases, mobileAtlases, progressive, mobileProgressive })
   const guide = await fieldGuide(context, home)
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)
@@ -103,4 +90,5 @@ try {
   console.log({ guide, ...result, worker, snapshotRequests: snapshots, configuration, drilldown, workload })
 } finally {
   await browser.close()
+  local?.close()
 }

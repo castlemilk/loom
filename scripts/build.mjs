@@ -1,5 +1,5 @@
 import { build } from 'esbuild'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { minify } from 'terser'
 
 // WebGL enum values are fixed by the API. Inline TypeScript's platform constants
@@ -62,9 +62,15 @@ await Promise.all(core.outputFiles.map(async (file) => {
   const result = await minify(file.text, { ecma: 2022, module: true, compress: { passes: 3 }, mangle: { properties: { regex: internals } } })
   await writeFile(file.path, result.code)
 }))
-await build({ ...options, entryPoints: ['src/console.ts', 'src/wires.ts'], external: ['./index.js'] })
+await build({ ...options, entryPoints: ['src/console.ts', 'src/wires.ts','src/atlas-map.ts'], external: ['./index.js'] })
 await build({ ...options, entryPoints: ['src/taxonomy.ts'] })
-await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts', 'src/explore.ts'] })
+await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts', 'src/explore.ts', 'src/atlas.ts', 'src/atlas-sqlite.ts', 'src/cards.ts'] })
+await mkdir('dist/atlas-runtime', { recursive:true })
+for (const file of ['sqlite.worker.js','sql-wasm.wasm'])
+  await copyFile(new URL(import.meta.resolve('sql.js-httpvfs/dist/' + file)), 'dist/atlas-runtime/' + file)
+for (const dependency of ['sql.js-httpvfs','comlink'])
+  await copyFile(new URL(import.meta.resolve(dependency + '/LICENSE')), 'dist/atlas-runtime/' + dependency + '-LICENSE')
+await copyFile('licenses/sql.js-LICENSE', 'dist/atlas-runtime/sql.js-LICENSE')
 const { editorSchema } = await import('../dist/editor.js')
 await writeFile('dist/editor.schema.json', JSON.stringify(editorSchema, null, 2) + '\n')
 const { wireEffectsSchema, drawingStyleSchema } = await import('../dist/wires.js')

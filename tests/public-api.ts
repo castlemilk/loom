@@ -5,12 +5,26 @@ import { observePerformance, type PerformanceSample } from 'loom-core/performanc
 import { clusterLayout, connectedComponents } from 'loom-core/clusters'
 import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
 import { createWireGraph, wireEffectsSchema, type WireEffects } from 'loom-core/wires'
+import { createAtlas, createFullAtlasReader, type AtlasManifest } from 'loom-core/atlas'
+import { createSQLiteAtlasReader, type AtlasSQLiteOptions } from 'loom-core/atlas-sqlite'
+import { mountAtlasMap } from 'loom-core/atlas-map'
+import { createCardGraph } from 'loom-core/cards'
 
 interface Paper extends GraphNode {
   disciplines: readonly string[]
   year: number
 }
 interface Citation extends GraphLink { reviewed: boolean }
+export function mountStreamingAtlas(canvas: HTMLCanvasElement, manifest: AtlasManifest, sqlite: AtlasSQLiteOptions, baseline: URL) {
+  const atlas = createAtlas(manifest, { 'on-demand': () => createSQLiteAtlasReader(sqlite), full: () => createFullAtlasReader(baseline) })
+  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) } })
+  return { setLoading: atlas.setLoading, expand: atlas.setExpanded, fit: map.fit, close() { map.destroy(); atlas.close() } }
+}
+export function mountCitationCards(svg: SVGSVGElement, data: GraphData<Paper,Citation>) {
+  const cards = createCardGraph(svg, data, {root:data.nodes[0]?.id, badge:n=>String(n.year), relationship:e=>e.reviewed?'Reviewed citation':'Citation'})
+  cards.setOptions({appearance:'dots',showPorts:false})
+  return cards
+}
 export function mountWires(canvas: HTMLCanvasElement, data: GraphData<Paper, Citation>) {
   const patch = { direction: 'flow', scope: 'selected', speed: 40 } satisfies Partial<WireEffects>
   const graph = createWireGraph(canvas, { ...data, wireEffects: patch,

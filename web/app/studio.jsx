@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import dynamic from 'next/dynamic'
 import { consoleLayout } from '../../dist/console.js'
 import { buildWorkload, initialWorkload, imageURL, maxLinks, sectionAtlas } from './workload.mjs'
 import { clusterLayout } from '../../dist/clusters.js'
@@ -41,6 +42,7 @@ const routes = [['patch', 'Patch cables'], ['arc', 'Arcs'], ['straight', 'Straig
 const palettes = [['console', 'Knowledge console'], ['sketchbook', 'Sketchbook'], ['ink', 'Ink'], ['parchment', 'Parchment'], ['blueprint', 'Blueprint']]
 const labels = [['auto', 'Automatic'], ['focus', 'Focus only'], ['none', 'Hidden']]
 const formatCount = new Intl.NumberFormat('en')
+const StudioCardDialog = dynamic(() => import('./studio-card-dialog'), { ssr:false })
 const percent = (value) => value + '%'
 const times = (value) => value + '×'
 
@@ -59,6 +61,7 @@ function Workbench({ sample }) {
   const [placementPoint, setPlacementPoint] = useState(null)
   const [wireEnds, setWireEnds] = useState(null)
   const [wireEffects, setWireEffects] = useState(defaultWireEffects)
+  const [cardRoot, setCardRoot] = useState(null)
   const [editNotice, setEditNotice] = useState('')
   const pendingView = useRef(null)
   const retainedScene = useRef(null)
@@ -316,6 +319,7 @@ function Workbench({ sample }) {
   const requestedGroup = useRef(null)
   const requestedArticle = useRef(null)
   function selectDataset(value) {
+    if (value === 'wikispeedia' || value === 'cards') { location.assign(studioURL + value + '/'); return }
     pickGraph(value)
     const url = new URL(location.href)
     if (!getAtlas(value) && !getAtlas(url.searchParams.get('example'))) return
@@ -390,7 +394,8 @@ function Workbench({ sample }) {
         state={model.state} history={editHistory} ready={!remoteURL || !!remote.data}/>
       <label className="dataset">Graph<select id="dataset" value={dataset} onChange={(e) => selectDataset(e.target.value)}>
         {datasets.slice(0, 1).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-        <optgroup label="Wikipedia atlases">{Object.entries(atlasCatalog).map(([key, item]) => <option key={key} value={key}>{item.title}</option>)}</optgroup>
+        <optgroup label="Wikipedia atlases"><option value="wikispeedia">Wikispeedia · 4,604 articles</option>{Object.entries(atlasCatalog).map(([key, item]) => <option key={key} value={key}>{item.title}</option>)}</optgroup>
+        <option value="cards">Around Canva · cards</option>
         {datasets.slice(1).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         {custom && <option value="custom">{custom.name}</option>}
         {!!model.drafts.length && <optgroup label="Edited graphs">{model.drafts.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}</optgroup>}
@@ -473,6 +478,7 @@ function Workbench({ sample }) {
           <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
             <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
           {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
+            <button type="button" onClick={() => setCardRoot(selected.id)}>View relationship cards</button>
             {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
               <button key={g.key} onClick={() => openTerm(g)}>{level.kind === 'group' && level.id === g.id && level.taxonomy === g.taxonomy ? 'Close' : 'Open'} {g.label}</button>)}</div>}
           <NodeLinks key={selected.id} node={selected} index={graphIndex} follow={drill.followNode} article={!!articleURL}/>
@@ -487,6 +493,8 @@ function Workbench({ sample }) {
           {(selected?.content || (!articleURL && selected?.summary)) && <p className="selection-content">{selected.content || selected.summary}</p>}
           </InspectorSection>
         </section>}
+        {cardRoot && selected?.id===cardRoot && <StudioCardDialog data={source} root={cardRoot} close={()=>setCardRoot(null)}
+          inspect={id=>{setCardRoot(null);if(id!==selected.id)drill.followNode(id)}}/>}
         <SettingsPanel id="explore">
           <DrillControls dataset={dataset} snapshot={snapshot} config={navigation} setView={drill.setGroupView}
             index={graphIndex} follow={drill.followNode} atlas={wiki} group={grouping} openTerm={groupEnabled ? openTerm : undefined}
