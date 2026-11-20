@@ -2,4 +2,4 @@
 :HL["/loom/_next/static/media/ecd59a4f1610f257-s.p.woff","font",{"crossOrigin":"","type":"font/woff"}]
 :HL["/loom/_next/static/css/8e3cff3852468fff.css","style"]
 :HL["/loom/illustrations/loom-mark.svg","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"jU1SpZ_8Z9mJ67a-UUL96"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"J6aBeyL1NAGFaIuuE_cjp"}
