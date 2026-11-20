@@ -1,0 +1,510 @@
+{
+  "name": "Outer Solar System",
+  "attribution": "English Wikipedia contributors, CC BY-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "revisionUrlTemplate": "https://en.wikipedia.org/w/index.php?oldid={wikipediaRevision}",
+  "nodes": [
+    {
+      "id": "Jupiter",
+      "label": "Jupiter",
+      "kind": "world",
+      "section": "Worlds",
+      "wikipediaRevision": 1384572050,
+      "summary": "Fifth planet from the Sun"
+    },
+    {
+      "id": "Saturn",
+      "label": "Saturn",
+      "kind": "world",
+      "section": "Worlds",
+      "wikipediaRevision": 1385829410,
+      "summary": "Sixth planet from the Sun"
+    },
+    {
+      "id": "Uranus",
+      "label": "Uranus",
+      "kind": "world",
+      "section": "Worlds",
+      "wikipediaRevision": 1385832920,
+      "summary": "Seventh planet from the Sun"
+    },
+    {
+      "id": "Neptune",
+      "label": "Neptune",
+      "kind": "world",
+      "section": "Worlds",
+      "wikipediaRevision": 1384547758,
+      "summary": "Eighth planet from the Sun"
+    },
+    {
+      "id": "Pluto",
+      "label": "Pluto",
+      "kind": "world",
+      "section": "Worlds",
+      "wikipediaRevision": 1386053556,
+      "summary": "Largest dwarf planet in the Solar System"
+    },
+    {
+      "id": "Io_(moon)",
+      "label": "Io",
+      "kind": "moon",
+      "section": "Moons",
+      "wikipediaRevision": 1385653099,
+      "summary": "Innermost Galilean moon of Jupiter"
+    },
+    {
+      "id": "Europa_(moon)",
+      "label": "Europa",
+      "kind": "moon",
+      "section": "Moons",
+      "wikipediaRevision": 1385957908,
+      "summary": "Smallest Galilean moon of Jupiter"
+    },
+    {
+      "id": "Titan_(moon)",
+      "label": "Titan",
+      "kind": "moon",
+      "section": "Moons",
+      "wikipediaRevision": 1386642121,
+      "summary": "Largest moon of Saturn"
+    },
+    {
+      "id": "Enceladus",
+      "label": "Enceladus",
+      "kind": "moon",
+      "section": "Moons",
+      "wikipediaRevision": 1383236238,
+      "summary": "Natural satellite orbiting Saturn"
+    },
+    {
+      "id": "Triton_(moon)",
+      "label": "Triton",
+      "kind": "moon",
+      "section": "Moons",
+      "wikipediaRevision": 1385657032,
+      "summary": "Largest moon of Neptune"
+    },
+    {
+      "id": "Charon_(moon)",
+      "label": "Charon",
+      "kind": "moon",
+      "section": "Moons",
+      "wikipediaRevision": 1383484333,
+      "summary": "Largest natural satellite of Pluto"
+    },
+    {
+      "id": "Voyager_2",
+      "label": "Voyager 2",
+      "kind": "spacecraft",
+      "section": "Spacecraft",
+      "wikipediaRevision": 1386496536,
+      "summary": "NASA space probe launched in 1977"
+    },
+    {
+      "id": "Cassini–Huygens",
+      "label": "Cassini–Huygens",
+      "kind": "spacecraft",
+      "section": "Spacecraft",
+      "wikipediaRevision": 1386402339,
+      "summary": "Mission to Saturn (1997–2017)"
+    },
+    {
+      "id": "Galileo_(spacecraft)",
+      "label": "Galileo",
+      "kind": "spacecraft",
+      "section": "Spacecraft",
+      "wikipediaRevision": 1383348730,
+      "summary": "First NASA mission to orbit Jupiter (1989–2003)"
+    },
+    {
+      "id": "New_Horizons",
+      "label": "New Horizons",
+      "kind": "spacecraft",
+      "section": "Spacecraft",
+      "wikipediaRevision": 1386499564,
+      "summary": "NASA space probe launched in 2006"
+    },
+    {
+      "id": "Juno_(spacecraft)",
+      "label": "Juno",
+      "kind": "spacecraft",
+      "section": "Spacecraft",
+      "wikipediaRevision": 1386658271,
+      "summary": "Second NASA orbiter mission to Jupiter launched in 2011"
+    }
+  ],
+  "links": [
+    {
+      "source": "Jupiter",
+      "target": "Saturn",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Jupiter",
+      "target": "Io_(moon)",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Jupiter",
+      "target": "Europa_(moon)",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Jupiter",
+      "target": "Juno_(spacecraft)",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Saturn",
+      "target": "Titan_(moon)",
+      "kind": "wikilink",
+      "weight": 5
+    },
+    {
+      "source": "Saturn",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Saturn",
+      "target": "Enceladus",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Saturn",
+      "target": "Cassini–Huygens",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Uranus",
+      "target": "Voyager_2",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Uranus",
+      "target": "Saturn",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Uranus",
+      "target": "Neptune",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Uranus",
+      "target": "Pluto",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Neptune",
+      "target": "Uranus",
+      "kind": "wikilink",
+      "weight": 4
+    },
+    {
+      "source": "Neptune",
+      "target": "Triton_(moon)",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Neptune",
+      "target": "Voyager_2",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Neptune",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Pluto",
+      "target": "Triton_(moon)",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Pluto",
+      "target": "Neptune",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Pluto",
+      "target": "Io_(moon)",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Pluto",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Io_(moon)",
+      "target": "Europa_(moon)",
+      "kind": "wikilink",
+      "weight": 6
+    },
+    {
+      "source": "Io_(moon)",
+      "target": "Juno_(spacecraft)",
+      "kind": "wikilink",
+      "weight": 6
+    },
+    {
+      "source": "Io_(moon)",
+      "target": "Galileo_(spacecraft)",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Io_(moon)",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Europa_(moon)",
+      "target": "Galileo_(spacecraft)",
+      "kind": "wikilink",
+      "weight": 4
+    },
+    {
+      "source": "Europa_(moon)",
+      "target": "Io_(moon)",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Europa_(moon)",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Europa_(moon)",
+      "target": "Enceladus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Titan_(moon)",
+      "target": "Saturn",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Titan_(moon)",
+      "target": "Cassini–Huygens",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Titan_(moon)",
+      "target": "Enceladus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Titan_(moon)",
+      "target": "Triton_(moon)",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Enceladus",
+      "target": "Cassini–Huygens",
+      "kind": "wikilink",
+      "weight": 5
+    },
+    {
+      "source": "Enceladus",
+      "target": "Titan_(moon)",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Enceladus",
+      "target": "Voyager_2",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Enceladus",
+      "target": "Saturn",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Triton_(moon)",
+      "target": "Voyager_2",
+      "kind": "wikilink",
+      "weight": 4
+    },
+    {
+      "source": "Triton_(moon)",
+      "target": "Pluto",
+      "kind": "wikilink",
+      "weight": 4
+    },
+    {
+      "source": "Triton_(moon)",
+      "target": "Saturn",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Triton_(moon)",
+      "target": "Uranus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Charon_(moon)",
+      "target": "Pluto",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Charon_(moon)",
+      "target": "New_Horizons",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Charon_(moon)",
+      "target": "Uranus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Voyager_2",
+      "target": "Uranus",
+      "kind": "wikilink",
+      "weight": 4
+    },
+    {
+      "source": "Voyager_2",
+      "target": "Saturn",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Voyager_2",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Voyager_2",
+      "target": "Neptune",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Cassini–Huygens",
+      "target": "Titan_(moon)",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Cassini–Huygens",
+      "target": "Galileo_(spacecraft)",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Cassini–Huygens",
+      "target": "Saturn",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Cassini–Huygens",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Galileo_(spacecraft)",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Galileo_(spacecraft)",
+      "target": "Juno_(spacecraft)",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Galileo_(spacecraft)",
+      "target": "Europa_(moon)",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "New_Horizons",
+      "target": "Uranus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "New_Horizons",
+      "target": "Voyager_2",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "New_Horizons",
+      "target": "Pluto",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "New_Horizons",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Juno_(spacecraft)",
+      "target": "Galileo_(spacecraft)",
+      "kind": "wikilink",
+      "weight": 5
+    },
+    {
+      "source": "Juno_(spacecraft)",
+      "target": "New_Horizons",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Juno_(spacecraft)",
+      "target": "Jupiter",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Juno_(spacecraft)",
+      "target": "Io_(moon)",
+      "kind": "wikilink",
+      "weight": 1
+    }
+  ]
+}

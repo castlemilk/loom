@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "fill": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "hachure",
+        "cross-hatch"
+      ],
+      "default": "solid"
+    },
+    "roughness": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 0
+    },
+    "hatchSpacing": {
+      "type": "number",
+      "minimum": 2,
+      "maximum": 16,
+      "default": 5
+    }
+  }
+}

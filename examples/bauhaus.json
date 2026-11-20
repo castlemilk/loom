@@ -1,0 +1,442 @@
+{
+  "name": "Bauhaus",
+  "attribution": "English Wikipedia contributors, CC BY-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "revisionUrlTemplate": "https://en.wikipedia.org/w/index.php?oldid={wikipediaRevision}",
+  "nodes": [
+    {
+      "id": "Bauhaus",
+      "label": "Bauhaus",
+      "kind": "school",
+      "section": "Schools",
+      "wikipediaRevision": 1383411406,
+      "summary": "German art school and art movement"
+    },
+    {
+      "id": "Black_Mountain_College",
+      "label": "Black Mountain College",
+      "kind": "school",
+      "section": "Schools",
+      "wikipediaRevision": 1384936540,
+      "summary": "Former liberal arts college in North Carolina"
+    },
+    {
+      "id": "Ulm_School_of_Design",
+      "label": "Ulm School of Design",
+      "kind": "school",
+      "section": "Schools",
+      "wikipediaRevision": 1383929493,
+      "summary": "Former design school in Ulm, Germany"
+    },
+    {
+      "id": "Vkhutemas",
+      "label": "Vkhutemas",
+      "kind": "school",
+      "section": "Schools",
+      "wikipediaRevision": 1378551676,
+      "summary": "Former design school in Moscow (1920–30)"
+    },
+    {
+      "id": "Walter_Gropius",
+      "label": "Walter Gropius",
+      "kind": "designer",
+      "section": "Designers",
+      "wikipediaRevision": 1384876408,
+      "summary": "German-American architect (1883–1969)"
+    },
+    {
+      "id": "Anni_Albers",
+      "label": "Anni Albers",
+      "kind": "designer",
+      "section": "Designers",
+      "wikipediaRevision": 1363962748,
+      "summary": "German-American textile artist (1899–1994)"
+    },
+    {
+      "id": "Josef_Albers",
+      "label": "Josef Albers",
+      "kind": "designer",
+      "section": "Designers",
+      "wikipediaRevision": 1370767591,
+      "summary": "German-American artist (1888–1976)"
+    },
+    {
+      "id": "Marcel_Breuer",
+      "label": "Marcel Breuer",
+      "kind": "designer",
+      "section": "Designers",
+      "wikipediaRevision": 1386627618,
+      "summary": "Hungarian-American architect and designer (1902–1981)"
+    },
+    {
+      "id": "László_Moholy-Nagy",
+      "label": "László Moholy-Nagy",
+      "kind": "designer",
+      "section": "Designers",
+      "wikipediaRevision": 1383760513,
+      "summary": "Hungarian painter and photographer (1895-1946)"
+    },
+    {
+      "id": "Marianne_Brandt",
+      "label": "Marianne Brandt",
+      "kind": "designer",
+      "section": "Designers",
+      "wikipediaRevision": 1380734145,
+      "summary": "German artist and designer (1893–1983)"
+    },
+    {
+      "id": "Bauhaus_Dessau",
+      "label": "Bauhaus Dessau",
+      "kind": "work",
+      "section": "Works",
+      "wikipediaRevision": 1381416375,
+      "summary": "Historic building in Saxony-Anhalt, Germany"
+    },
+    {
+      "id": "Haus_am_Horn",
+      "label": "Haus am Horn",
+      "kind": "work",
+      "section": "Works",
+      "wikipediaRevision": 1382155874,
+      "summary": "Bauhaus house in Weimar, Germany"
+    },
+    {
+      "id": "Fagus_Factory",
+      "label": "Fagus Factory",
+      "kind": "work",
+      "section": "Works",
+      "wikipediaRevision": 1366153559,
+      "summary": "UNESCO World Heritage Site in Lower Saxony, Germany"
+    },
+    {
+      "id": "Wassily_chair",
+      "label": "Wassily chair",
+      "kind": "work",
+      "section": "Works",
+      "wikipediaRevision": 1378020761,
+      "summary": "Chair designed by Marcel Breuer"
+    },
+    {
+      "id": "ADGB_Trade_Union_School",
+      "label": "ADGB Trade Union School",
+      "kind": "work",
+      "section": "Works",
+      "wikipediaRevision": 1373688703,
+      "summary": "Training centre complex in Brandenburg, Germany"
+    }
+  ],
+  "links": [
+    {
+      "source": "Bauhaus",
+      "target": "László_Moholy-Nagy",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Bauhaus",
+      "target": "Marcel_Breuer",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Bauhaus",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Bauhaus",
+      "target": "Haus_am_Horn",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Black_Mountain_College",
+      "target": "Josef_Albers",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Black_Mountain_College",
+      "target": "Anni_Albers",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Black_Mountain_College",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Black_Mountain_College",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Ulm_School_of_Design",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Ulm_School_of_Design",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Ulm_School_of_Design",
+      "target": "Josef_Albers",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Vkhutemas",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Vkhutemas",
+      "target": "Marcel_Breuer",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Walter_Gropius",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Walter_Gropius",
+      "target": "Marcel_Breuer",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Walter_Gropius",
+      "target": "Fagus_Factory",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Walter_Gropius",
+      "target": "Josef_Albers",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Anni_Albers",
+      "target": "Josef_Albers",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Anni_Albers",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Anni_Albers",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Anni_Albers",
+      "target": "Black_Mountain_College",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Josef_Albers",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Josef_Albers",
+      "target": "Anni_Albers",
+      "kind": "wikilink",
+      "weight": 3
+    },
+    {
+      "source": "Josef_Albers",
+      "target": "Black_Mountain_College",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Josef_Albers",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Marcel_Breuer",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Marcel_Breuer",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Marcel_Breuer",
+      "target": "Josef_Albers",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "László_Moholy-Nagy",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 4
+    },
+    {
+      "source": "László_Moholy-Nagy",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "László_Moholy-Nagy",
+      "target": "Marcel_Breuer",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "László_Moholy-Nagy",
+      "target": "Josef_Albers",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Marianne_Brandt",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Marianne_Brandt",
+      "target": "Josef_Albers",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Marianne_Brandt",
+      "target": "László_Moholy-Nagy",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Marianne_Brandt",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Bauhaus_Dessau",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 6
+    },
+    {
+      "source": "Bauhaus_Dessau",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 2
+    },
+    {
+      "source": "Bauhaus_Dessau",
+      "target": "Haus_am_Horn",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Bauhaus_Dessau",
+      "target": "ADGB_Trade_Union_School",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Haus_am_Horn",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Haus_am_Horn",
+      "target": "László_Moholy-Nagy",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Haus_am_Horn",
+      "target": "Marcel_Breuer",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Haus_am_Horn",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Fagus_Factory",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Fagus_Factory",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Wassily_chair",
+      "target": "Marcel_Breuer",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Wassily_chair",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "Wassily_chair",
+      "target": "Walter_Gropius",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "ADGB_Trade_Union_School",
+      "target": "Bauhaus",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "ADGB_Trade_Union_School",
+      "target": "Bauhaus_Dessau",
+      "kind": "wikilink",
+      "weight": 1
+    },
+    {
+      "source": "ADGB_Trade_Union_School",
+      "target": "Marcel_Breuer",
+      "kind": "wikilink",
+      "weight": 1
+    }
+  ]
+}
