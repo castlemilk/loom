@@ -14,6 +14,8 @@ Exporting inside a drilldown gives you that view. Return to the overview for a s
 
 For a custom editor, call `captureScene(data, { graph, layout, theme, mode })` from `loom-core/scene` before serializing. Loom records the values returned by marker, wire, lane and anchor callbacks so other applications can reproduce the drawing.
 
+**Export → Graph MCP** saves the current scene for a local assistant. Open client setup and enter the full path to the download. Ask the assistant to find a node or trace one of its links. <AssetLink path="mcp/?source=studio#connect">Connect your exported graph →</AssetLink>
+
 ## Preview and commit
 
 Create an editor for each graph document. A batch can add a node and connect it in one undo step. Operations see the results of earlier operations in the same batch. A validation error leaves the entire document at its original revision.

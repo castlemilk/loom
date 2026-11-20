@@ -28,6 +28,8 @@ async function markdownFiles(context, home, links) {
   assert.ok(full.includes((await readFile(new URL('../docs/examples/graph-tools.ts', import.meta.url), 'utf8')).trimEnd()))
   assert.match(full, /\bobservePerformance\(graph, sample/)
   assert.match(full, /\.setLayoutSpeed\(value: number\)/)
+  assert.ok(index.includes(new URL('mcp/index.md', home).pathname + ')'))
+  assert.ok(full.includes(await get(new URL('mcp/index.md', home).href)))
 }
 
 async function profileInteraction(page) {

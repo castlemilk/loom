@@ -33,6 +33,9 @@
 .export-tabs { display: flex; gap: 3px; padding: 3px; border-radius: 7px; border: 1px solid var(--rule); background: #eeeee5; }
 .export-tabs button { flex: 1; min-height: 34px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #51594d; font-weight: 550; }
 .export-tabs button[aria-pressed="true"] { background: #fffef7; border-color: #c5c9ba; color: var(--text); }
+.export-tabs img { margin-inline-end: 4px; vertical-align: -3px; border-radius: 2px; }
+.export-mcp { margin-top: 17px; }
+.export-mcp a { display: inline-flex; align-items: center; min-height: 38px; color: #743a24; font-size: 13px; text-underline-offset: 3px; }
 .export-options { flex-wrap: wrap; margin: 15px 0; }
 .export-options label { display: inline-flex; align-items: center; gap: 7px; color: #454d42; font-size: 12px; }
 .export-options input { accent-color: #40523e; width: 15px; height: 15px; }

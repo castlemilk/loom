@@ -21,6 +21,16 @@ The four 224-pixel WebPs in `web/public/illustrations/` are independent crops of
 
 The wire-study still uses two WebP widths, 640 and 1280 pixels, in a 3:2 frame. It is an original generated illustration. Its spatial interpretation has 21 named movable joints and 41 rods in `web/public/examples/wire-model.json`. The preview and full editor read the same file, anchor positions, palette and wire weights. The still reserves the display space before decoding. The live renderer starts on request and releases its graph when closed. Escape returns focus to the preview button. With WebGL2 unavailable, visitors can still browse and download the artwork.
 
+## Components and navigation
+
+The guide introduces three entry points for the same graph. Studio is for drawing and inspecting, the SDK is for embedding, and Graph MCP is for assistants reading graph data. Each entry in the landing page’s component selector has a working destination. The Studio panel shows the actual Bauhaus canvas, the SDK panel uses a public index method, and the MCP panel quotes the recorded Music → Sound connection. Keep graph names, IDs and measurements tied to those sources.
+
+The shared masthead keeps the Loom mark at the left, reading and component links in the middle, and the Studio action at the right. On phones the action stays beside the wordmark and the four links occupy their own row. Keyboard focus and the current location remain visible. The component selector supports arrow keys, Home and End.
+
+The field guide uses pine (`#1d3028`) for the work surface and a light copper (`#f1ac7c`) for display accents on pine. Paper sections carry diagrams, reading and examples. The shared component stylesheet defines surface colours, rules, section spacing, small type and control height. Use the serif for display titles, the sans face for actions and the monospaced face for real code or measurements.
+
+Graph MCP’s mark is a copper branch with three ivory terminals on pine. Use the same square asset on the website, in the artwork catalogue and in MCP server discovery. Keep the adjacent text label at navigation sizes. The component page offers a real browser query and a separate configuration for the local server.
+
 ## Graph studio
 
 The graph is the working surface. The studio is for people authoring graph views who need to see how a change affects reading, picking and dragging a real node. The dark canvas and warm instrument panel come from the existing knowledge console. Keep both legible when authors switch graph themes.

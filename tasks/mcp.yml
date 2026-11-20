@@ -1,0 +1,26 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Prepare the standalone Graph MCP server’s offline data and search index
+    cmds: [node scripts/build-mcp.mjs]
+  serve:
+    desc: Run Graph MCP over stdio with the bundled graphs or GRAPH=/path/to/scene.json
+    silent: true
+    env:
+      LOOM_GRAPH_FILE: '{{.GRAPH | default ""}}'
+    cmds:
+      - |
+        if [ -n "$LOOM_GRAPH_FILE" ]; then exec node mcp/cli.js --graph "$LOOM_GRAPH_FILE"; fi
+        exec node mcp/cli.js
+  pack:
+    desc: Build the installable Graph MCP archive in artifacts/mcp
+    cmds: [node scripts/build-mcp.mjs artifacts/mcp]
+  test:
+    desc: Exercise Graph MCP with a real client, a Studio export and a clean archive install
+    cmds:
+      - task: pack
+      - npm --prefix mcp test
+      - node mcp/tests/install.mjs artifacts/mcp "$LOOM_STUDIO_SCENE"
+    env:
+      LOOM_STUDIO_SCENE: '{{.SCENE | default ""}}'

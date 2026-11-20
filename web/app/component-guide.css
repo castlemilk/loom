@@ -1,0 +1,152 @@
+/* Shared surfaces and controls for the field guide, component pages and masthead. */
+.field-guide {
+  --pine: #1d3028;
+  --pine-deep: #15251e;
+  --on-pine: #f7f2e4;
+  --on-pine-muted: #c3cfc1;
+  --copper-light: #f1ac7c;
+  --soft-paper: #edece2;
+  --guide-rule: 1px solid var(--rule);
+  --section-space: clamp(48px, 6.3vw, 94px);
+  --control-height: 44px;
+  --small-type: 13px;
+}
+.field-guide .mast-inner { display: grid; grid-template-columns: 1fr auto 1fr; column-gap: 24px; min-height: 72px; }
+.guide-mast .guide-nav { gap: clamp(15px, 2.6vw, 38px); }
+.guide-mast .guide-nav a { gap: 7px; min-height: var(--control-height); text-underline-offset: 5px; }
+.guide-nav img { border-radius: 3px; }
+.guide-nav [aria-current] { color: var(--copper); text-decoration: underline; }
+.field-guide .mast-launch { display: inline-flex; justify-self: end; align-items: center; gap: 17px; min-height: 40px; padding: 7px 16px;
+  border: 1px solid var(--ink); border-radius: 3px; font-weight: 650; font-size: 14px; }
+.mast-launch:hover { background: var(--ink); color: var(--paper); }
+.guide-mast { background: var(--paper); }
+.guide-hero-surface, .mcp-intro { background: var(--pine); color: var(--on-pine); }
+.guide-hero-surface .guide-hero { padding-block: clamp(35px, 4.7vw, 75px); grid-template-columns: minmax(0,.91fr) minmax(0,1.09fr); }
+.guide-hero-surface .guide-intro h1 { font-size: clamp(61px,7vw,108px); line-height: .92; }
+.guide-hero-surface .guide-intro em, .mcp-intro em { color: var(--copper-light); }
+.guide-hero-surface .guide-intro p, .mcp-intro p { color: var(--on-pine-muted); }
+.guide-hero-surface .guide-primary, .mcp-intro .guide-primary { background: var(--on-pine); color: var(--pine-deep) !important; }
+.guide-hero-surface .guide-primary:hover, .mcp-intro .guide-primary:hover { background: #f1d9bf; }
+.guide-hero-surface .hero-guides { border-top: 1px solid #526456; padding-top: 13px; margin-top: clamp(20px, 2vw, 32px); width: fit-content; }
+.guide-hero-surface .hero-guides a { color: var(--on-pine-muted); text-decoration-color: #829681; }
+.guide-hero-surface .guide-text-link:hover, .mcp-intro .guide-text-link:hover { color: var(--copper-light); }
+.guide-hero-surface .model-plate { background: var(--pine-deep); outline: 1px solid #566254; }
+.guide-hero-surface .model-plate figcaption { border-color: #566254; }
+.guide-hero-surface :is(a,button,canvas):focus-visible, .mcp-intro a:focus-visible { outline-color: var(--copper-light); }
+.component-section, .mcp-section { padding-block: var(--section-space); }
+.component-section { display: grid; grid-template-columns: minmax(240px,.65fr) minmax(0,1.35fr); align-items: start; gap: clamp(34px,6vw,94px); }
+.component-section h2, .mcp-section h2, .mcp-install-grid h2 { max-width: 18ch; }
+.component-tabs { display: grid; margin-top: clamp(16px,2.4vw,38px); border-top: var(--guide-rule); }
+.component-tabs button { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 15px; padding: 14px 10px 14px 3px;
+  color: var(--ink); background: transparent; text-align: left; border: 0; border-bottom: var(--guide-rule); cursor: pointer; font: inherit; border-radius: 0; }
+.component-tabs button:hover, .component-tabs [aria-selected=true] { background: var(--soft-paper); }
+.component-tabs img { width: 38px; height: 38px; border-radius: 3px; }
+.component-tabs img[src$=".webp"] { mix-blend-mode: multiply; }
+.component-tabs strong, .component-tabs small { display: block; }
+.component-tabs strong { font-size: 19px; line-height: 1.2; }
+.component-tabs small { margin-top: 4px; color: var(--muted); font-size: var(--small-type); }
+.component-tabs i { font-style: normal; opacity: 0; color: var(--copper); font-size: 22px; }
+.component-tabs [aria-selected=true] i { opacity: 1; }
+.component-panel { border: var(--guide-rule); min-width: 0; }
+.component-panel[hidden] { display: none; }
+.panel-work { background: #faf7e9; min-height: clamp(245px,23vw,330px); display: grid; grid-template-rows: auto 1fr; }
+.panel-title, .panel-caption, .mcp-config figcaption { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px clamp(15px,2vw,30px); }
+.panel-title { border-bottom: 1px solid color-mix(in srgb, currentColor 24%, transparent); }
+.panel-title strong { font-size: 14px; }
+.panel-title span, .connection-specimen small, .mcp-mark-plate code { font: 12px/1.5 var(--measure); }
+.studio-specimen { display: block; width: 100%; height: clamp(215px, 22vw, 305px); object-fit: contain; }
+.panel-sdk .panel-work { color: var(--on-pine); background: var(--pine-deep); }
+.feature-source { align-self: center; margin: 0; overflow-x: auto; padding: clamp(18px,2.3vw,36px); color: var(--on-pine); font: clamp(12px,1.12vw,17px)/1.9 var(--measure); }
+.feature-source b { color: #c2d8ba; font-weight: 500; }
+.feature-source i { color: var(--copper-light); font-style: normal; }
+.panel-mcp .panel-work { background: #e6eade; }
+.connection-specimen { align-self: center; padding: clamp(15px,2.7vw,40px); }
+.connection-pair { display: flex; align-items: center; gap: 14px; }
+.connection-pair b { font: 400 clamp(28px,3.5vw,51px)/1 var(--guide-serif),Georgia,serif; }
+.connection-pair span { color: var(--copper); font-size: 23px; }
+.connection-specimen blockquote { margin: 20px 0 10px; max-width: 52ch; }
+.connection-specimen small { color: var(--muted); }
+.panel-caption { align-items: baseline; border-top: var(--guide-rule); }
+.panel-caption p { font-size: var(--small-type); max-width: 38ch; color: var(--muted); }
+.panel-caption a, .node-citation, .example-credit a, .mcp-reference p a { color: var(--copper); text-decoration: underline; text-underline-offset: 4px; }
+.panel-caption a { flex: none; font-weight: 600; font-size: var(--small-type); padding-block: 5px; }
+.mcp-intro-inner { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(190px,.55fr); align-items: center; gap: clamp(32px,8vw,150px); padding-block: var(--section-space); }
+.component-crumb { font-size: var(--small-type); text-decoration: underline !important; text-underline-offset: 4px; color: var(--on-pine-muted) !important; }
+.mcp-intro h1 { margin-top: 18px; font-size: clamp(68px,9.3vw,145px); line-height: .95; letter-spacing: -.045em; }
+.mcp-intro p { max-width: 49ch; margin-top: 22px; font-size: clamp(16px,1.4vw,21px); }
+.mcp-mark-plate { border: 1px solid #657365; background: #183129; }
+.mcp-mark-plate img { display: block; margin: auto; width: min(100%,265px); height: auto; }
+.mcp-mark-plate figcaption { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 9px 15px; background: var(--pine-deep); border-top: 1px solid #657365; font-size: 13px; }
+.mcp-mark-plate code { color: var(--on-pine-muted); }
+.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 25px; margin-bottom: 26px; }
+.section-heading p { max-width: 45ch; font-size: 15px; color: var(--muted); }
+.graph-explorer { display: grid; grid-template-columns: minmax(200px,.58fr) minmax(0,1.42fr); border: var(--guide-rule); }
+.explorer-index { background: var(--mineral); padding: clamp(18px,2.4vw,34px); }
+.explorer-index label, .graph-file-label, .mcp-connect legend { font-weight: 650; font-size: 14px; }
+.explorer-index input, .graph-file-label input { display: block; width: 100%; margin: 8px 0 16px; min-height: var(--control-height); border: 1px solid #809182; border-radius: 2px; padding-inline: 10px; background: #fffdf5; color: var(--ink); font: inherit; font-size: 15px; line-height: 1.3; }
+.graph-explorer ul { padding: 0; list-style: none; }
+.explorer-index li, .neighbor-list li { border-top: var(--guide-rule); }
+.graph-explorer button { cursor: pointer; font: inherit; color: inherit; }
+.graph-explorer button:disabled { opacity: .55; cursor: default; }
+.explorer-index li button, .neighbor-list button { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 9px 2px; min-height: var(--control-height); text-align: left; border: 0; background: transparent; font-size: 14px; }
+.explorer-index li button[aria-pressed=true], .graph-explorer li button:hover { color: var(--copper); text-decoration: underline; text-underline-offset: 3px; }
+.explorer-node { min-width: 0; padding: clamp(18px,3vw,48px); }
+.node-kicker { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 12px/1.4 var(--measure); color: var(--muted); }
+.node-kicker button { background: transparent; border: 0; min-height: 34px; text-decoration: underline; text-underline-offset: 3px; }
+.explorer-node h3 { font-size: clamp(37px,4vw,61px); line-height: 1.06; margin: 5px 0 10px; }
+.node-citation { display: inline-block; padding-block: 8px; font-size: 13px; }
+.edge-direction { display: flex; flex-wrap: wrap; gap: 4px; margin: 17px 0 8px; }
+.edge-direction button { background: transparent; border: 1px solid #89978a; border-radius: 2px; min-height: 36px; padding: 4px 12px; font-size: 13px; }
+.edge-direction [aria-pressed=true] { background: var(--pine); color: var(--on-pine); }
+.tool-response { margin-top: 20px; border-top: var(--guide-rule); }
+.tool-response summary { cursor: pointer; padding: 12px 0; font-size: 14px; }
+.tool-response summary code { margin-left: 6px; color: var(--muted); font: 12px var(--measure); }
+.tool-response pre, .mcp-config pre { overflow: auto; max-height: 340px; margin: 0; padding: 16px; background: var(--pine-deep); color: var(--on-pine); font: 13px/1.65 var(--measure); }
+.example-credit { padding-top: 10px; color: var(--muted); font-size: 12px; }
+.mcp-install-surface { background: var(--mineral); border-block: var(--guide-rule); }
+.mcp-install-grid { display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); align-items: start; gap: clamp(28px,6vw,95px); padding-block: var(--section-space); }
+.mcp-install-grid p, .mcp-reference p { max-width: 54ch; margin-top: 16px; }
+.mcp-connect { min-width: 0; }
+.mcp-connect fieldset { display: flex; flex-wrap: wrap; gap: 8px 22px; border: 0; padding: 0; margin: 0 0 16px; }
+.mcp-connect legend { margin-bottom: 7px; }
+.mcp-connect fieldset label { display: flex; align-items: center; gap: 6px; min-height: 36px; cursor: pointer; font-size: 14px; }
+.mcp-connect input { accent-color: var(--pine); }
+.mcp-config { background: var(--pine-deep); color: var(--on-pine); }
+.mcp-config figcaption { padding: 9px 16px; border-bottom: 1px solid #637268; font-size: 13px; }
+.mcp-config figcaption button { background: transparent; border: 1px solid #829181; color: var(--on-pine); border-radius: 3px; display: inline-flex; align-items: center; gap: 5px; font: inherit; cursor: pointer; min-height: 31px; }
+.codex-setup { margin-block: 12px; }
+.codex-setup summary { width: fit-content; padding-block: 6px; cursor: pointer; font-size: 14px; font-weight: 550; }
+.mcp-config pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.mcp-reference dl { margin: 24px 0; }
+.mcp-reference dl > div { display: grid; grid-template-columns: minmax(130px,.45fr) minmax(0,1.55fr); gap: 16px; padding: 10px 0; border-top: var(--guide-rule); }
+.mcp-reference dd { margin: 0; }
+.field-guide :is(input,summary,[role=tabpanel]):focus-visible { outline: 3px solid var(--copper); outline-offset: 3px; }
+@media (max-width: 740px) {
+  .field-guide .mast-inner { grid-template-columns: 1fr auto; padding-block: 10px 0; gap: 4px 12px; }
+  .guide-mast .guide-nav { grid-column: 1/-1; grid-row: 2; justify-content: space-between; gap: 5px; border-top: var(--guide-rule); }
+  .guide-mast .guide-nav a { font-size: 13px; }
+  .field-guide .mast-launch { grid-row: 1; grid-column: 2; min-height: 36px; margin-bottom: 5px; }
+  .guide-hero-surface .guide-hero, .component-section, .mcp-install-grid { grid-template-columns: minmax(0,1fr); }
+  .guide-hero-surface .guide-intro h1 { font-size: clamp(56px,10.5vw,75px); }
+  .component-section { gap: 20px; }
+  .component-tabs { margin-top: 15px; }
+  .component-tabs button { padding-block: 8px; }
+  .component-tabs strong { font-size: 17px; }
+  .panel-caption, .section-heading { display: grid; gap: 7px; }
+  .mcp-intro-inner { grid-template-columns: minmax(0,1fr) 64px; align-items: start; gap: 14px; }
+  .mcp-mark-plate { margin-top: 32px !important; }
+  .mcp-mark-plate figcaption { display: none; }
+  .mcp-intro p { max-width: 46ch; }
+  .section-heading p { max-width: 55ch; }
+  .graph-explorer { grid-template-columns: minmax(0,1fr); }
+  .explorer-index ul { max-height: 195px; overflow: auto; }
+}
+@media (max-width: 440px) {
+  .guide-mast .guide-nav a { font-size: 12px; gap: 4px; }
+  .guide-nav img { width: 16px; height: 16px; }
+  .guide-footer { flex-wrap: wrap; padding-block: 12px; }
+  .guide-footer > div { gap: 14px; }
+  .mcp-intro-inner { display: block; position: relative; }
+  .mcp-mark-plate { position: absolute; top: 24px; right: 0; width: 44px; margin: 0 !important; }
+  .mcp-reference dl > div { grid-template-columns: 1fr; gap: 4px; }
+}

@@ -6,6 +6,7 @@ import { writeSpecimens } from './specimen-art.mjs'
 import { writeAssistantDocs } from './docs/markdown.mjs'
 import { publishedIntegrity, studioDependency } from '../scripts/npm-registry.mjs'
 import { siteOrigin } from './site.js'
+import mcpPackage from '../mcp/package.json' with { type: 'json' }
 
 const root = new URL('../', import.meta.url)
 const target = (path) => new URL(path, import.meta.url)
@@ -18,14 +19,18 @@ await mkdir(target('./public/benchmarks/'), { recursive: true })
 const publicDir = fileURLToPath(target('./public/'))
 const [archive] = JSON.parse(execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', publicDir],
   { cwd: fileURLToPath(root), encoding: 'utf8' }))
+const mcpFile = mcpPackage.name + '-' + mcpPackage.version + '.tgz'
 for (const filename of await readdir(publicDir)) {
-  if (filename.startsWith(archive.name + '-') && filename.endsWith('.tgz') && filename !== archive.filename) {
+  if ([archive.name, mcpPackage.name].some(name => filename.startsWith(name + '-')) && filename.endsWith('.tgz') &&
+    filename !== archive.filename && filename !== mcpFile) {
     await unlink(target('./public/' + filename))
   }
 }
 const revision = process.env.GITHUB_SHA
 const prefix = /^[a-f0-9]{40}$/.test(revision) ? 'packages/' + revision + '/' : ''
 const site = new URL((process.env.PAGES_BASE_PATH ?? '/loom') + '/', siteOrigin)
+execFileSync(process.execPath, ['scripts/build-mcp.mjs', publicDir], { cwd: root, stdio: 'inherit' })
+await writeFile(target('./.generated/graph-mcp.json'), JSON.stringify({ filename: mcpFile, archiveURL: new URL(prefix + mcpFile, site).href }))
 const archiveURL = new URL(prefix + archive.filename, site).href
 let published
 try { published = await publishedIntegrity() }

@@ -8,6 +8,7 @@ import { studioConfiguration } from '../tests/studio-config.mjs'
 import { studioLoad } from '../tests/studio-load.mjs'
 import { studioDrilldown } from '../tests/studio-drilldown.mjs'
 import { fieldGuide } from '../tests/field-guide.mjs'
+import { graphMcpJourney } from '../tests/graph-mcp.mjs'
 import { sdkDocs } from '../tests/sdk-docs.mjs'
 import { exampleJourney, searchPages } from '../tests/site-discovery.mjs'
 import { studioMenu } from '../tests/studio-menu.mjs'
@@ -38,6 +39,7 @@ try {
   const desktopMenu = await studioMenu(context, url)
   const mobile = await siteContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
   console.log(await searchPages(browser, home))
+  console.log(await graphMcpJourney(context, home, { live: !!liveURL }), await graphMcpJourney(mobile, home, { touch: true, live: !!liveURL }))
   await exampleJourney(context, home)
   await exampleJourney(mobile, home, true)
   const docs = await sdkDocs(context, home)

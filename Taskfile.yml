@@ -3,6 +3,7 @@ version: '3'
 includes:
   studio: ./tasks/studio.yml
   release: ./tasks/release.yml
+  mcp: ./tasks/mcp.yml
 
 tasks:
   default:
@@ -10,10 +11,12 @@ tasks:
     cmds: [task --list]
 
   setup:
-    desc: Install the locked SDK and Studio dependencies and Chromium for browser tests
+    desc: Install SDK, Studio and Graph MCP dependencies and Chromium for browser tests
     cmds:
       - npm ci
       - npm --prefix web ci
+      - npm --prefix mcp ci
+      - task: mcp:build
       - npx --no-install playwright install chromium
 
   dev:
@@ -60,10 +63,12 @@ tasks:
       - npm run test:browser
 
   check:all:
-    desc: Check the SDK, desktop and mobile Studio, exports and the local development server
+    desc: Check the SDK, Graph MCP, desktop and mobile Studio, exports and the development server
     cmds:
       - task: check
       - task: studio:test
+      - task: mcp:test
+        vars: { SCENE: artifacts/mcp/studio-scene.json }
       - task: studio:test:dev
 
   bench:

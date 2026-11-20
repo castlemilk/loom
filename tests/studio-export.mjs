@@ -115,6 +115,18 @@ export async function studioExport(context, url, { touch = false, live = false }
     await mkdir(shots, { recursive: true })
     await page.screenshot({ path: fileURLToPath(new URL(touch ? 'export-mobile.png' : 'export-desktop.png', shots)) })
     assert.ok(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth && document.documentElement.scrollWidth <= innerWidth))
+    await press(button('Graph MCP', dialog))
+    const mcpExport = await download(page, button('Download scene.json', dialog))
+    assert.equal((await json(await mcpExport.path())).data.title, name)
+    if (!touch) {
+      const destination = new URL('../artifacts/mcp/', import.meta.url)
+      await mkdir(destination, { recursive: true })
+      await mcpExport.saveAs(fileURLToPath(new URL('studio-scene.json', destination)))
+    }
+    const [setup] = await Promise.all([page.waitForEvent('popup'), press(dialog.getByRole('link', { name: /Open MCP client setup/ }))])
+    await setup.getByLabel('Path on your computer').waitFor()
+    assert.equal(await setup.getByRole('radio', { name: 'My Studio export' }).isChecked(), true)
+    await setup.close()
     await press(button('Existing app', dialog))
     const language = touch ? 'js' : 'ts'
     await dialog.getByLabel('Language').selectOption(language)

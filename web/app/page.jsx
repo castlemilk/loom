@@ -4,11 +4,13 @@ import { connectionURL, exampleConnections } from '../wiki-connections'
 import model from '../public/examples/wire-model.json'
 import { ModelPlate } from './model-plate'
 import { GuideFrame } from './guide-frame'
+import { ComponentShowcase } from './component-showcase'
+import wikiEvidence from '../public/examples/wikispeedia/evidence/1-9.json'
 import atlases from '../../demo/atlases/catalog.json'
 import sdk from '../.generated/sdk-package.json'
 import manifest from '../../package.json'
 
-const description = 'Build interactive network diagrams and knowledge graphs with Loom. Draw in Graph Studio, export to TypeScript, and stream large graphs with SQLite and WebGL2.'
+const description = 'Draw a knowledge graph in Loom Graph Studio, embed it with the TypeScript SDK, or give an assistant read access to its nodes, links and sources through Graph MCP.'
 export const metadata = pageMetadata({ title: 'Loom · TypeScript library for interactive graph visualization', description, path: homeURL })
 const library = { '@context': 'https://schema.org', '@type': 'SoftwareSourceCode', name: 'Loom', alternateName: manifest.name,
   description, programmingLanguage: 'TypeScript', codeRepository: repositoryURL, url: absoluteURL(homeURL),
@@ -34,10 +36,10 @@ export default function FieldGuide() {
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(library).replace(/</g, '\\u003c') }} />
     <GuideFrame>
     <main id="guide-main">
-      <section className="guide-width guide-hero" aria-labelledby="guide-title">
+      <section className="guide-hero-surface" aria-labelledby="guide-title"><div className="guide-width guide-hero">
         <div className="guide-intro">
           <h1 id="guide-title">Interactive graphs<br />in <em>TypeScript.</em></h1>
-          <p>Give Loom a set of nodes and links, or draw them in Graph Studio. Turn the result into a knowledge graph or network diagram you can embed in your own app.</p>
+          <p>Draw a network in Graph Studio, embed it in your app, or let an assistant follow its connections back to the source.</p>
           <div className="guide-actions">
             <a className="guide-primary" href={docsURL}>Build your first graph <span aria-hidden="true">→</span></a>
             <a className="guide-text-link" href={studioURL}>Open graph studio <span aria-hidden="true">↗</span></a>
@@ -49,7 +51,8 @@ export default function FieldGuide() {
           </nav>
         </div>
         <ModelPlate nodes={model.nodes.length} links={model.links.length} />
-      </section>
+      </div></section>
+      <ComponentShowcase passage={wikiEvidence.links[music.edge][3]} />
       <section className="guide-examples" id="examples" aria-labelledby="examples-title">
         <div className="guide-width featured-studies">
           <h2 id="examples-title">Explore the graphs</h2>

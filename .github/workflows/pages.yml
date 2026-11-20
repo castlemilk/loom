@@ -27,13 +27,16 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             web/package-lock.json
+            mcp/package-lock.json
       - run: npm ci
       - run: npm --prefix web ci
+      - run: npm --prefix mcp ci
       - run: npm run build && npm run test:types && npm test && npm run size
       - run: npm run site:build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
       - run: npm run test:site
+      - run: npm --prefix mcp test && node mcp/tests/install.mjs web/out artifacts/mcp/studio-scene.json
       - run: npm run test:dev
       - uses: actions/upload-artifact@v4
         if: always()
@@ -81,6 +84,7 @@ jobs:
           test "$(cat published/revision.txt)" = "$GITHUB_SHA"
           mkdir -p "published/packages/$GITHUB_SHA"
           cp export/loom-core-*.tgz "published/packages/$GITHUB_SHA/"
+          cp export/loom-graph-mcp-*.tgz "published/packages/$GITHUB_SHA/"
           git -C published add --all
           if ! git -C published diff --cached --quiet; then
             git -C published -c user.name=github-actions[bot] -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -m "Publish studio from $GITHUB_SHA"
@@ -119,3 +123,7 @@ jobs:
         run: |
           archive=$(node --input-type=module -e "import { archiveName } from './scripts/npm-registry.mjs'; console.log(archiveName)")
           npm run test:package -- "${PAGES_URL%/}/packages/$GITHUB_SHA/$archive"
+      - name: Connect a client to the published Graph MCP archive
+        run: |
+          npm --prefix mcp ci
+          node mcp/tests/install.mjs "${PAGES_URL%/}/packages/$GITHUB_SHA/" artifacts/mcp/studio-scene.json

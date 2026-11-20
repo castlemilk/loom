@@ -70,6 +70,9 @@ export async function writeAssistantDocs(publicDir, indexFile, installCommands) 
     await writeFile(target, body)
     return body
   }))
+  const connector = await readFile(new URL('../../mcp/README.md', import.meta.url), 'utf8')
+  await mkdir(new URL('mcp/', publicDir), { recursive: true })
+  await writeFile(new URL('mcp/index.md', publicDir), connector)
   const lines = ['# Loom SDK', '', '> Loom draws interactive graphs in WebGL2 and provides a headless, revision-checked graph editor.',
     '', 'These guides describe loom-core ' + index.version + '. The roadmap describes proposed additions.', '']
   for (const group of new Set(chapters.map(c => c.group))) {
@@ -78,10 +81,11 @@ export async function writeAssistantDocs(publicDir, indexFile, installCommands) 
     lines.push('')
   }
   lines.push('## Machine-readable reference', '',
+    '- [Graph MCP server, tools and graph sources](' + new URL('mcp/index.md', site) + ')',
     '- [Public imports, types and controller methods](' + new URL('docs/api-index.json', site) + ')',
     '- [Editor transaction schema](' + new URL('editor.schema.json', site) + ')',
     '- [M2 Max benchmark samples and test conditions](' + new URL('benchmarks/m2-max.json', site) + ')',
     '- [All chapters with their code examples](' + new URL('llms-full.txt', site) + ')', '')
   await writeFile(new URL('llms.txt', publicDir), lines.join('\n'))
-  await writeFile(new URL('llms-full.txt', publicDir), pages.join('\n---\n\n'))
+  await writeFile(new URL('llms-full.txt', publicDir), [...pages, connector].join('\n---\n\n'))
 }

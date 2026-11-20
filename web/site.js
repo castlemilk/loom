@@ -5,6 +5,7 @@ export const siteOrigin = 'https://castlemilk.github.io'
 export const studioURL = base + '/studio/'
 export const repositoryURL = 'https://github.com/castlemilk/loom'
 export const docsURL = homeURL + 'docs/'
+export const mcpURL = homeURL + 'mcp/'
 export const apiURL = docsURL + 'api/'
 export const artURL = (name) => homeURL + 'illustrations/' + name
 export const opticsURL = studioURL + '?example=drilldown&group=Optics&bubbles=off'

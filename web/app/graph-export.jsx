@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import { CopyButton } from '../docs/copy-button'
-import { docsURL } from '../site'
+import { artURL, docsURL, mcpURL } from '../site'
 import sdk from '../.generated/sdk-package.json'
 import { downloadFile } from './download-file'
 import { fileStem, mountCode, projectCommands, projectZip } from './export-project.mjs'
@@ -72,7 +72,7 @@ export function ExportDialog({ snapshot, close }) {
   }
   function saveScene() {
     downloadFile('scene.json', JSON.stringify(chosenScene(), null, 2) + '\n', 'application/json')
-    setNotice('Scene downloaded. Place it beside ' + moduleFile + '.')
+    setNotice(tab === 'mcp' ? 'Scene downloaded. Enter its full path in the client setup.' : 'Scene downloaded. Place it beside ' + moduleFile + '.')
   }
   return <Dialog title="Export graph" close={close}>
     <div className="export-summary">
@@ -82,15 +82,15 @@ export function ExportDialog({ snapshot, close }) {
     </div>
     {inDetail && <p className="export-scope">This scene contains the open view. Return to the overview to export the whole canvas.</p>}
     <div className="export-tabs" role="group" aria-label="Export destination">
-      {[['project','Starter project'], ['app','Existing app']].map(([id, label]) => <button type="button" key={id} aria-pressed={id === tab}
-        onClick={() => { setTab(id); setNotice('') }}>{label}</button>)}
+      {[['project','Starter project'], ['app','Existing app'], ['mcp','Graph MCP']].map(([id, label]) => <button type="button" key={id} aria-pressed={id === tab}
+        onClick={() => { setTab(id); setNotice('') }}>{id === 'mcp' && <img src={artURL('graph-mcp.png')} width="17" height="17" alt="" />}{label}</button>)}
     </div>
-    <div className="export-options">
+    {tab !== 'mcp' && <div className="export-options">
       <label>Language <select value={language} onChange={event => { setLanguage(event.target.value); setNotice('') }}>
         <option value="ts">TypeScript</option><option value="js">JavaScript</option></select></label>
       {!!scene.positions && <label><input type="checkbox" checked={keepView} onChange={event => { setKeepView(event.target.checked); setNotice('') }}/>
         Keep positions and camera</label>}
-    </div>
+    </div>}
     {tab === 'project' ? <>
       <ul className="export-files">
         {[[moduleFile, 'Mounts the graph on a canvas'], ['scene.json', 'Graph, layout and styling'], ['index.html', 'A page to run and build']].map(([file, label]) =>
@@ -98,7 +98,11 @@ export function ExportDialog({ snapshot, close }) {
       </ul>
       <Code name="Run the project">{projectCommands}</Code>
       <button type="button" className="export-primary" disabled={busy || !projectName.trim()} onClick={saveProject}>{busy ? 'Preparing ZIP…' : 'Download project ZIP'}</button>
-    </> : <>
+    </> : tab === 'mcp' ? <div className="export-mcp">
+      <p className="export-instruction">Download this graph, then give its file path to Graph MCP. Your assistant can search the nodes and trace their connections locally.</p>
+      <button type="button" className="export-primary" onClick={saveScene}>Download scene.json</button>
+      <a href={mcpURL + '?source=studio#connect'} target="_blank" rel="noreferrer">Open MCP client setup ↗</a>
+    </div> : <>
       <p className="export-instruction">Install Loom, then save this module beside <code>scene.json</code>. Call <code>await mountGraph(canvas)</code> on a sized canvas.</p>
       <Code name="Install Loom">{'npm install ' + sdk.installSpec}</Code>
       <Code key={moduleFile} name={moduleFile}>{mountCode(language)}</Code>

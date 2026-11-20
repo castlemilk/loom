@@ -1,0 +1,16 @@
+{
+  "name": "loom-graph-mcp",
+  "version": "0.1.0",
+  "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://castlemilk.github.io/loom/mcp/",
+  "repository": { "type": "git", "url": "git+https://github.com/castlemilk/loom.git", "directory": "mcp" },
+  "bin": { "loom-graph-mcp": "./cli.js" },
+  "exports": { ".": { "types": "./index.d.ts", "import": "./server.js" } },
+  "files": ["cli.js", "server.js", "query.js", "catalog.js", "index.d.ts", "data", "data-licenses", "LICENSE", "README.md"],
+  "engines": { "node": ">=22.14" },
+  "dependencies": { "@modelcontextprotocol/server": "2.4.0", "zod": "4.6.7" },
+  "devDependencies": { "@modelcontextprotocol/client": "2.4.0" },
+  "scripts": { "test": "node --test tests/stdio.test.mjs" }
+}
