@@ -34,7 +34,34 @@ export interface AtlasNode extends GraphNode {
   topic: number
   article?: number
 }
-export type AtlasScene = GraphData<AtlasNode, GraphLink>
+export interface AtlasLink extends GraphLink {
+  sourceTopic: number
+  targetTopic: number
+}
+export type AtlasScene = GraphData<AtlasNode, AtlasLink>
+export interface AtlasCrossing {
+  source: number
+  target: number
+  sourceTitle: string
+  targetTitle: string
+  sourceTopic: number
+  targetTopic: number
+}
+
+/** Rank neighboring topics from the small manifest, including topics that have never been opened. */
+export function atlasConnections(manifest: AtlasManifest, topic: number) {
+  const counts = new Map<number, { topic: number; incoming: number; outgoing: number; total: number }>()
+  for (const [from, to, count] of manifest.connections) {
+    if (from === to || (from !== topic && to !== topic)) continue
+    const other = from === topic ? to : from
+    const row = counts.get(other) ?? { topic: other, incoming: 0, outgoing: 0, total: 0 }
+    if (from === topic) row.outgoing += count
+    else row.incoming += count
+    row.total += count
+    counts.set(other, row)
+  }
+  return [...counts.values()].sort((a, b) => b.total - a.total || a.topic - b.topic)
+}
 export interface AtlasSnapshot {
   mode: AtlasLoading
   expanded: readonly number[]
@@ -63,7 +90,7 @@ export function createFullAtlasReader(url: string | URL): AtlasReader {
 }
 
 /** Keep the overview legible by drawing the two strongest inter-topic connections for each topic. */
-function overviewLinks(manifest: AtlasManifest): GraphLink[] {
+function overviewLinks(manifest: AtlasManifest): AtlasLink[] {
   const pairs = new Map<string, { left: number; right: number; count: number }>()
   for (const [a, b, n] of manifest.connections) {
     if (a === b) continue
@@ -83,13 +110,15 @@ function overviewLinks(manifest: AtlasManifest): GraphLink[] {
     target: 'topic:' + p.right,
     kind: 'overview',
     weight: p.count,
+    sourceTopic: p.left,
+    targetTopic: p.right,
   }))
 }
 
 /** Coordinates depend only on the published topic centre and the article's slot within it. */
 function makeScene(
   topics: readonly AtlasTopic[],
-  overview: GraphLink[],
+  overview: AtlasLink[],
   blocks: Map<number, AtlasBlock>,
   open: Set<number>,
 ): AtlasScene {
@@ -103,8 +132,8 @@ function makeScene(
     y: t.y,
     pinned: true,
   }))
-  const links = [...overview],
-    visible = new Set<number>()
+  const links: AtlasLink[] = [...overview],
+    visible = new Map<number, number>()
   for (const t of topics) {
     const block = open.has(t.id) && blocks.get(t.id)
     if (!block) continue
@@ -112,7 +141,7 @@ function makeScene(
       const slot = id - t.first,
         angle = slot * 2.3999632297,
         radius = 18 + 53 * Math.sqrt((slot + 0.5) / t.count)
-      visible.add(id)
+      visible.set(id, t.id)
       nodes.push({
         id: 'article:' + id,
         article: id,
@@ -130,8 +159,15 @@ function makeScene(
   }
   for (const group of open) {
     for (const [source, target] of blocks.get(group)?.edges ?? []) {
-      if (visible.has(target))
-        links.push({ source: 'article:' + source, target: 'article:' + target, kind: 'hyperlink' })
+      const targetTopic = visible.get(target)
+      if (targetTopic !== undefined)
+        links.push({
+          source: 'article:' + source,
+          target: 'article:' + target,
+          kind: 'hyperlink',
+          sourceTopic: group,
+          targetTopic,
+        })
     }
   }
   return { nodes, links }
@@ -253,6 +289,31 @@ export function createAtlas(manifest: AtlasManifest, readers: AtlasReaders, load
       return setExpanded(next)
     },
     block: (id: number) => blocks.get(id),
+    /** Directed crossing rows for two loaded topics. Querying never initiates a fetch. */
+    crossings(left: number, right: number): AtlasCrossing[] {
+      const a = blocks.get(left),
+        b = blocks.get(right)
+      if (!a || !b || left === right) return []
+      const titles = new Map([...a.articles, ...b.articles].map(([id, title]) => [id, title]))
+      const rows: AtlasCrossing[] = []
+      for (const [from, to] of [
+        [a, b],
+        [b, a],
+      ]) {
+        const members = new Set(to.articles.map(([id]) => id))
+        for (const [source, target] of from.edges)
+          if (members.has(target))
+            rows.push({
+              source,
+              target,
+              sourceTitle: titles.get(source)!,
+              targetTitle: titles.get(target)!,
+              sourceTopic: from.topic,
+              targetTopic: to.topic,
+            })
+      }
+      return rows
+    },
     close() {
       closed = true
       generation++

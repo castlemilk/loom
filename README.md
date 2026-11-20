@@ -44,13 +44,19 @@ Stable link IDs determine the order of parallel paths across input reordering an
 
 Open a topic to reveal its articles. Opening another adds the hyperlinks between them and keeps existing nodes and the camera in place. Pick an article to read it on Wikipedia or open a labeled card view of its visible neighbors. Links to the studio preserve the open topics and loading mode. [Try the topic map](https://castlemilk.github.io/loom/studio/wikispeedia/) · [Start in Mathematics](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=mathematics)
 
+Drag the Music dot or its name to move all 96 articles together. You can move a closed topic before its first data read, or drag individual articles within an open topic. Arrow keys move a focused topic, and Shift takes a larger step. **Move articles with their topic** switches between moving the group and moving only the topic dot. The studio saves positions in this browser. **Reset positions** restores the published layout. [Arrange Music](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music)
+
+Select a line between topics or choose **Explore connections** to inspect the underlying articles. Mathematics and Computing share 52 hyperlinks, with 23 pointing from Mathematics to Computing and 29 in the reverse direction. Search the pair list, inspect a link's original section and anchor, then choose **Show link on map** to frame both endpoints. Evidence loads only for the topic pair being inspected. [Explore Mathematics and Computing](https://castlemilk.github.io/loom/studio/wikispeedia/?connections=mathematics,computing)
+
 **On demand** starts with 16 topic summaries. A dedicated SQLite/WASM worker reads indexed database pages over HTTP byte ranges on the first expansion. Reopening a cached topic costs no graph reads. **All at once** loads the same articles and edges from one JSON file. Switch modes with topics open to compare the same view, or turn off **Keep camera in place** to center each new topic. The sidebar reports uncompressed graph payload bytes and data reads. The overview and the separately cached SQLite runtime have their own download cost. [Full-download comparison](https://castlemilk.github.io/loom/studio/wikispeedia/?loading=full)
 
 The historical Wikispeedia graph contains 119,882 directed hyperlinks. Each article uses its first listed subject, with six unclassified articles. The overview draws each subject’s two strongest connections. Expanding every subject reveals every recorded hyperlink. Regenerate both data files with `python3 scripts/build-wikispeedia.py`. The script verifies the source archive against a recorded SHA-256 digest. [Stanford SNAP dataset and citations](https://snap.stanford.edu/data/wikispeedia.html)
 
+The evidence index maps 79,126 of 79,128 cross-topic hyperlinks to their original HTML anchors. It includes a short passage for 58,816 links. For the other links, the inspector identifies the anchor or the dataset record and links to the archived page. To rebuild it from the SNAP HTML archive, use `uv run --with lxml scripts/index-wiki-connections.py wikispeedia_articles_html.tar.gz` with Python 3.11 or later. The 2007 Schools Wikipedia Selection credits Wikipedia contributors under the GNU Free Documentation License. [Archived edition](https://dlab.epfl.ch/wikispeedia/wpcd/index.htm) · [License](https://dlab.epfl.ch/wikispeedia/wpcd/wp/w/Wikipedia_Text_of_the_GNU_Free_Documentation_License.htm)
+
 ```ts
 import { parchment } from 'loom-core'
-import { createAtlas, createFullAtlasReader } from 'loom-core/atlas'
+import { atlasConnections, createAtlas, createFullAtlasReader } from 'loom-core/atlas'
 import { createSQLiteAtlasReader } from 'loom-core/atlas-sqlite'
 import { mountAtlasMap } from 'loom-core/atlas-map'
 
@@ -63,10 +69,14 @@ const atlas = createAtlas(manifest, {
   }),
   full: () => createFullAtlasReader(new URL(manifest.full, base)),
 })
-const map = mountAtlasMap(canvas, atlas, { theme: parchment, keepView: true,
+const map = mountAtlasMap(canvas, atlas, { theme: parchment, keepView: true, moveMembers: true,
   onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) },
 })
-await atlas.setExpanded([8]) // Mathematics in this edition
+map.moveTopic(1, { x: -140, y: -175 }) // Music and its articles, even before loading
+await atlas.setExpanded([8, 12]) // Mathematics and Computing in this edition
+const topics = atlasConnections(manifest, 8) // directional counts from the overview
+const links = atlas.crossings(8, 12) // actual article pairs from the two loaded topics
+// Pass map.getPositions() as the next mount's positions option to restore a layout.
 await atlas.setLoading('full')
 // On unmount
 map.destroy()

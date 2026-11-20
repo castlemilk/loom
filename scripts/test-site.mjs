@@ -11,6 +11,7 @@ import { studioAuthoring } from '../tests/studio-authoring.mjs'
 import { studioWires } from '../tests/studio-wires.mjs'
 import { studioAtlases } from '../tests/studio-atlases.mjs'
 import { studioProgressive } from '../tests/studio-progressive.mjs'
+import { studioConnections, studioTopicLayout } from '../tests/studio-topic-layout.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
@@ -36,8 +37,12 @@ try {
   const mobileAtlases = await studioAtlases(mobile, home, true)
   const progressive = await studioProgressive(context, home)
   const mobileProgressive = await studioProgressive(mobile, home, true)
+  const topicLayout = await studioTopicLayout(context, home)
+  const mobileTopicLayout = await studioTopicLayout(mobile, home, true)
+  const connections = await studioConnections(context, home)
+  const mobileConnections = await studioConnections(mobile, home, true)
   await mobile.close()
-  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires, desktopAtlases, mobileAtlases, progressive, mobileProgressive })
+  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires, desktopAtlases, mobileAtlases, progressive, mobileProgressive, topicLayout, mobileTopicLayout, connections, mobileConnections })
   const guide = await fieldGuide(context, home)
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)

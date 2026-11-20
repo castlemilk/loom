@@ -5,9 +5,9 @@ import { observePerformance, type PerformanceSample } from 'loom-core/performanc
 import { clusterLayout, connectedComponents } from 'loom-core/clusters'
 import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
 import { createWireGraph, wireEffectsSchema, type WireEffects } from 'loom-core/wires'
-import { createAtlas, createFullAtlasReader, type AtlasManifest } from 'loom-core/atlas'
+import { atlasConnections, createAtlas, createFullAtlasReader, type AtlasManifest } from 'loom-core/atlas'
 import { createSQLiteAtlasReader, type AtlasSQLiteOptions } from 'loom-core/atlas-sqlite'
-import { mountAtlasMap } from 'loom-core/atlas-map'
+import { mountAtlasMap, type AtlasPositions } from 'loom-core/atlas-map'
 import { createCardGraph } from 'loom-core/cards'
 
 interface Paper extends GraphNode {
@@ -15,10 +15,16 @@ interface Paper extends GraphNode {
   year: number
 }
 interface Citation extends GraphLink { reviewed: boolean }
-export function mountStreamingAtlas(canvas: HTMLCanvasElement, manifest: AtlasManifest, sqlite: AtlasSQLiteOptions, baseline: URL) {
+export function mountStreamingAtlas(canvas: HTMLCanvasElement, manifest: AtlasManifest, sqlite: AtlasSQLiteOptions, baseline: URL, positions?: AtlasPositions) {
   const atlas = createAtlas(manifest, { 'on-demand': () => createSQLiteAtlasReader(sqlite), full: () => createFullAtlasReader(baseline) })
-  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) } })
-  return { setLoading: atlas.setLoading, expand: atlas.setExpanded, fit: map.fit, close() { map.destroy(); atlas.close() } }
+  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, moveMembers: true, positions,
+    onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) } })
+  return {
+    setLoading: atlas.setLoading, expand: atlas.setExpanded, fit: map.fit,
+    moveTopic: map.moveTopic, setMoveMembers: map.setMoveMembers, save: map.getPositions, reset: map.resetPositions,
+    connectedTopics: (topic: number) => atlasConnections(manifest, topic), crossings: atlas.crossings, focusConnection: map.focusConnection,
+    close() { map.destroy(); atlas.close() },
+  }
 }
 export function mountCitationCards(svg: SVGSVGElement, data: GraphData<Paper,Citation>) {
   const cards = createCardGraph(svg, data, {root:data.nodes[0]?.id, badge:n=>String(n.year), relationship:e=>e.reviewed?'Reviewed citation':'Citation'})

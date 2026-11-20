@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { createAtlas, createFullAtlasReader } from '../../../../dist/atlas.js'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { atlasConnections, createAtlas, createFullAtlasReader } from '../../../../dist/atlas.js'
 import { createSQLiteAtlasReader } from '../../../../dist/atlas-sqlite.js'
-import { mountAtlasMap } from '../../../../dist/atlas-map.js'
+import { TopicMap } from './topic-map'
+import { ConnectionInspector } from './connections'
 import { cardNeighborhood } from '../../../../dist/cards.js'
 import manifest from '../../../public/examples/wikispeedia/manifest.json'
 import { AtlasShell, ModeSwitch } from '../../atlas-shell'
@@ -50,7 +51,10 @@ const theme = {
     color: '#708d80',
     width: 0.9,
     opacity: 0.18,
-    byKind: { overview: { color: '#83958c', width: 1.1, opacity: 0.42 }, hyperlink: { width: 0.65, opacity: 0.16 } },
+    byKind: {
+      overview: { color: '#83958c', width: 1.1, opacity: 0.42 },
+      hyperlink: { width: 0.65, opacity: 0.16 },
+    },
   },
 }
 
@@ -60,6 +64,20 @@ function updateURL(mode, opened) {
   else url.searchParams.delete('loading')
   if (opened.length) url.searchParams.set('topic', opened.map((id) => slug(manifest.topics[id])).join(','))
   else url.searchParams.delete('topic')
+  history.replaceState(history.state, '', url)
+}
+function bookmarkedPair() {
+  const names = new URL(location.href).searchParams.get('connections')?.split(',')
+  if (names?.length !== 2) return null
+  const ids = names.map((name) => manifest.topics.find((t) => slug(t) === name)?.id)
+  return ids.every((id) => id !== undefined) && atlasConnections(manifest, ids[0]).some((p) => p.topic === ids[1])
+    ? ids
+    : null
+}
+function savePair(pair) {
+  const url = new URL(location.href)
+  if (pair) url.searchParams.set('connections', pair.map((id) => slug(manifest.topics[id])).join(','))
+  else url.searchParams.delete('connections')
   history.replaceState(history.state, '', url)
 }
 
@@ -84,7 +102,12 @@ export default function Wikispeedia() {
       mode,
     )
     const requested = (p.get('topic') ?? '').split(',')
-    void controller.setExpanded(manifest.topics.filter((t) => requested.includes(slug(t))).map((t) => t.id))
+    void controller.setExpanded(
+      new Set([
+        ...manifest.topics.filter((t) => requested.includes(slug(t))).map((t) => t.id),
+        ...(bookmarkedPair() ?? []),
+      ]),
+    )
     setAtlas(controller)
     return () => controller.close()
   }, [])
@@ -102,83 +125,6 @@ export default function Wikispeedia() {
   )
 }
 
-function TopicMap({ atlas, snap, api, onPick, keep, selected, hidden }) {
-  const canvas = useRef(null),
-    labels = useRef(new Map()),
-    pick = useRef(onPick),
-    [error, setError] = useState('')
-  pick.current = onPick
-  useLayoutEffect(() => {
-    try {
-      const map = mountAtlasMap(canvas.current, atlas, {
-        theme,
-        keepView: keep,
-        onPick: (n) => pick.current(n),
-        onFrame: (frame) => {
-          for (const [i, t] of manifest.topics.entries()) {
-            const label = labels.current.get(t.id)
-            if (!label) continue
-            const x = frame.points[i * 4],
-              y = frame.points[i * 4 + 1],
-              r = frame.points[i * 4 + 2]
-            const margin = frame.width < 550 ? 42 : 67
-            label.style.left = Math.min(frame.width - margin, Math.max(margin, x)) + 'px'
-            label.style.top = y + r + 3 + 'px'
-            label.hidden = x < 0 || y < 0 || x > frame.width || y > frame.height
-          }
-        },
-      })
-      api.current = map
-      return () => {
-        map.destroy()
-        api.current = null
-      }
-    } catch (cause) {
-      setError(cause.message)
-    }
-  }, [atlas, api])
-  useEffect(() => {
-    api.current?.setKeepView(keep)
-  }, [keep, api])
-  useEffect(() => {
-    api.current?.select(selected)
-  }, [selected, snap.scene, api])
-  return (
-    <div className="atlas-map-surface" style={{ visibility: hidden ? 'hidden' : undefined }} aria-hidden={hidden}>
-      <canvas ref={canvas} aria-label="Wikipedia topic map. Pan with arrow keys and zoom with plus or minus." />
-      {error ? (
-        <p className="atlas-graph-error" role="alert">
-          {error} Use the topics list to explore.
-        </p>
-      ) : (
-        manifest.topics.map((t) => {
-          const opened = snap.expanded.includes(t.id)
-          return (
-            <button
-              type="button"
-              key={t.id}
-              ref={(el) => {
-                if (el) labels.current.set(t.id, el)
-                else labels.current.delete(t.id)
-              }}
-              className="atlas-map-label"
-              data-map-topic={t.id}
-              aria-pressed={opened}
-              aria-label={(opened ? 'Close ' : 'Open ') + t.label + ' on map'}
-              onClick={() => onPick({ kind: 'topic', topic: t.id })}
-            >
-              <span>{t.label}</span>
-              <small>
-                {number(t.count)} <b aria-hidden="true">{opened ? '−' : '+'}</b>
-              </small>
-            </button>
-          )
-        })
-      )}
-    </div>
-  )
-}
-
 function neighborhood(scene, article) {
   if (!article) return null
   const group = cardNeighborhood(scene, article.id)
@@ -188,6 +134,10 @@ function neighborhood(scene, article) {
 function Explorer({ atlas }) {
   const snap = useSyncExternalStore(atlas.subscribe, atlas.getSnapshot, atlas.getSnapshot)
   const api = useRef(null)
+  const [carry, setCarry] = useState(true),
+    [pair, setPair] = useState(bookmarkedPair),
+    [inspection, setInspection] = useState(0),
+    [edge, setEdge] = useState(null)
   const [keep, setKeep] = useState(true),
     [active, setActive] = useState(() => snap.expanded.at(-1) ?? null)
   const [selection, setSelection] = useState(null),
@@ -200,7 +150,10 @@ function Explorer({ atlas }) {
     () => (selection === null ? null : snap.scene.nodes.find((n) => n.id === selection)),
     [selection, snap.scene],
   )
-  const cards = useMemo(() => (cardMode ? neighborhood(snap.scene, article) : null), [cardMode, snap.scene, article])
+  const cards = useMemo(
+    () => (cardMode ? neighborhood(snap.scene, article) : null),
+    [cardMode, snap.scene, article],
+  )
   const cardNode = cards?.nodes.find((n) => n.id === cardSelected)
   const ranked = useMemo(
     () => [...(block?.articles ?? [])].sort((a, b) => b[2] - a[2] || a[1].localeCompare(b[1])),
@@ -210,8 +163,37 @@ function Explorer({ atlas }) {
     () => ranked.filter((n) => n[1].toLowerCase().includes(query.trim().toLowerCase())),
     [ranked, query],
   )
+  function closePair() {
+    setPair(null)
+    setEdge(null)
+    savePair(null)
+    updateURL(snap.mode, atlas.getSnapshot().expanded)
+  }
+  function openPair(a, b, link = null) {
+    const nextPair = [a, b],
+      ids = new Set([...atlas.getSnapshot().expanded, a, b])
+    setPair(nextPair)
+    setEdge(link)
+    setInspection((n) => n + 1)
+    setCardMode(false)
+    setSelection(null)
+    setActive(a)
+    void atlas.setExpanded(ids)
+    updateURL(snap.mode, [...ids])
+    savePair(nextPair)
+    requestAnimationFrame(() => document.querySelector('.wiki-connections')?.scrollIntoView({ block: 'nearest' }))
+  }
+  function explorePair() {
+    if (pair) {
+      closePair()
+      return
+    }
+    const a = active ?? 8
+    openPair(a, a === 8 ? 12 : atlasConnections(manifest, a)[0].topic)
+  }
   const openGroup = (id) => {
     const closing = snap.expanded.includes(id)
+    if (closing && pair?.includes(id)) closePair()
     setActive(closing ? (snap.expanded.filter((n) => n !== id).at(-1) ?? null) : id)
     setSelection(null)
     setQuery('')
@@ -220,12 +202,14 @@ function Explorer({ atlas }) {
     updateURL(snap.mode, atlas.getSnapshot().expanded)
   }
   function selectArticle(node) {
+    if (pair) closePair()
     setActive(node.topic)
     setSelection(node.id)
     setCardMode(false)
     setCardSelected(null)
   }
   function expandAll(on) {
+    if (!on && pair) closePair()
     const ids = on ? manifest.topics.map((t) => t.id) : []
     setActive(on ? (active ?? 0) : null)
     setQuery('')
@@ -252,7 +236,13 @@ function Explorer({ atlas }) {
                 : number(manifest.articles) + ' Wikipedia articles · ' + number(manifest.links) + ' hyperlinks'}
             </p>
           </div>
-          {cards && <button onClick={() => setCardMode(false)}>← Topic map</button>}
+          {cards ? (
+            <button onClick={() => setCardMode(false)}>← Topic map</button>
+          ) : (
+            <button type="button" aria-pressed={!!pair} onClick={explorePair}>
+              Explore connections
+            </button>
+          )}
         </div>
         <div className="atlas-viewport">
           <TopicMap
@@ -260,9 +250,23 @@ function Explorer({ atlas }) {
             snap={snap}
             api={api}
             keep={keep}
+            carry={carry}
+            pair={pair}
+            edge={edge}
+            theme={theme}
             selected={article?.id ?? null}
             hidden={!!cards}
             onPick={(n) => (n.kind === 'topic' ? openGroup(n.topic) : selectArticle(n))}
+            onConnection={(link) => {
+              const crossing =
+                link.kind === 'hyperlink'
+                  ? {
+                      source: Number(link.source.slice('article:'.length)),
+                      target: Number(link.target.slice('article:'.length)),
+                    }
+                  : null
+              openPair(link.sourceTopic, link.targetTopic, crossing)
+            }}
           />
           {cards && (
             <CardView
@@ -290,6 +294,22 @@ function Explorer({ atlas }) {
         </div>
       </section>
       <aside className="atlas-side" aria-label="Wikipedia atlas controls">
+        {pair && (
+          <ConnectionInspector
+            key={inspection}
+            atlas={atlas}
+            snap={snap}
+            pair={pair}
+            onPair={openPair}
+            edge={edge}
+            onEdge={setEdge}
+            onClose={closePair}
+            onFocus={(row) => {
+              api.current?.focusConnection('article:' + row.source, 'article:' + row.target)
+              document.querySelector('.atlas-viewport')?.scrollIntoView({ block: 'nearest' })
+            }}
+          />
+        )}
         <ModeSwitch
           label="Graph loading"
           value={snap.mode}
@@ -345,12 +365,33 @@ function Explorer({ atlas }) {
           <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
           Keep camera in place
         </label>
+        <label className="atlas-check">
+          <input type="checkbox" checked={carry} onChange={(e) => setCarry(e.target.checked)} />
+          Move articles with their topic
+        </label>
+        <div className="wiki-position-tools">
+          <p>
+            Drag a topic dot or name. Arrow keys move a focused topic. Select a line between topics to inspect its
+            links.
+          </p>
+          <button type="button" onClick={() => api.current?.resetPositions()}>
+            Reset positions
+          </button>
+        </div>
         {activeTopic && snap.expanded.includes(active) && (
           <section className="atlas-topic-detail">
             <div className="atlas-subhead">
               <h2>{activeTopic.label}</h2>
               <button onClick={() => api.current?.focus('topic:' + active)}>Focus</button>
             </div>
+            {!pair && (
+              <button
+                className="wiki-topic-links"
+                onClick={() => openPair(active, atlasConnections(manifest, active)[0].topic)}
+              >
+                Explore links from {activeTopic.label} →
+              </button>
+            )}
             {block && (
               <>
                 <label className="atlas-search">
@@ -450,8 +491,8 @@ function Explorer({ atlas }) {
         <details className="atlas-provenance">
           <summary>About this graph</summary>
           <p>
-            The Wikispeedia project recorded these hyperlinks in a historical Wikipedia selection. Each article uses its
-            first listed subject. Six have no subject.
+            The Wikispeedia project recorded these hyperlinks in a historical Wikipedia selection. Each article uses
+            its first listed subject. Six have no subject.
           </p>
           <p>
             West &amp; Leskovec (2012), West, Pineau &amp; Precup (2009).{' '}
@@ -460,8 +501,23 @@ function Explorer({ atlas }) {
             </a>
           </p>
           <p>
-            Data read counts uncompressed graph payloads per mode. The overview, file-size check and SQLite runtime are
-            separate.
+            Graph data read counts the uncompressed articles and links. The topic overview, SQLite runtime and archived
+            evidence have their own download sizes.
+          </p>
+          <p>
+            Source excerpts and section names come from the 2007 Schools Wikipedia Selection, by Wikipedia
+            contributors.{' '}
+            <a href="https://dlab.epfl.ch/wikispeedia/wpcd/index.htm" target="_blank" rel="noreferrer">
+              Original edition ↗
+            </a>
+            {' · '}
+            <a
+              href="https://dlab.epfl.ch/wikispeedia/wpcd/wp/w/Wikipedia_Text_of_the_GNU_Free_Documentation_License.htm"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GNU Free Documentation License ↗
+            </a>
           </p>
         </details>
         <a className="atlas-text-link" href={studioURL + 'cards/'}>

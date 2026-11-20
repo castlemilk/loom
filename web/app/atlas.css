@@ -114,3 +114,29 @@ body:has(.atlas-app) { display:block; margin:0; height:auto; }
   .atlas-status {font-size:10px;min-height:24px;}
   .atlas-directory-large li button,.atlas-results button {min-height:38px;}
 }
+.atlas-crossing-overlay {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.atlas-article-caption {font:600 12px/1.2 Inter,system-ui,sans-serif;fill:#763c2a;paint-order:stroke;stroke:var(--paper,#f7f7f0);stroke-width:4px;stroke-linejoin:round;}
+.atlas-article-caption[data-map-caption=selected] {fill:#324e8d;}
+.atlas-map-label {touch-action:none;cursor:grab;user-select:none;}
+.atlas-map-label:active {cursor:grabbing;}
+.wiki-position-tools {display:flex;gap:9px;align-items:center;margin-top:4px;}
+.wiki-position-tools p,.wiki-pages span,.wiki-edge-location {font-size:12px;line-height:1.45;color:var(--muted);}
+.wiki-position-tools button,.wiki-pages button,.wiki-evidence button,.wiki-topic-links {flex:none;border:1px solid var(--rule);background:var(--panel);padding:5px 8px;border-radius:4px;font-size:12px;}
+.wiki-topic-links {margin:8px 0 2px;}
+.wiki-connections {padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--rule);}
+.wiki-pair {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin-top:12px;}
+.wiki-pair label,.wiki-dir {font-size:12px;color:var(--muted);}
+.wiki-pair select,.wiki-dir select {display:block;width:100%;margin-top:3px;border:1px solid var(--rule);background:white;border-radius:4px;padding:6px 3px;color:var(--ink);}
+.wiki-connections .wiki-pair-count {margin:10px 0;font-size:13px;}
+.wiki-pair-count strong {font:600 19px/1.2 Inter,system-ui,sans-serif;}
+.wiki-crossings {margin-top:8px;}
+.wiki-crossings button {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:center;text-align:left;width:100%;min-height:33px;border:0;border-bottom:1px solid var(--rule);background:none;padding:6px;font-size:12px;}
+.wiki-crossings button[aria-pressed=true] {background:#f2e5d8;color:#743d24;}
+.wiki-crossings i {font-style:normal;color:#955735;}
+.wiki-pages {display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:8px;}
+.wiki-evidence {margin-top:12px;padding:11px;border:1px solid #c8bcb1;border-radius:4px;background:#f8f2e9;font-size:13px;color:#39382d;}
+.wiki-evidence h3 {font:600 16px/1.25 Inter,system-ui,sans-serif;}
+.wiki-evidence p {margin-top:6px;}
+.wiki-evidence blockquote {margin:9px 0;font:italic 16px/1.4 Georgia,serif;}
+.wiki-evidence a,.wiki-evidence button {display:inline-block;margin:5px 7px 0 0;font-size:12px;}
+.atlas-board-title button[aria-pressed=true]{background:#f2e5d8;border-color:#b89376;}

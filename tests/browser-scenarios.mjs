@@ -11,6 +11,8 @@ import {
 import { fixture } from '../demo/fixture.js'
 import { attachAnnotations, compileTaxonomies } from '../dist/taxonomy.js'
 import { createWireGraph } from '../dist/wires.js'
+import { createAtlas } from '../dist/atlas.js'
+import { mountAtlasMap } from '../dist/atlas-map.js'
 
 const raf = () => new Promise(requestAnimationFrame)
 const delay = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -52,6 +54,48 @@ function free(c, g) {
   g.destroy()
   c.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext()
   c.remove()
+}
+
+export async function atlasGravity(manifest, blocks) {
+  let resolveRead
+  const reader = { read: () => new Promise(resolve => { resolveRead = resolve }), stats: () => ({ bytes: 0, requests: 0 }), close() {} }
+  const atlas = createAtlas(manifest, { 'on-demand': () => reader, full: () => reader })
+  const c = canvas(700, 440)
+  let map = mountAtlasMap(c, atlas, { theme: parchment })
+  const topic = manifest.topics.find(t => t.label === 'Music')
+  const opening = atlas.setExpanded(blocks.map(b => b.topic))
+  await Promise.resolve()
+  // The first read is still in flight. The articles should arrive at the moved position.
+  const move = (dx, dy) => map.moveTopic(topic.id, { x: topic.x + dx, y: topic.y + dy })
+  const checkScene = (hubDelta, memberDelta) => {
+    for (const n of atlas.getSnapshot().scene.nodes) {
+      const d = n.topic === topic.id ? (n.article === undefined ? hubDelta : memberDelta) : [0, 0]
+      const pos = map.getPosition(n.id)
+      check(Math.abs(pos.x - n.x - d[0]) < 0.001 && Math.abs(pos.y - n.y - d[1]) < 0.001, 'Unexpected displacement of ' + n.label)
+    }
+  }
+  move(70, 35)
+  resolveRead(blocks)
+  await opening
+  checkScene([70, 35], [70, 35])
+  move(-20, 90)
+  checkScene([-20, 90], [-20, 90])
+  map.setMoveMembers(false)
+  move(-40, 80)
+  checkScene([-40, 80], [-20, 90])
+  const pose = map.getPositions()
+  check(Object.keys(pose.articles).length === 0, 'A group drag stores one offset for every member together')
+  pose.topics[topic.id].x += 1000
+  check(map.getPositions().topics[topic.id].x === -40, 'Saved positions must be isolated from the renderer')
+  const saved = map.getPositions()
+  map.destroy()
+  map = mountAtlasMap(c, atlas, { theme: parchment, positions: saved })
+  checkScene([-40, 80], [-20, 90])
+  map.resetPositions()
+  checkScene([0, 0], [0, 0])
+  free(c, map)
+  atlas.close()
+  return { movedArticles: topic.count, stationaryArticles: blocks.find(b => b.topic !== topic.id).articles.length }
 }
 
 function wireFixture(links, wireEffects = {}) {
