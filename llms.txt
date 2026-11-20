@@ -1,0 +1,37 @@
+# Loom SDK
+
+> Loom draws interactive graphs in WebGL2 and provides a headless, revision-checked graph editor.
+
+These guides describe loom-core 0.1.0. The roadmap describes proposed additions.
+
+## Getting started
+
+- [Your first graph](https://castlemilk.github.io/loom/docs/index.md)
+
+## Guides
+
+- [Layouts and styling](https://castlemilk.github.io/loom/docs/drawing/index.md)
+- [Search and drilldowns](https://castlemilk.github.io/loom/docs/navigation/index.md)
+- [Stream a Wikipedia atlas](https://castlemilk.github.io/loom/docs/atlas/index.md)
+- [Edit a graph document](https://castlemilk.github.io/loom/docs/editing/index.md)
+
+## AI tooling
+
+- [Build an AI graph tool](https://castlemilk.github.io/loom/docs/ai-tooling/index.md)
+
+## Performance
+
+- [Measure graph performance](https://castlemilk.github.io/loom/docs/performance/index.md)
+- [Optimise large graphs](https://castlemilk.github.io/loom/docs/optimisations/index.md)
+
+## Reference
+
+- [API reference](https://castlemilk.github.io/loom/docs/api/index.md)
+- [SDK roadmap](https://castlemilk.github.io/loom/docs/roadmap/index.md)
+
+## Machine-readable reference
+
+- [Public imports, types and controller methods](https://castlemilk.github.io/loom/docs/api-index.json)
+- [Editor transaction schema](https://castlemilk.github.io/loom/editor.schema.json)
+- [M2 Max benchmark samples and test conditions](https://castlemilk.github.io/loom/benchmarks/m2-max.json)
+- [All chapters with their code examples](https://castlemilk.github.io/loom/llms-full.txt)
