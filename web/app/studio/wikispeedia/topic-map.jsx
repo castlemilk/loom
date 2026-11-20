@@ -40,7 +40,7 @@ function connectionAt({ x, y }, frame, scene, indices) {
 
 // At oblique angles several topic dots can project close together. Try the four sides of each
 // dot and reserve the open topics' captions first. Measurements only change with the viewport.
-function arrangeLabels(frame, labels, sizes) {
+function arrangeLabels(frame, labels, sizes, scene, selectedIndex) {
   if (sizes.width !== frame.width) {
     sizes.width = frame.width
     sizes.byId.clear()
@@ -48,6 +48,12 @@ function arrangeLabels(frame, labels, sizes) {
   const result = new Map(),
     occupied = [],
     visible = []
+  if (selectedIndex !== undefined) {
+    const x = frame.points[selectedIndex * 4], y = frame.points[selectedIndex * 4 + 1]
+    const width = 12 + Math.min(30, scene.nodes[selectedIndex].label.length) * 8
+    // Leave the selected marker and its caption readable and available for a second click.
+    occupied.push(x > frame.width / 2 ? [x - width, y - 22, x + 7, y + 7] : [x - 7, y - 22, x + width, y + 7])
+  }
   manifest.topics.forEach((topic, i) => {
     const label = labels.get(topic.id),
       k = i * 4
@@ -96,8 +102,10 @@ export function TopicMap({
   snap,
   api,
   onPick,
+  onOpen,
   onConnection,
   keep,
+  animate,
   carry,
   memberMotion,
   spring,
@@ -111,6 +119,7 @@ export function TopicMap({
     labels = useRef(new Map()),
     highlight = useRef(null),
     pick = useRef(onPick),
+    open = useRef(onOpen),
     pickConnection = useRef(onConnection)
   const drawing = useRef({}),
     cached = useRef({}),
@@ -119,6 +128,7 @@ export function TopicMap({
     suppress = useRef(false)
   const [error, setError] = useState('')
   pick.current = onPick
+  open.current = onOpen
   pickConnection.current = onConnection
   drawing.current = { selected, edge, layout: snap.layout }
   const displayTheme = useMemo(
@@ -146,8 +156,9 @@ export function TopicMap({
   const paint = useCallback((frame, scene) => {
     if (cached.current.scene !== scene)
       cached.current = { scene, indices: new Map(scene.nodes.map((n, i) => [n.id, i])) }
-    const positions =
-      drawing.current.layout === 'published' ? null : arrangeLabels(frame, labels.current, labelSizes.current)
+    const selectedIndex = cached.current.indices.get(drawing.current.selected)
+    const positions = drawing.current.layout === 'published' ? null
+      : arrangeLabels(frame, labels.current, labelSizes.current, scene, selectedIndex)
     for (const [i, t] of manifest.topics.entries()) {
       const label = labels.current.get(t.id)
       if (!label) continue
@@ -168,6 +179,8 @@ export function TopicMap({
     }
     const overlay = highlight.current
     if (!overlay) return
+    const moving = String(!!api.current?.isAnimatingLayout())
+    if (overlay.parentElement.dataset.layoutMoving !== moving) overlay.parentElement.dataset.layoutMoving = moving
     const { selected, edge } = drawing.current
     const project = (id) => {
       const i = cached.current.indices.get(id)
@@ -209,7 +222,7 @@ export function TopicMap({
         if (caption.textContent !== title) caption.textContent = title
       }
     }
-  }, [])
+  }, [api])
   useLayoutEffect(() => {
     let timer, pending
     function save() {
@@ -223,6 +236,7 @@ export function TopicMap({
       const map = mountAtlasMap(canvas.current, atlas, {
         theme: displayTheme,
         keepView: keep,
+        animateLayouts: animate,
         moveMembers: carry,
         memberMotion,
         spring,
@@ -233,6 +247,7 @@ export function TopicMap({
           timer = setTimeout(save, 160)
         },
         onPick: (n) => pick.current(n),
+        onOpen: (n) => open.current(n),
         onBackgroundClick: (point, frame, scene) => {
           if (point.clicks !== 1 || cached.current.scene !== scene) return
           const link = connectionAt(point, frame, scene, cached.current.indices)
@@ -258,6 +273,9 @@ export function TopicMap({
     api.current?.setMoveMembers(carry)
     api.current?.setMemberMotion(memberMotion)
   }, [keep, carry, memberMotion, api])
+  useLayoutEffect(() => {
+    api.current?.setAnimateLayouts(animate)
+  }, [animate, api])
   useEffect(() => {
     api.current?.setSpring(spring)
   }, [spring, api])
@@ -294,6 +312,11 @@ export function TopicMap({
     d.y = event.clientY
   }
   function keyMove(event, id) {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      if (!event.repeat) api.current?.open('topic:' + id)
+      return
+    }
     const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key]
     if (!delta || !api.current) return
     event.preventDefault()
@@ -305,7 +328,7 @@ export function TopicMap({
       <canvas
         ref={canvas}
         aria-label={
-          'Wikipedia topic map. Drag a topic to move it. Arrow keys on the background ' +
+          'Wikipedia topic map. Double-click or double-tap a node to focus it. Drag a topic to move it. Arrow keys on the background ' +
           (snap.layout === 'cloud' ? 'rotate' : 'pan') +
           ' the map.'
         }
@@ -374,7 +397,7 @@ export function TopicMap({
               data-map-topic={t.id}
               aria-pressed={opened}
               aria-label={(opened ? 'Close ' : 'Open ') + t.label + ' on map'}
-              title={'Drag ' + t.label + ' to move it. Click to ' + (opened ? 'collapse' : 'expand') + '.'}
+              title={'Click to ' + (opened ? 'collapse' : 'expand') + '. Double-click or press Enter to focus. Drag or use arrow keys to move.'}
               onPointerDown={(e) => grab(e, t.id)}
               onPointerMove={move}
               onPointerUp={() => {
@@ -388,7 +411,9 @@ export function TopicMap({
               }}
               onKeyDown={(e) => keyMove(e, t.id)}
               onClick={(e) => {
-                if (!e.detail || !suppress.current) onPick({ kind: 'topic', topic: t.id })
+                if (!e.detail) onPick({ kind: 'topic', topic: t.id })
+                else if (e.detail === 2 && !suppress.current) api.current?.open('topic:' + t.id)
+                else if (!suppress.current) api.current?.pick('topic:' + t.id)
                 suppress.current = false
               }}
             >

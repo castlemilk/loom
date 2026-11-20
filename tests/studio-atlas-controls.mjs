@@ -109,6 +109,7 @@ export async function studioAtlasControls(context, home, touch = false) {
     for (const mode of ['drift', 'lanes', 'orbit', 'cloud']) {
       await menu.selectOption(mode)
       await frames(page)
+      await page.locator('[data-layout-moving="false"]').waitFor()
       arrangements.add(JSON.stringify(await scenePositions(page)))
       assert.equal(new URL(page.url()).searchParams.get('layout'), mode)
       assert.equal(await page.locator('[data-visible-articles]').getAttribute('data-visible-articles'), '96')

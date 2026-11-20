@@ -70,7 +70,7 @@ export class Camera {
       (y - this.height / 2) * (1 - this.targetZoom / old),
     )
   }
-  fit(p: Float32Array, n: number) {
+  fit(p: Float32Array, n: number, immediate?: boolean) {
     let x0 = Infinity,
       x1 = -Infinity,
       y0 = Infinity,
@@ -111,6 +111,7 @@ export class Camera {
           3,
         )
       : 1
+    if (immediate) this.step(true)
   }
   step(immediate = false) {
     let moving = false

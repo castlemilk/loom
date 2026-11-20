@@ -6,6 +6,8 @@ export interface CardOptions<N extends GraphNode, E extends GraphLink> {
   showLabels?: boolean
   showPorts?: boolean
   showArrows?: boolean
+  /** Center a card on double-click, double-tap or Enter. Defaults to true. */
+  focusOnOpen?: boolean
   /** Use authored coordinates if supplied. Set false to arrange a neighborhood around its root. */
   useNodePositions?: boolean
   image?: (node: N) => string | undefined
@@ -117,6 +119,9 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
     | { id?: string; pointer: number; point: Point; start: Point; moved: boolean; scaleX: number; scaleY: number }
     | undefined
   let skipClick = false
+  let lastPick: { id: string; time: number } | undefined
+  let focusFrame: number | undefined
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
   function element<K extends keyof SVGElementTagNameMap>(
     parent: Element,
     tag: K,
@@ -163,7 +168,31 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
   function view() {
     svg.setAttribute('viewBox', [camera.x - camera.w / 2, camera.y - camera.h / 2, camera.w, camera.h].join(' '))
   }
+  function stopFocus() {
+    if (focusFrame !== undefined) cancelAnimationFrame(focusFrame)
+    focusFrame = undefined
+  }
+  function focus(id: string) {
+    const box = boxes.get(id)
+    if (!box) throw new RangeError('Unknown card node ' + id)
+    stopFocus()
+    const from = { ...camera }
+    const width = Math.max(1, svg.clientWidth), height = Math.max(1, svg.clientHeight)
+    const scale = Math.min(Math.max(from.w / width, from.h / height), Math.max(2 * box.w / width, 2 * box.h / height))
+    const target = { x: box.x, y: box.y, w: scale * width, h: scale * height }
+    const start = performance.now()
+    function step(now: number) {
+      const t = motion.matches ? 1 : Math.max(0, Math.min(1, (now - start) / 340))
+      const ease = t * t * (3 - 2 * t)
+      for (const key of ['x', 'y', 'w', 'h'] as const) camera[key] = from[key] + (target[key] - from[key]) * ease
+      view()
+      focusFrame = t < 1 ? requestAnimationFrame(step) : undefined
+    }
+    step(start)
+  }
   function fit() {
+    stopFocus()
+    lastPick = undefined
     const all = [...boxes.values()]
     if (all.length) {
       const minX = Math.min(...all.map((b) => b.x - b.w / 2)),
@@ -348,6 +377,8 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
     (target as Element | null)?.closest?.('[data-card-id]')?.getAttribute('data-card-id') ?? undefined
   function zoom(factor: number) {
     if (!Number.isFinite(factor) || factor <= 0) throw new RangeError('Invalid card zoom')
+    stopFocus()
+    lastPick = undefined
     const applied = Math.max(50, Math.min(12000, camera.w / factor)) / camera.w
     camera.w *= applied
     camera.h *= applied
@@ -357,6 +388,7 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
     'pointerdown',
     (e) => {
       if (e.button !== 0) return
+      stopFocus()
       const transform = svg.getScreenCTM()
       if (!transform) return
       const id = hit(e.target)
@@ -382,6 +414,7 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
       if (!active.moved && Math.hypot(dx, dy) < 4) return
       if (!active.moved) svg.setPointerCapture(e.pointerId)
       active.moved = true
+      lastPick = undefined
       if (active.id) {
         const box = boxes.get(active.id)!
         box.x = active.start.x + dx / active.scaleX
@@ -412,7 +445,13 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
     'click',
     (e) => {
       const id = hit(e.target)
-      if (id && !skipClick) select(id, true)
+      if (id && !skipClick) {
+        const time = performance.now()
+        const twice = lastPick?.id === id && (e.detail === 2 || time - lastPick.time < 340)
+        lastPick = twice ? undefined : { id, time }
+        select(id, true)
+        if (twice && options.focusOnOpen !== false) focus(id)
+      } else lastPick = undefined
       skipClick = false
     },
     { signal },
@@ -433,6 +472,7 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
         select(id, true)
+        if (e.key === 'Enter' && options.focusOnOpen !== false) focus(id)
         return
       }
       const delta: Record<string, number[]> = {
@@ -455,6 +495,7 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
   draw()
   return {
     select,
+    focus,
     fit,
     zoom,
     setOptions(patch: Partial<CardOptions<N, E>>) {
@@ -464,6 +505,8 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
       draw()
     },
     setData(next: GraphData<N, E>) {
+      stopFocus()
+      lastPick = undefined
       boxes = positions(next, options)
       data = next
       active = undefined
@@ -471,6 +514,7 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
       draw()
     },
     destroy() {
+      stopFocus()
       lifetime.abort()
       layer.remove()
       svg.style.touchAction = originalTouch

@@ -10,18 +10,28 @@ export const layoutHints = {
   orbit: 'Rings show distance from the most connected topic on the overview.',
   cloud: 'Drag empty space to rotate the cloud.',
 }
-export function LayoutMenu({ value, onChange }) {
+export function LayoutMenu({ value, onChange, animate, onAnimate }) {
+  const reduceMotion = useSyncExternalStore(watchMotion, reduced, () => false)
   return (
-    <label className="wiki-layout-picker">
-      Layout
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {atlasLayouts.map((key) => (
-          <option key={key} value={key}>
-            {names[key]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="wiki-layout-tools">
+      <label className="wiki-layout-picker">
+        Layout
+        <select value={value} onChange={(event) => onChange(event.target.value)}>
+          {atlasLayouts.map((key) => (
+            <option key={key} value={key}>{names[key]}</option>
+          ))}
+        </select>
+      </label>
+      <label className="atlas-check wiki-animate">
+        <input type="checkbox" checked={animate && !reduceMotion} disabled={reduceMotion}
+          aria-labelledby="wiki-animate-label" aria-describedby={reduceMotion ? 'wiki-animate-reduced' : undefined}
+          onChange={(e) => onAnimate(e.target.checked)} />
+        <span>
+          <span id="wiki-animate-label">Animate layouts</span>
+          {reduceMotion && <small id="wiki-animate-reduced">System reduced motion is on</small>}
+        </span>
+      </label>
+    </div>
   )
 }
 

@@ -193,7 +193,8 @@ export interface LoomGraph<N extends GraphNode = GraphNode, E extends GraphLink 
   getPosition(id: string): { x: number; y: number; z: number; pinned: boolean }
   pin(id: string, position?: { x: number; y: number; z?: number }): void
   unpin(id: string): void
-  fit(): void
+  /** Frame the graph bounds. Pass true to apply the fitted viewport synchronously. */
+  fit(immediate?: boolean): void
   reset(): void
   pause(): void
   resume(): void

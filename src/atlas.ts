@@ -125,6 +125,7 @@ function makeScene(
   blocks: Map<number, AtlasBlock>,
   open: Set<number>,
   layout: AtlasLayout,
+  existingLinks?: AtlasScene['links'],
 ): AtlasScene {
   const nodes: AtlasNode[] = topics.map((t) => ({
     id: 'topic:' + t.id,
@@ -137,8 +138,6 @@ function makeScene(
     z: t.z,
     pinned: true,
   }))
-  const links: AtlasLink[] = [...overview],
-    visible = new Map<number, number>()
   for (const t of topics) {
     const block = open.has(t.id) && blocks.get(t.id)
     if (!block) continue
@@ -148,7 +147,6 @@ function makeScene(
         radius = 18 + 53 * Math.sqrt((slot + 0.5) / t.count)
       const latitude = layout === 'cloud' ? 2 * (((slot + 0.5) * 0.7548776662) % 1) - 1 : 0
       const planar = radius * Math.sqrt(1 - latitude * latitude)
-      visible.set(id, t.id)
       nodes.push({
         id: 'article:' + id,
         article: id,
@@ -165,6 +163,10 @@ function makeScene(
       })
     }
   }
+  if (existingLinks) return { nodes, links: existingLinks }
+  const links: AtlasLink[] = [...overview],
+    visible = new Map<number, number>()
+  for (const node of nodes) if (node.article !== undefined) visible.set(node.article, node.topic)
   for (const group of open) {
     for (const [source, target] of blocks.get(group)?.edges ?? []) {
       const targetTopic = visible.get(target)
@@ -303,7 +305,8 @@ export function createAtlas(
       if (next === layout) return
       anchors = placeAtlasTopics(manifest.topics, overview, next)
       layout = next
-      publish(true)
+      scene = makeScene(anchors, overview, blocks, open, layout, scene.links)
+      publish()
     },
     setExpanded,
     retry: load,

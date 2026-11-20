@@ -187,6 +187,20 @@ export async function studioProgressive(context, home, touch = false) {
       await selected.getByRole('link', { name: /Evidence/ }).getAttribute('href'),
       'https://www.airtree.vc/companies/canva',
     )
+    const stage = page.locator('.atlas-card-svg'), view = await stage.getAttribute('viewBox')
+    await click(page.getByRole('button', { name: 'Fit view', exact: true }))
+    await air.scrollIntoViewIfNeeded()
+    const target = await air.boundingBox(), cx = target.x + target.width / 2, cy = target.y + target.height / 2
+    if (touch) { await page.touchscreen.tap(cx, cy); await page.touchscreen.tap(cx, cy) }
+    else await page.mouse.dblclick(cx, cy)
+    await page.waitForFunction(before => document.querySelector('.atlas-card-svg').getAttribute('viewBox') !== before, view)
+    const framed = await stage.evaluate(svg => {
+      const card = svg.querySelector('[data-card-id="partner:airtree"]').getBoundingClientRect()
+      const viewport = svg.getBoundingClientRect()
+      return Math.hypot(card.x + card.width / 2 - viewport.x - viewport.width / 2, card.y + card.height / 2 - viewport.y - viewport.height / 2)
+    })
+    assert.ok(framed < 2, 'Airtree is centered in the card view')
+    await click(page.getByRole('button', { name: 'Fit view', exact: true }))
     const before = await air.getAttribute('transform')
     const edge = page.locator('[data-card-edge="partner:airtree startup:canva"]'),
       firstPath = await edge.getAttribute('d')

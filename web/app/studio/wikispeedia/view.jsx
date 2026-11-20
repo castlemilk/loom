@@ -137,6 +137,7 @@ function Explorer({ atlas }) {
   const snap = useSyncExternalStore(atlas.subscribe, atlas.getSnapshot, atlas.getSnapshot)
   const api = useRef(null)
   const [carry, setCarry] = useState(true),
+    [animate, setAnimate] = useState(() => new URL(location.href).searchParams.get('transition') !== 'instant'),
     [spring, setSpring] = useState(springFromURL),
     [memberMotion, setMemberMotion] = useState(() =>
       new URL(location.href).searchParams.get('motion') === 'rigid' ? 'rigid' : 'spring',
@@ -214,6 +215,20 @@ function Explorer({ atlas }) {
     setCardMode(false)
     setCardSelected(null)
   }
+  function focusNode(node) {
+    if (node.article === undefined) {
+      if (!atlas.getSnapshot().expanded.includes(node.topic)) openGroup(node.topic)
+      else {
+        setActive(node.topic)
+        if (article?.topic !== node.topic) setSelection(null)
+      }
+    } else selectArticle(node)
+    api.current?.focus(node.id)
+  }
+  function focusOnMap(id) {
+    document.querySelector('.atlas-viewport')?.scrollIntoView({ block: 'nearest' })
+    api.current?.focus(id)
+  }
   function expandAll(on) {
     if (!on && pair) closePair()
     const ids = on ? manifest.topics.map((t) => t.id) : []
@@ -228,7 +243,7 @@ function Explorer({ atlas }) {
     visible = snap.scene.nodes.length - manifest.topics.length
   const links = useMemo(
     () => snap.scene.links.reduce((sum, e) => sum + Number(e.kind === 'hyperlink'), 0),
-    [snap.scene],
+    [snap.scene.links],
   )
   return (
     <main className="atlas-workarea">
@@ -248,6 +263,14 @@ function Explorer({ atlas }) {
             <div className="wiki-board-actions">
               <LayoutMenu
                 value={snap.layout}
+                animate={animate}
+                onAnimate={(value) => {
+                  setAnimate(value)
+                  const url = new URL(location.href)
+                  if (value) url.searchParams.delete('transition')
+                  else url.searchParams.set('transition', 'instant')
+                  history.replaceState(history.state, '', url)
+                }}
                 onChange={(layout) => {
                   atlas.setLayout(layout)
                   const url = new URL(location.href)
@@ -268,6 +291,7 @@ function Explorer({ atlas }) {
             snap={snap}
             api={api}
             keep={keep}
+            animate={animate}
             carry={carry}
             memberMotion={memberMotion}
             spring={spring}
@@ -277,6 +301,7 @@ function Explorer({ atlas }) {
             selected={article?.id ?? null}
             hidden={!!cards}
             onPick={(n) => (n.kind === 'topic' ? openGroup(n.topic) : selectArticle(n))}
+            onOpen={focusNode}
             onConnection={(link) => {
               const crossing =
                 link.kind === 'hyperlink'
@@ -352,7 +377,7 @@ function Explorer({ atlas }) {
             Move articles with their topic
           </label>
           <div className="wiki-position-tools">
-            <p>{layoutHints[snap.layout]} Drag a topic dot or name to move it. Arrow keys move a focused topic.</p>
+            <p>{layoutHints[snap.layout]} Drag a topic to move it. Double-click or double-tap a node to zoom in.</p>
             <button type="button" onClick={() => api.current?.resetPositions()}>
               Reset positions
             </button>
@@ -417,7 +442,7 @@ function Explorer({ atlas }) {
           <section className="atlas-topic-detail">
             <div className="atlas-subhead">
               <h2>{activeTopic.label}</h2>
-              <button onClick={() => api.current?.focus('topic:' + active)}>Focus</button>
+              <button onClick={() => focusOnMap('topic:' + active)}>Focus</button>
             </div>
             {!pair && (
               <button
@@ -457,6 +482,7 @@ function Explorer({ atlas }) {
             {article && (
               <div className="atlas-article">
                 <h3>{cardNode?.label ?? article.label}</h3>
+                {!cards && <button type="button" onClick={() => focusOnMap(article.id)}>Focus article</button>}
                 <a href={articleUrl(cardNode?.label ?? article.label)} target="_blank" rel="noreferrer">
                   Read on Wikipedia ↗
                 </a>

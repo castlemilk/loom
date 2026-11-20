@@ -123,6 +123,10 @@ body:has(.atlas-app) { display:block; margin:0; height:auto; }
 .wiki-board-actions,.wiki-layout-picker {display:flex;align-items:center;gap:12px;}
 .wiki-layout-picker {gap:7px;color:var(--ink);font-size:13px;font-weight:600;}
 .wiki-layout-picker select {min-height:35px;padding:4px 8px;border:1px solid #9eab9c;border-radius:5px;background:var(--panel);font-weight:500;}
+.wiki-layout-tools {display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;}
+.wiki-animate {white-space:nowrap;cursor:pointer;}
+.wiki-animate:has(:disabled) {color:var(--muted);cursor:default;}
+.wiki-animate small {display:block;font-size:11px;}
 .wiki-motion {padding-bottom:15px;margin-bottom:17px;border-bottom:1px solid var(--rule);}
 .wiki-motion .atlas-switch>div {margin-top:6px;}
 .wiki-motion .atlas-switch:disabled {opacity:.55;}

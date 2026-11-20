@@ -6,7 +6,7 @@ import { GroupLinks } from './explore-links'
 import { opticsURL } from '../site'
 
 export const navigationDefaults = {
-  selectAction: 'inspect', openAction: 'neighbors', groupAction: 'expand', groupGesture: 'click',
+  selectAction: 'inspect', openAction: 'focus', groupAction: 'expand', groupGesture: 'click',
   boundary: 'outline', detail: 'force', direction: 'both', hops: 1, spread: 2, expansionBlend: 0.7,
   arrangement: 'rings', spacing: 28,
 }

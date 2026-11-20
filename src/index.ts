@@ -122,10 +122,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
         ownsHeight = true
       }
     }
-    if (autoFit) {
-      camera.fit(shown, model.n)
-      camera.step(true)
-    }
+    if (autoFit) camera.fit(shown, model.n, true)
     sizeDirty = false
     gridDirty = dirty = true
   }
@@ -368,10 +365,10 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
   )
   suspend('document', document.hidden)
   schedule.wake()
-  const fit = () => {
+  const fit = (immediate?: boolean) => {
     if (!dead) {
       autoFit = true
-      camera.fit(shown, model.n)
+      camera.fit(shown, model.n, immediate)
       viewChanged()
     }
   }

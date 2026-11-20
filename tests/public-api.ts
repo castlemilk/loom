@@ -18,11 +18,13 @@ interface Citation extends GraphLink { reviewed: boolean }
 export function mountStreamingAtlas(canvas: HTMLCanvasElement, manifest: AtlasManifest, sqlite: AtlasSQLiteOptions, baseline: URL, positions?: AtlasPositions, memberMotion: AtlasMemberMotion = 'spring') {
   const atlas = createAtlas(manifest, { 'on-demand': () => createSQLiteAtlasReader(sqlite), full: () => createFullAtlasReader(baseline) })
   const spring: AtlasSpringSettings = { strength: atlasSpringControls.strength.default, damping: 0.65 }
-  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, moveMembers: true, positions, memberMotion, spring,
-    onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) } })
+  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, animateLayouts: true, moveMembers: true, positions, memberMotion, spring,
+    onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) },
+    onOpen(node) { map.focus(node.id) } })
   return {
     setLoading: atlas.setLoading, expand: atlas.setExpanded, fit: map.fit,
     layouts: atlasLayouts, setLayout: (value: AtlasLayout) => atlas.setLayout(value),
+    animateLayouts: map.setAnimateLayouts, isMoving: map.isAnimatingLayout, focus: map.focus,
     tune: map.setSpring, readSpring: map.getSpring, nudge: map.moveTopicByScreen,
     moveTopic: map.moveTopic, setMoveMembers: map.setMoveMembers, setMemberMotion: map.setMemberMotion, save: map.getPositions, reset: map.resetPositions,
     connectedTopics: (topic: number) => atlasConnections(manifest, topic), crossings: atlas.crossings, focusConnection: map.focusConnection,

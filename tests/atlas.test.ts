@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { createHash } from 'node:crypto'
 import { atlasConnections, atlasLayouts, createAtlas, type AtlasBlock, type AtlasManifest, type AtlasReader } from '../src/atlas.js'
 import { advanceSpring, resolveSpring, type ArticleSpring } from '../src/atlas-spring.js'
+import { AtlasLayoutTransition, travelView, type AtlasPoint } from '../src/atlas-transition.js'
 import { cardNeighborhood } from '../src/cards.js'
 
 test('card neighborhoods bound distinct neighbors while keeping reciprocal, parallel and self links', () => {
@@ -89,7 +90,7 @@ test('layout changes preserve the overview, selection of open topics and pending
   const orbitScene = atlas.getSnapshot().scene
   atlas.setLayout('cloud')
   assert.ok(atlas.getSnapshot().scene.nodes.some((n) => n.article !== undefined && (n.z ?? 0) !== 0))
-  assert.deepEqual(atlas.getSnapshot().scene.links, orbitScene.links)
+  assert.equal(atlas.getSnapshot().scene.links, orbitScene.links, 'Layouts reuse the entire link buffer')
   assert.deepEqual(atlas.getSnapshot().expanded, [0, 1])
   atlas.setLayout('orbit')
   assert.deepEqual(atlas.getSnapshot().scene, orbitScene)
@@ -100,6 +101,34 @@ test('layout changes preserve the overview, selection of open topics and pending
   assert.deepEqual(hubs(), original)
   assert.equal(io.calls.length, 1)
   atlas.close()
+})
+
+test('layout travel aligns a late article with its moving topic and takes the short way out of a rotated cloud', () => {
+  const start = { x: -55, y: 22, z: 8, zoom: .4, yaw: 2 * Math.PI - .3, pitch: .2 }
+  const end = { x: 0, y: 0, z: 0, zoom: 1, yaw: .48, pitch: -.26 }
+  const origins = new Map([['topic:0', { x: -100, y: 100, z: 0 }]])
+  const travel = new AtlasLayoutTransition(origins, start, 'cloud', end, 'drift')
+  const topic = { id: 'topic:0', topic: 0, x: 20, y: 0, z: 0 }
+  const article = { id: 'article:0', article: 0, topic: 0, x: 23, y: 7, z: 0 }
+  const points = new Map<string, AtlasPoint>()
+  let camera = start
+  const sink = {
+    pin(id: string, p?: { x: number; y: number; z?: number }) { points.set(id, { x: p!.x, y: p!.y, z: p!.z ?? 0 }) },
+    setViewport(v: typeof start) { camera = v },
+  }
+  const to = (p: { x?: number; y?: number; z?: number }) => ({ x: p.x!, y: p.y!, z: p.z ?? 0 })
+  travel.bind({ nodes: [topic], links: [] }, to)
+  travel.paint(sink, .5)
+  assert.deepEqual(points.get(topic.id), { x: -40, y: 50, z: 0 })
+  travel.bind({ nodes: [topic, article], links: [] }, to)
+  travel.paint(sink, .5)
+  assert.deepEqual(points.get(article.id), { x: -37, y: 57, z: 0 })
+  assert.ok(Math.abs(camera.yaw - (2 * Math.PI - .15)) < 1e-10)
+  assert.equal(travel.mode, 'cloud')
+  travel.paint(sink, 1)
+  assert.deepEqual(points.get(article.id), to(article))
+  assert.equal(camera.zoom, end.zoom)
+  assert.equal(travelView(start, end, 0).zoom, start.zoom)
 })
 
 test('strength sets the trail and damping sets rebound at any frame rate', () => {

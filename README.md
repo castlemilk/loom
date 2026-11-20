@@ -46,6 +46,10 @@ Open a topic to reveal its articles. Opening another adds the hyperlinks between
 
 Use **Layout** above the map to choose the original **Topic grid**, **Drift** with link-based spacing, **Lanes** by topic size, **Orbit** with rings of connected topics, or a rotatable **3D Cloud**. Switching layouts preserves open topics, the selected article, and hand-placed offsets. It uses the topic overview and cached articles. [Try Music in Orbit](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&layout=orbit)
 
+With Music open, switch from **Topic grid** to **Orbit** to follow its 96 articles into the ring. **Animate layouts** sits next to the layout menu and is on by default in the studio. Clear it for an instant switch. The URL remembers your choice. System reduced motion makes layout changes immediate. [Animated comparison](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music) · [Instant comparison](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&transition=instant)
+
+Double-click or double-tap Music's dot or name to center its cluster. A closed topic opens when focused. Double-click an article to zoom in and highlight its links. **Enter** on a topic name or selected canvas node also focuses it. **Fit view** returns to the whole map.
+
 Drag the Music dot or its name. Under **Article motion → Spring**, lower **Spring strength** for a longer trail or raise it for a tighter follow. Lower **Damping** lets articles swing past their resting positions. At 100%, a resting article approaches a fixed target directly. **Reset tuning** restores 1× strength and 100% damping. The URL includes both slider values and the layout. [Try a loose spring](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&strength=0.5&damping=0.45) · [Try a tight spring](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&strength=3&damping=1)
 
 **Rigid** moves all 96 articles in step with Music. You can move a closed topic before its first data read or arrange individual articles. Arrow keys move a focused topic and Shift takes a larger step. Turn off **Move articles with their topic** to move its dot alone. The studio saves resting offsets in this browser. **Reset positions** restores the selected layout's arrangement. Reduced motion uses immediate movement. [Compare Rigid](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&motion=rigid)
@@ -73,9 +77,13 @@ const atlas = createAtlas(manifest, {
   }),
   full: () => createFullAtlasReader(new URL(manifest.full, base)),
 })
-const map = mountAtlasMap(canvas, atlas, { theme: parchment, keepView: true, moveMembers: true, memberMotion: 'spring',
+const map = mountAtlasMap(canvas, atlas, { theme: parchment, keepView: true, animateLayouts: true, moveMembers: true, memberMotion: 'spring',
   spring: { strength: 0.5, damping: 0.45 },
   onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) },
+  onOpen(node) {
+    if (node.kind === 'topic') void atlas.setExpanded(new Set([...atlas.getSnapshot().expanded, node.topic]))
+    map.focus(node.id)
+  },
 })
 atlas.setLayout('orbit') // works before or after expanding topics
 map.setSpring({ damping: 0.8 }) // keeps the current strength and velocity
@@ -93,9 +101,13 @@ atlas.close()
 
 `loom-core/atlas` exports `atlasLayouts` and the `AtlasLayout` type. Read the active layout from `atlas.getSnapshot().layout`. `loom-core/atlas-map` exports `atlasSpringControls` with the ranges, defaults and steps for each slider. Strength ranges from 0.25 to 4 and damping from 0.2 to 1. Both default to 1. `map.getSpring()` returns the current values.
 
+Layout animation is opt-in when embedding the library. Use `animateLayouts: true` at mount or `map.setAnimateLayouts(true)` at runtime. Setting it to false finishes the current move immediately. External labels can call `map.pick(id)` for a pointer activation and `map.open(id)` for keyboard activation. By default, opening a topic reveals its articles and frames the cluster. Supply `onOpen` to customize this action.
+
 Host the two files from `loom-core/atlas-runtime/` together under `runtimeURL` on the page’s origin. The server must return byte ranges from the uncompressed SQLite file. Pass its published `databaseBytes` so the reader knows its actual size even when a CDN compresses ordinary GET or HEAD responses. A custom `AtlasReader` can supply the same topic blocks from another source. Its article IDs occupy each manifest topic’s contiguous range starting at `first`. Each block owns its articles’ outgoing edges, including links into other topics. [SQLite HTTP reader](https://github.com/phiresky/sql.js-httpvfs)
 
 ### Relationship cards
+
+Double-click or double-tap a card to center and magnify it with its connected lines in view. Press Enter on a focused card for the same action. An embedded card graph can call `cards.focus(id)` directly or disable the gesture with `focusOnOpen: false`.
 
 The SVG renderer accepts ordinary Loom nodes and links. Give cards explicit world coordinates to reproduce an existing diagram, or supply a root and let Loom arrange the surrounding cards. Logo images fall back to initials. Pills name relationships where space permits. Selecting a card highlights its links. Drag it or use its arrow keys to move it. The demo inspector links each relationship to its source. [Around Canva](https://castlemilk.github.io/loom/studio/cards/)
 
@@ -366,7 +378,7 @@ export function mountCatalogue(host: HTMLElement) {
 
 ## Drilldowns and group interactions
 
-Open **Optics** in the legend or click the space between its nodes in the [Section atlas](https://castlemilk.github.io/loom/studio/?example=drilldown). Its eight members spread out while its links to other sections stay visible. Click the same legend entry to collapse it. A click on a child selects it. Double-click or press Enter on a selection to explore its neighbors. Use Back, an ancestor breadcrumb or Escape on the canvas to return.
+Open **Optics** in the legend or click the space between its nodes in the [Section atlas](https://castlemilk.github.io/loom/studio/?example=drilldown). Its eight members spread out while its links to other sections stay visible. Click the same legend entry to collapse it. A click on a child selects it. Double-click or press Enter on a selection to focus the camera. In **Drilldown settings**, change **Double-click / Enter** to **Open neighbors** to explore a neighborhood. Use Back, an ancestor breadcrumb or Escape on the canvas to return.
 
 The [Optics members demo](https://castlemilk.github.io/loom/studio/?example=drilldown&group=Optics&bubbles=off) opens the notebook hub and its seven child nodes in Orbit, with 14 internal links. Select a name under **Explore** to inspect that node. **In context** brings back the surrounding atlas. **Members only** isolates the same group again. Both views share a breadcrumb and the full member list. Larger groups show eight rows per page and search matches names and IDs across every page. The `group` parameter accepts the Section atlas term ID, including `Materials`, `Tides` and `Acoustics`.
 
