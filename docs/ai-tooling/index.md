@@ -6,6 +6,8 @@ Give an assistant enough context to edit a graph. Follow one request from findin
 
 ## Give the model the right context
 
+For read-only graph questions, connect the [Graph MCP server](https://castlemilk.github.io/loom/mcp/) to your assistant. It can search a Studio export, trace a path or return the archived source for a Wikipedia connection. The component page includes a browser example and a configuration you can copy.
+
 An assistant adding a recorder to a synthesizer patch needs the amplifier’s ID, its existing connections and the document revision. Sending the entire graph spends context on unrelated nodes and can hide the one fact that matters. Use the SDK index to discover capabilities, then query the editor for facts about this particular patch.
 
 - For a coding assistant, **Copy for AI** copies the current chapter as Markdown, including complete example files. **View Markdown** gives a URL a tool can fetch directly.

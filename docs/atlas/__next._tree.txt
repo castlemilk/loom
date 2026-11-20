@@ -1,7 +1,7 @@
 :HL["/loom/_next/static/media/eb965ae505bc6f90-s.p.woff","font",{"crossOrigin":"","type":"font/woff"}]
 :HL["/loom/_next/static/media/ecd59a4f1610f257-s.p.woff","font",{"crossOrigin":"","type":"font/woff"}]
-:HL["/loom/_next/static/css/0f37604ba893d5d4.css","style"]
+:HL["/loom/_next/static/css/e5ebbda90c20cd32.css","style"]
 :HL["/loom/_next/static/css/1be3467a9042ad29.css","style"]
-:HL["/loom/_next/static/css/449a43ef3e6dac39.css","style"]
 :HL["/loom/illustrations/loom-logo.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"docs","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chapter","param":{"type":"d","key":"atlas","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"S1fV6jhN8pcJts7Nfi0WS"}
+:HL["/loom/illustrations/graph-mcp.png","image"]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"docs","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chapter","param":{"type":"d","key":"atlas","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"O6ePrN8SBrwoToZOe_B4Q"}

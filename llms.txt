@@ -31,6 +31,7 @@ These guides describe loom-core 0.1.0. The roadmap describes proposed additions.
 
 ## Machine-readable reference
 
+- [Graph MCP server, tools and graph sources](https://castlemilk.github.io/loom/mcp/index.md)
 - [Public imports, types and controller methods](https://castlemilk.github.io/loom/docs/api-index.json)
 - [Editor transaction schema](https://castlemilk.github.io/loom/editor.schema.json)
 - [M2 Max benchmark samples and test conditions](https://castlemilk.github.io/loom/benchmarks/m2-max.json)
