@@ -3,4 +3,4 @@
 :HL["/loom/_next/static/css/a31aa371c5cbd370.css","style"]
 :HL["/loom/illustrations/loom-logo.png","image"]
 :HL["/loom/illustrations/graph-mcp.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"examples","param":null,"prefetchHints":4192,"slots":{"children":{"name":"collection","param":{"type":"d","key":"bauhaus","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"ZTb9-4ogKzbqNeJMO1iRp"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"examples","param":null,"prefetchHints":4192,"slots":{"children":{"name":"collection","param":{"type":"d","key":"bauhaus","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"X2o_PgJFwaKh6SoC53atf"}

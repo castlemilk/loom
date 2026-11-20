@@ -4,4 +4,4 @@
 :HL["/loom/_next/static/css/1be3467a9042ad29.css","style"]
 :HL["/loom/illustrations/loom-logo.png","image"]
 :HL["/loom/illustrations/graph-mcp.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"docs","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chapter","param":{"type":"d","key":"api","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"ZTb9-4ogKzbqNeJMO1iRp"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"docs","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chapter","param":{"type":"d","key":"api","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"X2o_PgJFwaKh6SoC53atf"}

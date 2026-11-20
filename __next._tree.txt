@@ -2,7 +2,7 @@
 :HL["/loom/_next/static/media/ecd59a4f1610f257-s.p.woff","font",{"crossOrigin":"","type":"font/woff"}]
 :HL["/loom/_next/static/css/b9a48c473f448f02.css","style"]
 :HL["/loom/_next/static/css/a31aa371c5cbd370.css","style"]
-:HL["/loom/_next/static/css/e3e1b2ce050d6411.css","style"]
+:HL["/loom/_next/static/css/c5cf4f4e41847dbd.css","style"]
 :HL["/loom/illustrations/loom-logo.png","image"]
 :HL["/loom/illustrations/graph-mcp.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"ZTb9-4ogKzbqNeJMO1iRp"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"X2o_PgJFwaKh6SoC53atf"}
