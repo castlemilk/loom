@@ -142,7 +142,13 @@ export async function studioExport(context, url, { touch = false, live = false }
         const picker = await page.locator('#dataset-choice').boundingBox()
         assert.ok(picker.width >= 120 && picker.x + picker.width <= width)
         assert.ok(dock.y + dock.height <= sizing.y || dock.x + dock.width <= sizing.x)
-        assert.ok(await page.locator('.editor-dock button').evaluateAll(buttons => buttons.every(el => el.scrollWidth <= el.clientWidth + 1)))
+        const clipped = await page.locator('.editor-dock button').evaluateAll(buttons => buttons.flatMap(el => {
+          const box = el.getBoundingClientRect()
+          const outside = Array.from(el.children, child => child.getBoundingClientRect()).some(child =>
+            child.width > 0 && (child.left < box.left - 1 || child.right > box.right + 1))
+          return outside ? [el.getAttribute('aria-label')] : []
+        }))
+        assert.deepEqual(clipped, [], 'Toolbar content at ' + width + 'px')
       }
       await page.setViewportSize(size)
       await page.goto(url + '?example=drilldown&group=Optics&bubbles=off')
