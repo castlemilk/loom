@@ -77,9 +77,17 @@ export function mountGraphPicker(select) {
   list.setAttribute('role', 'listbox')
   list.setAttribute('aria-label', 'Demo graphs')
   root.append(trigger, list)
-  select.hidden = true
   const label = select.labels?.[0]
-  if (label) label.htmlFor = trigger.id
+  function showPicker() {
+    select.hidden = true
+    trigger.hidden = false
+    if (label) label.htmlFor = trigger.id
+  }
+  // Keep a native menu opened before hydration usable until the user leaves it.
+  if (document.activeElement === select) {
+    trigger.hidden = true
+    select.addEventListener('blur', showPicker, { ...options, once: true })
+  } else showPicker()
   let rows = [],
     index = -1,
     keyBuffer = '',

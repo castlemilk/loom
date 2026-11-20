@@ -2,8 +2,10 @@ import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
+const graphPicker = (page) => page.getByRole('combobox', { name: 'Graph', exact: true }).and(page.locator('button'))
+
 export async function chooseGraph(page, value, touch = false) {
-  const trigger = page.getByRole('combobox', { name: 'Graph', exact: true })
+  const trigger = graphPicker(page)
   const select = (el) => (touch ? el.tap() : el.click())
   if ((await trigger.getAttribute('aria-expanded')) !== 'true') await select(trigger)
   await select(
@@ -11,12 +13,41 @@ export async function chooseGraph(page, value, touch = false) {
   )
 }
 
+async function pickerDuringStartup(page, home) {
+  let resume
+  const scriptsReady = new Promise((resolve) => {
+    resume = resolve
+  })
+  const scripts = '**/_next/static/**/*.js'
+  await page.route(scripts, async (route) => {
+    await scriptsReady
+    await route.continue()
+  })
+  try {
+    await page.goto(new URL('studio/cards/', home).href, { waitUntil: 'commit' })
+    const native = page.locator('#dataset')
+    await native.focus()
+    resume()
+    await page.locator('button.graph-picker-trigger').waitFor({ state: 'attached' })
+    assert.ok(await native.evaluate((el) => document.activeElement === el && !el.hidden))
+    assert.equal(await page.locator('button.graph-picker-trigger').isVisible(), false)
+    await native.press('Tab')
+    await graphPicker(page).waitFor()
+    assert.equal(await native.isVisible(), false)
+    assert.equal(await native.inputValue(), 'cards')
+  } finally {
+    resume()
+    await page.unroute(scripts)
+  }
+}
+
 export async function studioPicker(context, home, touch) {
   const page = await context.newPage()
   try {
+    if (!touch) await pickerDuringStartup(page, home)
     await page.goto(new URL('studio/wikispeedia/?topic=music', home).href)
     await page.locator('[data-visible-articles="96"]').waitFor()
-    const trigger = page.getByRole('combobox', { name: 'Graph', exact: true })
+    const trigger = graphPicker(page)
     const list = page.getByRole('listbox', { name: 'Demo graphs' })
     await (touch ? trigger.tap() : trigger.click())
     await list.waitFor()
