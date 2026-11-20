@@ -1,0 +1,101 @@
+version: '3'
+
+tasks:
+  check:
+    desc: Pack a local candidate, install it in a clean project and rehearse npm publish
+    vars: &release
+      VERSION:
+        sh: node -p "require('./package.json').version"
+      REVISION:
+        sh: git rev-parse HEAD
+      ARCHIVE: 'loom-core-{{.VERSION}}.tgz'
+      DIST_TAG: '{{if contains "-" .VERSION}}next{{else}}latest{{end}}'
+      CANDIDATE: 'artifacts/npm/{{.REVISION}}'
+    cmds:
+      - mkdir -p artifacts/npm-local
+      - npm pack --pack-destination artifacts/npm-local
+      - npm run test:package -- "artifacts/npm-local/{{.ARCHIVE}}"
+      - |
+        set -eu
+        archive="artifacts/npm-local/{{.ARCHIVE}}"
+        state=$(node scripts/npm-registry.mjs "$archive")
+        if [ "$state" = unpublished ]; then
+          npm publish "$archive" --dry-run --ignore-scripts --access public --registry=https://registry.npmjs.org/ --tag "{{.DIST_TAG}}"
+        else
+          echo "This exact archive is already published."
+        fi
+
+  prepare:
+    desc: Download a checksum-verified GitHub release candidate for this commit
+    vars: *release
+    status:
+      - test -f "{{.CANDIDATE}}/{{.ARCHIVE}}" && cd "{{.CANDIDATE}}" && shasum -a 512 -c SHA512SUMS
+    cmds:
+      - sh scripts/prepare-release.sh "{{.REVISION}}" "{{.CANDIDATE}}" "{{.ARCHIVE}}"
+
+  login:
+    desc: Sign in to the npm account that will own loom-core
+    interactive: true
+    cmds: [npm login --registry=https://registry.npmjs.org/]
+
+  publish:
+    desc: Publish the first public npm version from the verified GitHub archive
+    vars: *release
+    interactive: true
+    cmds:
+      - task: prepare
+      - |
+        set -eu
+        archive="{{.CANDIDATE}}/{{.ARCHIVE}}"
+        state=$(node scripts/npm-registry.mjs "$archive")
+        if [ "$state" = unpublished ]; then
+          npm whoami --registry=https://registry.npmjs.org/
+          npm publish "$archive" --access public --ignore-scripts --registry=https://registry.npmjs.org/ --tag "{{.DIST_TAG}}"
+        fi
+      - task: verify
+
+  verify:
+    desc: Compare the public npm digest and install the exact version in a clean consumer
+    vars: *release
+    cmds:
+      - task: prepare
+      - node scripts/npm-registry.mjs "{{.CANDIDATE}}/{{.ARCHIVE}}" --wait
+      - npm run test:package -- "loom-core@{{.VERSION}}" "{{.CANDIDATE}}/{{.ARCHIVE}}"
+
+  trust:
+    desc: Authorize castlemilk/loom's GitHub workflow to publish future npm versions
+    interactive: true
+    cmds:
+      - npm exec --yes --package=npm@11.20.0 -- npm trust github loom-core --file npm.yml --repo castlemilk/loom --allow-publish --registry=https://registry.npmjs.org/
+
+  version:
+    desc: Bump package.json and its lockfile without committing or tagging (BUMP=patch, minor or major)
+    requires:
+      vars:
+        - name: BUMP
+          enum: [patch, minor, major, prepatch, preminor, premajor, prerelease]
+    cmds:
+      - npm version "{{.BUMP}}" --no-git-tag-version
+
+  tag:
+    desc: Push the version tag for this commit to trigger GitHub's npm release workflow
+    vars: *release
+    preconditions:
+      - sh: git diff --quiet HEAD -- package.json package-lock.json
+        msg: Commit the version and lockfile before tagging the release.
+    cmds:
+      - |
+        set -eu
+        tag="v{{.VERSION}}"
+        if git show-ref --verify --quiet "refs/tags/$tag"; then
+          test "$(git rev-list -n 1 "$tag")" = "$(git rev-parse HEAD)" || { echo "$tag already points to another commit" >&2; exit 1; }
+        else
+          git tag "$tag" HEAD
+        fi
+        git push origin "refs/tags/$tag"
+
+  status:
+    desc: Show npm availability for this version and recent GitHub release runs
+    cmds:
+      - node --input-type=module -e "import { publishedIntegrity, registrySpec } from './scripts/npm-registry.mjs'; console.log(registrySpec, await publishedIntegrity() ?? 'unpublished')"
+      - gh run list --repo castlemilk/loom --workflow npm.yml --limit 5

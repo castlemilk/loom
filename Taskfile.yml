@@ -1,0 +1,76 @@
+version: '3'
+
+includes:
+  studio: ./tasks/studio.yml
+  release: ./tasks/release.yml
+
+tasks:
+  default:
+    silent: true
+    cmds: [task --list]
+
+  setup:
+    desc: Install the locked SDK and Studio dependencies and Chromium for browser tests
+    cmds:
+      - npm ci
+      - npm --prefix web ci
+      - npx --no-install playwright install chromium
+
+  dev:
+    desc: Start the Studio and SDK docs with live reload at http://localhost:3000/loom/
+    cmds: [npm run site:dev]
+
+  dev:core:
+    desc: Start the standalone renderer demo at http://127.0.0.1:4173/demo/
+    cmds: [npm run dev]
+
+  build:
+    desc: Build the SDK, declarations and API index
+    cmds: [npm run build]
+
+  test:
+    desc: Run the unit tests
+    cmds: [npm test]
+
+  test:types:
+    desc: Typecheck the SDK, public imports and documentation examples
+    cmds:
+      - task: build
+      - npm run typecheck
+      - npm run test:types
+
+  test:browser:
+    desc: Exercise the renderer in Chromium
+    cmds:
+      - task: build
+      - npm run test:browser
+
+  size:
+    desc: Check the compressed renderer and worker against their size budget
+    cmds:
+      - task: build
+      - npm run size
+
+  check:
+    desc: Run the SDK build, type, unit, size and browser checks
+    cmds:
+      - task: test:types
+      - task: test
+      - npm run size
+      - npm run test:browser
+
+  check:all:
+    desc: Check the SDK, then build and test Studio on desktop and mobile
+    cmds:
+      - task: check
+      - task: studio:test
+
+  bench:
+    desc: Run the renderer hardware benchmark
+    cmds:
+      - task: build
+      - npm run bench
+
+  bench:contours:
+    desc: Measure group outline updates
+    cmds: [npm run bench:contours]

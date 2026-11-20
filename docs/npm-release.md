@@ -1,43 +1,46 @@
 # Publishing loom-core
 
-The [npm release workflow](https://github.com/castlemilk/loom/actions/workflows/npm.yml) builds the SDK, runs the type, unit, size and browser checks, and installs the packed archive in a clean TypeScript project. The archive includes the worker, SQLite/WASM runtime, declarations, schemas and examples.
-
-## Prepare the first release
-
-Run the workflow on `main` using **Run workflow**. A manual run performs an npm dry run and attaches `npm-package` with the archive and its SHA-512 checksum. Download that artifact from the run page, or use the run ID with the GitHub CLI.
-
-```sh
-gh run download RUN_ID --repo castlemilk/loom --name npm-package --dir release
-cd release
-shasum -a 512 -c SHA512SUMS
-```
+Run these commands from the repository root with Node.js 22.14 or later, Task and the GitHub CLI. Sign in to GitHub with an account that can run the repository's workflows. The SDK uses the MIT license. [Install Task](https://taskfile.dev/docs/installation/) · [Install the GitHub CLI](https://cli.github.com/)
 
 ## Publish the first version
 
-Sign in to the npm account that should own `loom-core`. Complete the npm two-factor prompt and publish the checked archive from the download directory.
+Start on the release commit pushed to `main`. From a fresh checkout, run `task setup` once.
 
 ```sh
-npm login --registry=https://registry.npmjs.org/
-npm whoami --registry=https://registry.npmjs.org/
-npm publish ./loom-core-0.1.0.tgz --access public --registry=https://registry.npmjs.org/
+task release:prepare
+task release:login
+task release:publish
+task release:trust
+task release:tag
 ```
 
-In the package's **Settings → Trusted publishers**, add GitHub Actions. Enter owner `castlemilk`, repository `loom` and workflow filename `npm.yml`. Leave the environment field empty and enable direct publishing with `npm publish`. GitHub will then authenticate with its workflow identity. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+1. **Prepare** finds the successful GitHub build for this commit or starts one. GitHub builds the SDK, checks its types, size and browser behavior, and installs the archive in a clean project. Task downloads the archive and verifies its SHA-512 checksum under `artifacts/npm/<commit>/`. [GitHub release runs](https://github.com/castlemilk/loom/actions/workflows/npm.yml)
+2. **Login** opens npm's sign-in for the account that will own `loom-core`.
+3. **Publish** uploads the verified archive to the public npm registry. Complete npm's authentication prompt. Task compares the public checksum with the GitHub archive and installs that exact version in a clean consumer. You can repeat the command after an interruption. A matching release goes straight to verification. A different archive under the same version stops the release.
+4. **Trust** authorizes `castlemilk/loom` and its `npm.yml` workflow to publish future tags. Do this once. To configure it in the npm website, open the package's **Settings → Trusted publishers**, select GitHub Actions, enter the same repository and workflow, leave the environment empty and enable direct publishing. [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+5. **Tag** pushes the package version prefixed with `v` (initially `v0.1.0`). GitHub checks that tag against the manifest, verifies the existing registry release and refreshes Studio. [Follow the release](https://github.com/castlemilk/loom/actions/workflows/npm.yml)
 
-Tag the exact commit shown on the successful dry run with `v0.1.0` and push the tag. The workflow recognizes the matching public archive, verifies a clean registry install and refreshes Pages. If npm already holds different bytes for the same version, the workflow stops and reports the conflict.
+## Release the next version
 
-## Release another version
-
-Update the version and lockfile together with `npm version patch --no-git-tag-version` (or choose a minor, major or prerelease version). Commit and push the change. Tag the release commit with the package version prefixed by `v` and push that tag.
+On `main`, choose a version increment and commit both manifests. Push the release commit, then push its version tag through Task.
 
 ```sh
-version=$(node -p "require('./package.json').version")
-git tag "v$version"
-git push origin "v$version"
+task release:version BUMP=patch
+git add package.json package-lock.json
+git commit -m "Bump the SDK patch version"
+git push origin main
+task release:tag
 ```
 
-The tag must match the package version. Stable releases use the `latest` dist-tag. Prereleases use `next`. The publish job sends the tested tarball to npm and records provenance. Verification compares SHA-512 and installs that exact name and version before triggering a Studio rebuild.
+Use `BUMP=minor` or `BUMP=major` for larger changes. Stable versions publish under `latest`. Prerelease increments such as `BUMP=preminor` publish under `next`. GitHub publishes the tested archive with provenance and verifies a clean registry install before rebuilding the site.
 
-Studio exports and the SDK quickstart use a registry version when its archive matches the Studio package byte for byte. For other builds, they use the Pages archive for that revision. Previously downloaded projects keep their original dependency.
+## Rehearse or check a release
 
-If a publish is interrupted, rerun the workflow for the same tag. If a published release needs a fix, bump the version and release the correction. [npm publish](https://docs.npmjs.com/cli/v11/commands/npm-publish/)
+| Command | Result |
+| --- | --- |
+| `task check:all` | Checks the SDK and exercises Studio and the exported starter projects in Chromium. |
+| `task release:check` | Builds a local archive in `artifacts/npm-local/`, checks a clean install and runs npm's publish dry run for an unpublished version. |
+| `task release:status` | Shows availability on npm for the current version and recent release runs. |
+| `task release:verify` | Compares the published checksum to the GitHub archive for this commit and installs the public package. |
+
+When the registry archive matches the Studio build, Studio exports and the quickstart reference the exact npm version. Other builds use their revision-specific Pages archive. Previously downloaded projects keep their original dependency.

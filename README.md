@@ -101,9 +101,9 @@ Select a line between topics or choose **Explore connections** to inspect the un
 
 **On demand** starts with 16 topic summaries. A dedicated SQLite/WASM worker reads indexed database pages over HTTP byte ranges on the first expansion. Reopening a cached topic costs no graph reads. **All at once** loads the same articles and edges from one JSON file. Switch modes with topics open to compare the same view, or turn off **Keep camera in place** to center each new topic. The sidebar reports uncompressed graph payload bytes and data reads. The overview and the separately cached SQLite runtime have their own download cost. [Full-download comparison](https://castlemilk.github.io/loom/studio/wikispeedia/?loading=full)
 
-The historical Wikispeedia graph contains 119,882 directed hyperlinks. Each article uses its first listed subject, with six unclassified articles. The overview draws each subject’s two strongest connections. Expanding every subject reveals every recorded hyperlink. Regenerate both data files with `python3 scripts/build-wikispeedia.py`. The script verifies the source archive against a recorded SHA-256 digest. [Stanford SNAP dataset and citations](https://snap.stanford.edu/data/wikispeedia.html)
+The historical Wikispeedia graph contains 119,882 directed hyperlinks. Each article uses its first listed subject, with six unclassified articles. The overview draws each subject’s two strongest connections. Expanding every subject reveals every recorded hyperlink. Regenerate both data files with `task studio:data:atlas`. The script verifies the source archive against a recorded SHA-256 digest. [Stanford SNAP dataset and citations](https://snap.stanford.edu/data/wikispeedia.html)
 
-The evidence index maps 79,126 of 79,128 cross-topic hyperlinks to their original HTML anchors. It includes a short passage for 58,816 links. For the other links, the inspector identifies the anchor or the dataset record and links to the archived page. To rebuild it from the SNAP HTML archive, use `uv run --with lxml scripts/index-wiki-connections.py wikispeedia_articles_html.tar.gz` with Python 3.11 or later. The 2007 Schools Wikipedia Selection credits Wikipedia contributors under the GNU Free Documentation License. [Archived edition](https://dlab.epfl.ch/wikispeedia/wpcd/index.htm) · [License](https://dlab.epfl.ch/wikispeedia/wpcd/wp/w/Wikipedia_Text_of_the_GNU_Free_Documentation_License.htm)
+The evidence index maps 79,126 of 79,128 cross-topic hyperlinks to their original HTML anchors. It includes a short passage for 58,816 links. For the other links, the inspector identifies the anchor or the dataset record and links to the archived page. To rebuild it from the SNAP HTML archive, run `task studio:data:evidence ARCHIVE=wikispeedia_articles_html.tar.gz` with uv and Python 3.11 or later. The 2007 Schools Wikipedia Selection credits Wikipedia contributors under the GNU Free Documentation License. [Archived edition](https://dlab.epfl.ch/wikispeedia/wpcd/index.htm) · [License](https://dlab.epfl.ch/wikispeedia/wpcd/wp/w/Wikipedia_Text_of_the_GNU_Free_Documentation_License.htm)
 
 ```ts
 import { parchment } from 'loom-core'
@@ -180,7 +180,7 @@ Choose either collection from the studio’s **Graph** menu.
 
 Pick a topic to see its members. **Beyond this group** lists the outside nodes connected to those members, ordered by the number of crossing links. Select an article to read its description, open its Wikipedia revision, or follow an incoming or outgoing link across the atlas. **Back** returns to the previous selection and camera position. Press **/** to search names, IDs, sections, kinds and summaries. Enter opens the first match. An **Article permalink** reopens its neighborhood, for example `/studio/?example=bauhaus&article=Anni_Albers`.
 
-The collections index links between selected English Wikipedia articles. For each article, the indexer counts direct links in prose paragraphs, excludes self-references, and retains up to four destinations. Link weight is the number of occurrences. First mention breaks ties. Builds and browsing use the bundled snapshots. Run `python3 scripts/index-wikipedia.py` to rebuild from recorded revisions or pass `--latest` to capture a fresh edition. The article descriptions are by English Wikipedia contributors. The JSON records each source revision in `wikipediaRevision`. [Corpus definition](demo/atlases/catalog.json) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+The collections index links between selected English Wikipedia articles. For each article, the indexer counts direct links in prose paragraphs, excludes self-references, and retains up to four destinations. Link weight is the number of occurrences. First mention breaks ties. Builds and browsing use the bundled snapshots. Run `task studio:data:articles` to rebuild from recorded revisions or `python3 scripts/index-wikipedia.py --latest` to capture a fresh edition. The article descriptions are by English Wikipedia contributors. The JSON records each source revision in `wikipediaRevision`. [Corpus definition](demo/atlases/catalog.json) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ```ts
 import { createGraphIndex } from 'loom-core/explore'
@@ -215,7 +215,14 @@ graph.setDrawingStyle({ fill: 'cross-hatch', roughness: 2 })
 
 ## Run the studio
 
-Use Node.js 22 or later.
+From a clone of this repository, use Node.js 22.14 or later and [Task](https://taskfile.dev/docs/installation/).
+
+```sh
+task setup
+task dev
+```
+
+Open [Studio](http://localhost:3000/loom/studio/) to edit a graph or [the local docs](http://localhost:3000/loom/docs/) to try the SDK examples. Run `task --list` to see build, test, benchmark and release commands. If you use npm directly, run `npm ci` and `npm --prefix web ci`, then `npm run site:dev`.
 
 The [Loom field guide](https://castlemilk.github.io/loom/) is the entry point for the demos. Run the wire model on the page, open a preset in the full editor, or visit the [artwork catalogue](https://castlemilk.github.io/loom/artwork/) for the four settings illustrations, model geometry, mark and palette. The [art direction](DESIGN.md) documents the visual system.
 
@@ -237,20 +244,9 @@ The generator accepts up to 25,000 nodes and 100,000 links. Choose local cluster
 
 **Import JSON** reads a local file with `nodes` and `links` (or `edges`). Give each node a unique string `id`. Links reference these IDs with `source` and `target`. Nodes can carry `label`, `kind`, `summary`, `content` and `art`. An optional `artwork` dictionary maps art keys to URLs. Raster data URLs, bundled `graphs/` paths and HTTP(S) image URLs are accepted. External image hosts must allow CORS for WebGL atlas uploads.
 
-```sh
-npm ci
-npm --prefix web ci
-npm run site:dev
-```
+Run `task studio:preview` to build and serve the production site under its GitHub Pages path. Set `PAGES_BASE_PATH` to an empty string for a root-domain export. GitHub Actions tests the export before deployment.
 
-Visit `http://localhost:3000/loom/` for the guide and `http://localhost:3000/loom/studio/` for the editor. Existing root links with studio settings or example parameters forward to the editor. To reproduce the Pages build, run `npm run site:build`. GitHub Actions tests the export under the repository path before deploying it. Set `PAGES_BASE_PATH` to an empty string for a root-domain export.
-
-For the standalone core demo, run:
-
-```sh
-npm ci
-npm run dev
-```
+Run `task dev:core` to start the standalone renderer demo.
 
 Open the URL printed by the server. The studio opens a 25-node, 30-link excerpt of the benebsworth.com knowledge console, with offline artwork. The graph picker includes both Wikipedia atlases, the full 508-node console and a generated 100–25,000-node stress graph. In an atlas, choose an **Article** to see its source and follow its outgoing links. Move **Structure** between free physics and an exactly positioned diagram. **Spacing & forces** adjusts lane geometry and spring behaviour. **Style controls** edits marker shapes, colours, fill, linework, wire weights and labels in place. Select a node to pin or release it. Open **Simulation & diagnostics** to switch transports or sample the counters. For a single HTML file with both Wikipedia atlases embedded, run `npm run demo:build` and open `artifacts/loom-studio.html`.
 
@@ -603,7 +599,7 @@ With the flag enabled, the adapter reads the host’s inherited `--kg-ink`, `--k
 
 ## Verification
 
-Maintainers can prepare a tested npm archive from GitHub Actions, bootstrap the first release, and publish subsequent versions by tag. [npm release instructions](https://github.com/castlemilk/loom/blob/main/docs/npm-release.md)
+`task check:all` checks the SDK, runs Chromium against Studio on desktop and mobile, and builds the starter projects exported by Studio. `task release:check` installs the packed SDK in a clean consumer and rehearses publication. Maintainers can then fetch the exact archive built by GitHub with `task release:prepare`. [npm release instructions](https://github.com/castlemilk/loom/blob/main/docs/npm-release.md)
 
 In the recorded M2 Max run, a 1,000-node graph first appeared in 27.3–40.5 ms across seven fresh contexts, above the 10 ms first-paint target. A clear-only canvas took 19.2–20.5 ms. In separate trials the layout settled in 295 ms, and camera movement with the console theme sustained 118.9 fps at 5,000 positioned nodes and 118.1 fps at 25,000 nodes and 100,000 links. Both camera trials used four draw calls. The benchmark revision’s core and worker measured 23,945 bytes gzipped. [Hardware measurements](benchmarks/m2-max.json) · [How to reproduce the benchmark](https://castlemilk.github.io/loom/docs/performance/#reproduce-a-comparison)
 

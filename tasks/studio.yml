@@ -1,0 +1,52 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the static website, docs, Studio and downloadable SDK archive
+    cmds: [npm run site:build]
+
+  preview:
+    desc: Build and serve the production export at http://127.0.0.1:4188/loom/
+    cmds:
+      - task: build
+      - node scripts/serve-export.mjs
+
+  test:
+    desc: Build Studio and exercise the static site and exported starter apps in Chromium
+    cmds:
+      - task: build
+      - npm run test:site
+
+  standalone:
+    desc: Build the single-file graph demo in artifacts/loom-studio.html
+    cmds: [npm run demo:build]
+
+  data:articles:
+    desc: Rebuild the curated article graphs from their pinned Wikipedia revisions
+    cmds: [python3 scripts/index-wikipedia.py]
+
+  data:atlas:
+    desc: Rebuild the Wikispeedia SQLite database and JSON snapshot from Stanford SNAP
+    cmds: [python3 scripts/build-wikispeedia.py]
+
+  data:evidence:
+    desc: Index cross-topic hyperlink evidence from the SNAP HTML archive (ARCHIVE=path)
+    requires:
+      vars: [ARCHIVE]
+    env:
+      WIKISPEEDIA_ARCHIVE: '{{.ARCHIVE}}'
+    cmds:
+      - uv run --python '>=3.11' --with lxml scripts/index-wiki-connections.py "$WIKISPEEDIA_ARCHIVE"
+
+  deploy:
+    desc: Run the GitHub Pages publisher and wait for its public checks
+    cmds:
+      - |
+        set -eu
+        url=$(gh workflow run pages.yml --repo castlemilk/loom --ref main)
+        echo "$url"
+        gh run watch "${url##*/}" --repo castlemilk/loom --compact --exit-status
+
+  verify:
+    desc: Exercise the live site using the tests from this checkout
+    cmds: [npm run test:site -- https://castlemilk.github.io/loom/]

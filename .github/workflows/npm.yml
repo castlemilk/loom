@@ -48,11 +48,15 @@ jobs:
       - name: Check the exact archive that will be published
         env:
           ARCHIVE: ${{ steps.package.outputs.file }}
+          DIST_TAG: ${{ steps.package.outputs.dist-tag }}
         run: |
           mkdir -p artifacts/npm
           npm pack --ignore-scripts --pack-destination artifacts/npm
           npm run test:package -- "artifacts/npm/$ARCHIVE"
-          npm publish --dry-run --ignore-scripts --access public "artifacts/npm/$ARCHIVE"
+          state=$(node scripts/npm-registry.mjs "artifacts/npm/$ARCHIVE")
+          if [ "$state" = unpublished ]; then
+            npm publish --dry-run --ignore-scripts --access public --registry=https://registry.npmjs.org/ --tag "$DIST_TAG" "artifacts/npm/$ARCHIVE"
+          fi
           (cd artifacts/npm && sha512sum "$ARCHIVE" > SHA512SUMS)
           cat artifacts/npm/SHA512SUMS >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
