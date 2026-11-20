@@ -1,9 +1,22 @@
 {
   "name": "loom-core",
   "version": "0.1.0",
-  "private": true,
-  "description": "An instanced WebGL2 graph renderer with a sleeping force layout",
+  "description": "Build interactive network diagrams and knowledge graphs in TypeScript with WebGL2, force-directed layouts, editable scenes and SQLite/WASM cluster loading.",
+  "license": "MIT",
+  "homepage": "https://castlemilk.github.io/loom/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/castlemilk/loom.git"
+  },
+  "bugs": "https://github.com/castlemilk/loom/issues",
+  "keywords": ["graph-visualization", "network-diagram", "knowledge-graph", "graph-editor", "force-directed-graph", "webgl2", "typescript", "sqlite", "webassembly"],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "sideEffects": false,
   "files": [
     "dist",
@@ -91,6 +104,7 @@
     "test": "node scripts/unit.mjs",
     "test:types": "tsc --strict --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext tests/public-api.ts docs/examples/*.ts",
     "test:browser": "node scripts/browser.mjs",
+    "test:package": "node scripts/check-package.mjs",
     "bench": "node scripts/browser.mjs --bench",
     "bench:contours": "node scripts/measure-contours.mjs",
     "size": "node scripts/size.mjs",

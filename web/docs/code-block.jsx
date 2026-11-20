@@ -1,6 +1,7 @@
 import { readExample } from './examples.mjs'
 import { common, createLowlight } from 'lowlight'
 import { CopyButton } from './copy-button'
+import sdk from '../.generated/sdk-package.json'
 
 const highlighter = createLowlight(common)
 const languages = { ts: 'TypeScript', js: 'JavaScript', bash: 'Terminal', sh: 'Terminal', html: 'HTML', json: 'JSON', text: 'Plain text' }
@@ -19,6 +20,9 @@ function CodeBlock({ name, language, source }) {
 export function CodeFence({ children }) {
   const language = children.props.className?.replace('language-', '') ?? 'text'
   return <CodeBlock name={languages[language] ?? language} language={language} source={children.props.children} />
+}
+export function InstallLoom() {
+  return <CodeBlock name="Terminal" language="bash" source={sdk.installCommands} />
 }
 export async function ExampleFile({ name }) {
   const source = await readExample(name)

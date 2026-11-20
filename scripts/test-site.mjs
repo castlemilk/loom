@@ -1,6 +1,7 @@
 import { chooseGraph, studioPicker } from '../tests/graph-picker.mjs'
 import assert from 'node:assert/strict'
 import { serveExport } from './serve-export.mjs'
+import { archiveName } from './npm-registry.mjs'
 import { chromium } from 'playwright'
 import { studio } from '../tests/studio.mjs'
 import { studioConfiguration } from '../tests/studio-config.mjs'
@@ -101,16 +102,16 @@ try {
   const configPage = await context.newPage()
   configPage.setDefaultTimeout(15000)
   const configuration = await studioConfiguration(configPage, url)
-  const packageHeader = await configPage.evaluate(async ({ home, live, expected }) => {
+  const packageHeader = await configPage.evaluate(async ({ home, live, expected, archiveName }) => {
     const revisionURL = new URL('revision.txt', home)
     if (expected) revisionURL.searchParams.set('sha', expected)
     const revision = live ? (await (await fetch(revisionURL, { cache: 'no-store' })).text()).trim() : ''
     if (live && (!/^[a-f\d]{40}$/.test(revision) || (expected && expected !== revision))) throw new Error('Unexpected package revision')
     const prefix = live ? 'packages/' + revision + '/' : ''
-    const response = await fetch(new URL(prefix + 'loom-core-0.1.0.tgz', home))
+    const response = await fetch(new URL(prefix + archiveName, home))
     if (!response.ok) throw new Error('TypeScript package HTTP ' + response.status)
     return [...new Uint8Array(await response.arrayBuffer()).slice(0, 2)]
-  }, { home, live: Boolean(liveURL), expected: process.env.GITHUB_SHA })
+  }, { home, live: Boolean(liveURL), expected: process.env.GITHUB_SHA, archiveName })
   assert.deepEqual(packageHeader, [0x1f, 0x8b], 'Studio should serve the installable npm archive')
   await configPage.close()
   const loadPage = await context.newPage()

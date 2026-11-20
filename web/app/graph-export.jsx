@@ -2,14 +2,12 @@
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import { CopyButton } from '../docs/copy-button'
-import { docsURL, homeURL, siteOrigin } from '../site'
+import { docsURL } from '../site'
+import sdk from '../.generated/sdk-package.json'
 import { downloadFile } from './download-file'
 import { fileStem, mountCode, projectCommands, projectZip } from './export-project.mjs'
 import './graph-export.css'
 
-const revision = process.env.NEXT_PUBLIC_LOOM_REVISION
-const sdkFile = 'loom-core-' + process.env.NEXT_PUBLIC_LOOM_VERSION + '.tgz'
-const packageURL = siteOrigin + homeURL + (/^[a-f0-9]{40}$/.test(revision) ? 'packages/' + revision + '/' : '') + sdkFile
 const count = (data) => [ ['node', data.nodes.length], ['link', data.links.length] ]
   .map(([label, n]) => n.toLocaleString('en') + ' ' + label + (n === 1 ? '' : 's')).join(' · ')
 
@@ -66,7 +64,7 @@ export function ExportDialog({ snapshot, close }) {
     setNotice('')
     try {
       const title = projectName.trim()
-      const bytes = await projectZip({ name: title, scene: chosenScene(), language, packageURL })
+      const bytes = await projectZip({ name: title, scene: chosenScene(), language, dependency: sdk.dependency })
       downloadFile(fileStem(title) + '.zip', bytes, 'application/zip')
       setNotice('Project downloaded. Unzip it and run the commands above.')
     } catch (error) { setNotice('Could not create the project. ' + error.message) }
@@ -102,7 +100,7 @@ export function ExportDialog({ snapshot, close }) {
       <button type="button" className="export-primary" disabled={busy || !projectName.trim()} onClick={saveProject}>{busy ? 'Preparing ZIP…' : 'Download project ZIP'}</button>
     </> : <>
       <p className="export-instruction">Install Loom, then save this module beside <code>scene.json</code>. Call <code>await mountGraph(canvas)</code> on a sized canvas.</p>
-      <Code name="Install Loom">{'npm install ' + packageURL}</Code>
+      <Code name="Install Loom">{'npm install ' + sdk.installSpec}</Code>
       <Code key={moduleFile} name={moduleFile}>{mountCode(language)}</Code>
       <button type="button" className="export-primary" onClick={saveScene}>Download scene.json</button>
     </>}

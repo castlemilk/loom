@@ -1,20 +1,41 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, cp, mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { writeSpecimens } from './specimen-art.mjs'
 import { writeAssistantDocs } from './docs/markdown.mjs'
+import { publishedIntegrity, studioDependency } from '../scripts/npm-registry.mjs'
+import { siteOrigin } from './site.js'
 
 const root = new URL('../', import.meta.url)
 const target = (path) => new URL(path, import.meta.url)
 execFileSync('npm', ['run', 'build'], { cwd: fileURLToPath(root), stdio: 'inherit' })
+execFileSync('npm', ['run', 'size'], { cwd: fileURLToPath(root), stdio: 'inherit' })
 await mkdir(target('./public/graphs/art/'), { recursive: true })
 await mkdir(target('./.generated/'), { recursive: true })
 await mkdir(target('./public/docs/'), { recursive: true })
 await mkdir(target('./public/benchmarks/'), { recursive: true })
+const publicDir = fileURLToPath(target('./public/'))
+const [archive] = JSON.parse(execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', publicDir],
+  { cwd: fileURLToPath(root), encoding: 'utf8' }))
+for (const filename of await readdir(publicDir)) {
+  if (filename.startsWith(archive.name + '-') && filename.endsWith('.tgz') && filename !== archive.filename) {
+    await unlink(target('./public/' + filename))
+  }
+}
+const revision = process.env.GITHUB_SHA
+const prefix = /^[a-f0-9]{40}$/.test(revision) ? 'packages/' + revision + '/' : ''
+const site = new URL((process.env.PAGES_BASE_PATH ?? '/loom') + '/', siteOrigin)
+const archiveURL = new URL(prefix + archive.filename, site).href
+let published
+try { published = await publishedIntegrity() }
+catch (error) { console.warn('Using the Studio archive. ' + error.message) }
+const sdk = { filename: archive.filename, ...studioDependency(archive.integrity, published, archiveURL) }
+const installCommands = ['npm init -y', 'npm install ' + sdk.installSpec, 'npm install --save-dev vite'].join('\n')
+await writeFile(target('./.generated/sdk-package.json'), JSON.stringify({ ...sdk, installCommands }))
 await copyFile(new URL('benchmarks/m2-max.json', root), target('./public/benchmarks/m2-max.json'))
 await copyFile(new URL('dist/api-index.json', root), target('./public/docs/api-index.json'))
-await writeAssistantDocs(target('./public/'), new URL('dist/api-index.json', root))
+await writeAssistantDocs(target('./public/'), new URL('dist/api-index.json', root), installCommands)
 await writeSpecimens(target('./public/graphs/specimens/v1/'))
 const atlases = JSON.parse(await readFile(new URL('demo/atlases/catalog.json', root), 'utf8'))
 for (const name of Object.keys(atlases)) {

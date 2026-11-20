@@ -10,5 +10,5 @@ await build({
   target: 'node22',
   format: 'esm',
 })
-const result = spawnSync(process.execPath, ['--test', ...suites.map(name => '.test-build/' + name + '.test.mjs')], { stdio: 'inherit' })
+const result = spawnSync(process.execPath, ['--test', ...suites.map(name => '.test-build/' + name + '.test.mjs'), 'tests/npm-release.test.mjs'], { stdio: 'inherit' })
 process.exitCode = result.status ?? 1

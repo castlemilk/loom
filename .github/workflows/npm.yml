@@ -1,0 +1,124 @@
+name: Publish Loom to npm
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Test and pack
+    runs-on: ubuntu-24.04
+    outputs:
+      file: ${{ steps.package.outputs.file }}
+      spec: ${{ steps.package.outputs.spec }}
+      dist-tag: ${{ steps.package.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Match the release tag to the manifest
+        id: package
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync } from 'node:fs'
+          import sdk from './package.json' with { type: 'json' }
+          import { archiveName, registrySpec } from './scripts/npm-registry.mjs'
+          if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== 'v' + sdk.version) {
+            throw new Error('Tag must be v' + sdk.version)
+          }
+          const tag = sdk.version.includes('-') ? 'next' : 'latest'
+          appendFileSync(process.env.GITHUB_OUTPUT, ['file=' + archiveName, 'spec=' + registrySpec, 'dist-tag=' + tag, ''].join('\n'))
+          JS
+      - run: npm ci
+      - run: npm run build && npm run test:types && npm test && npm run size
+      - run: npm run test:browser
+        env:
+          LOOM_BROWSER_CHANNEL: chrome
+      - name: Check the exact archive that will be published
+        env:
+          ARCHIVE: ${{ steps.package.outputs.file }}
+        run: |
+          mkdir -p artifacts/npm
+          npm pack --ignore-scripts --pack-destination artifacts/npm
+          npm run test:package -- "artifacts/npm/$ARCHIVE"
+          npm publish --dry-run --ignore-scripts --access public "artifacts/npm/$ARCHIVE"
+          (cd artifacts/npm && sha512sum "$ARCHIVE" > SHA512SUMS)
+          cat artifacts/npm/SHA512SUMS >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: artifacts/npm/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish the tested archive
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: prepare
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ARCHIVE: ${{ needs.prepare.outputs.file }}
+      DIST_TAG: ${{ needs.prepare.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --global --ignore-scripts --registry=https://registry.npmjs.org/ npm@11.20.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: release
+      - name: Publish with the GitHub Actions identity
+        run: |
+          (cd release && sha512sum --check SHA512SUMS)
+          state=$(node scripts/npm-registry.mjs "release/$ARCHIVE")
+          if [ "$state" = unpublished ]; then
+            npm publish "release/$ARCHIVE" --ignore-scripts --registry=https://registry.npmjs.org/ --access public --provenance --tag "$DIST_TAG"
+          fi
+
+  verify:
+    name: Verify the public installation
+    needs: [prepare, publish]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: write
+    env:
+      ARCHIVE: ${{ needs.prepare.outputs.file }}
+      PACKAGE_SPEC: ${{ needs.prepare.outputs.spec }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: release
+      - run: npm ci
+      - run: node scripts/npm-registry.mjs "release/$ARCHIVE" --wait
+      - run: npm run test:package -- "$PACKAGE_SPEC" "release/$ARCHIVE"
+      - name: Refresh the Studio install commands
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

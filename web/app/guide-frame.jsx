@@ -20,7 +20,7 @@ export function GuideFrame({ artwork = false, docs = false, children }) {
     <a className="guide-skip" href="#guide-main">Skip to content</a>
     <header className="guide-mast"><div className="guide-width mast-inner">
       <div className="guide-identity"><a className="guide-brand" href={homeURL} aria-label="Loom home">
-        <img src={artURL('loom-mark.svg')} width="29" height="25" alt="" />Loom
+        <img src={artURL('loom-logo.png')} width="34" height="34" alt="" />Loom
       </a>{docs && <a className="docs-product" href={docsURL}>SDK docs</a>}</div>
       {docs ? <nav aria-label="Loom"><a href={repositoryURL}>GitHub ↗</a><a className="docs-studio" href={studioURL}>Open studio →</a></nav> :
       <nav aria-label="Field guide"><a href={homeURL + '#examples'}>Examples</a>
@@ -28,7 +28,7 @@ export function GuideFrame({ artwork = false, docs = false, children }) {
         <a href={docsURL}>SDK docs</a></nav>}
     </div></header>
     {children}
-    <footer className="guide-width guide-footer"><a className="guide-brand" href={homeURL}><img src={artURL('loom-mark.svg')} width="20" height="18" alt="" />Loom</a>
+    <footer className="guide-width guide-footer"><a className="guide-brand" href={homeURL}><img src={artURL('loom-logo.png')} width="24" height="24" alt="" />Loom</a>
       <div><a href={repositoryURL}>GitHub <span aria-hidden="true">↗</span></a><a href="#top">Back to top <span aria-hidden="true">↑</span></a></div></footer>
   </div>
 }

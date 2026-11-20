@@ -23,7 +23,7 @@ async function markdownFiles(context, home, links) {
     assert.ok(index.includes('[' + chapter.title + '](') && index.includes(pathname + ')'))
     assert.ok(pages[i].startsWith('# ' + chapter.title + '\n'))
     assert.ok(full.includes(pages[i]))
-    assert.doesNotMatch(pages[i], /<(?:ExampleFile|DocLink|StudioLink|AssetLink|ApiExplorer|SignalPreview|CardPreview|PerformancePreview)\b/)
+    assert.doesNotMatch(pages[i], /<(?:ExampleFile|InstallLoom|DocLink|StudioLink|AssetLink|ApiExplorer|SignalPreview|CardPreview|PerformancePreview)\b/)
   }
   assert.ok(full.includes((await readFile(new URL('../docs/examples/graph-tools.ts', import.meta.url), 'utf8')).trimEnd()))
   assert.match(full, /\bobservePerformance\(graph, sample/)

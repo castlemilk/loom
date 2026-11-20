@@ -1,12 +1,13 @@
 import { artURL, siteOrigin } from './site.js'
 
-const wireImage = { url: artURL('wire-study-1280.webp'), width: 1280, height: 853, alt: 'A Loom graph model made of beads and wire.' }
+export const brandImage = { url: artURL('loom-social.jpg'), width: 1200, height: 630, type: 'image/jpeg',
+  alt: 'Loom. Interactive graphs in TypeScript. A copper wire network connects ivory and terracotta joints.' }
 export const atlasImage = { url: artURL('wikipedia-map.jpg'), width: 1080, height: 540, alt: 'Music and Science expanded in the Wikipedia topic map.' }
 export const cardsImage = { url: artURL('canva-cards.jpg'), width: 1080, height: 540, alt: 'Relationship cards connecting Canva with its founders and investors.' }
 
 export const absoluteURL = path => new URL(path, siteOrigin).href
 
-export function pageMetadata({ title, description, path, image = wireImage, markdown }) {
+export function pageMetadata({ title, description, path, image = brandImage, markdown }) {
   const url = absoluteURL(path)
   const preview = { ...image, url: absoluteURL(image.url) }
   return {

@@ -2,6 +2,7 @@
 .generated/
 out/
 public/graphs/
+public/loom-core-*.tgz
 public/layout-worker.js
 public/atlas-runtime/
 public/editor.schema.json

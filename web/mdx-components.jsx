@@ -1,4 +1,4 @@
-import { CodeFence, ExampleFile } from './docs/code-block'
+import { CodeFence, ExampleFile, InstallLoom } from './docs/code-block'
 import { chapterURL } from './docs/catalog'
 import { homeURL, studioURL } from './site'
 
@@ -8,5 +8,5 @@ function AssetLink({ path, children }) { return <a href={homeURL + path}>{childr
 function Heading({ id, children }) {
   return <h2 id={id}>{children}<a className="docs-permalink" href={'#' + id} aria-label={'Link to ' + id.replaceAll('-', ' ')}>#</a></h2>
 }
-const components = { h2: Heading, pre: CodeFence, ExampleFile, DocLink, StudioLink, AssetLink }
+const components = { h2: Heading, pre: CodeFence, ExampleFile, InstallLoom, DocLink, StudioLink, AssetLink }
 export function useMDXComponents() { return components }

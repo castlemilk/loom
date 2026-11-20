@@ -3,7 +3,8 @@ import { artURL, homeURL, siteOrigin } from '../site'
 export const metadata = {
   metadataBase: new URL(siteOrigin),
   title: 'Loom · TypeScript graph visualization library',
-  icons: { icon: { url: artURL('loom-mark.svg'), type: 'image/svg+xml' } },
+  icons: { icon: { url: artURL('loom-icon.png'), sizes: '48x48', type: 'image/png' },
+    apple: { url: artURL('loom-touch.png'), sizes: '180x180', type: 'image/png' } },
 }
 
 export default function RootLayout({ children }) {

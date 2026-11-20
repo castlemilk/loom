@@ -29,7 +29,7 @@ export default function Artwork() {
     </section>
     <section className="art-direction" aria-labelledby="palette"><div><h2 id="palette">Palette and type</h2>
       <p>Instrument Serif sets the titles. The studio pairs sans-serif controls with monospaced measurements.</p>
-      <div className="asset-actions"><a href={artURL('loom-mark.svg')} download>Loom mark ↓</a><a href={homeURL + 'licenses/instrument-serif.txt'}>Font licence</a>
+      <div className="asset-actions"><a href={artURL('loom-logo.png')} download>Loom logo ↓</a><a href={artURL('loom-social.jpg')} download>Social preview ↓</a><a href={homeURL + 'licenses/instrument-serif.txt'}>Font licence</a>
         <a href={repositoryURL + '/blob/main/DESIGN.md'}>Design notes ↗</a></div></div>
       <dl className="pigments">{pigments.map((item) => <div key={item.property}><dt><i aria-hidden="true" style={{ background: 'var(' + item.property + ')' }} />{item.name}</dt><dd>{item.hex}</dd></div>)}</dl>
     </section>

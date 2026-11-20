@@ -22,7 +22,7 @@ function moduleReference(index) {
 }
 
 // Convert the same parsed MDX used by the website. Example code comes from the package sources.
-async function markdownChapter(chapter, site, index) {
+async function markdownChapter(chapter, site, index, installCommands) {
   const filename = chapter.slug || 'first-graph'
   const source = await readFile(new URL('./guides/' + filename + '.mdx', import.meta.url), 'utf8')
   const html = new URL('docs/' + (chapter.slug ? chapter.slug + '/' : ''), site)
@@ -44,6 +44,7 @@ async function markdownChapter(chapter, site, index) {
           { type: 'code', lang: attrs.name.split('.').pop(), value: (await readExample(attrs.name)).trimEnd() },
         ]
         case 'ApiExplorer': return moduleReference(index)
+        case 'InstallLoom': return { type: 'code', lang: 'bash', value: installCommands }
         case 'SignalPreview': return paragraph(link(html, [text('Try the interactive signal path')]))
         case 'CardPreview': return paragraph(link(new URL('#open-relationship-cards', html), [text('Try the relationship cards')]))
         case 'PerformancePreview': return paragraph(link(new URL('#watch-a-graph-draw-and-settle', html), [text('See live timing readings on your device')]))
@@ -59,11 +60,11 @@ async function markdownChapter(chapter, site, index) {
   return toMarkdown(tree, { bullet: '-', fences: true })
 }
 
-export async function writeAssistantDocs(publicDir, indexFile) {
+export async function writeAssistantDocs(publicDir, indexFile, installCommands) {
   const site = new URL((process.env.PAGES_BASE_PATH ?? '/loom') + '/', siteOrigin)
   const index = JSON.parse(await readFile(indexFile, 'utf8'))
   const pages = await Promise.all(chapters.map(async chapter => {
-    const body = await markdownChapter(chapter, site, index)
+    const body = await markdownChapter(chapter, site, index, installCommands)
     const target = new URL('docs/' + chapterFile(chapter.slug), publicDir)
     await mkdir(new URL('./', target), { recursive: true })
     await writeFile(target, body)

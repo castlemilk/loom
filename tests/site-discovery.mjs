@@ -13,6 +13,25 @@ export async function searchPages(browser, home) {
     assert.equal(library['@type'], 'SoftwareSourceCode')
     assert.equal(library.codeRepository, 'https://github.com/castlemilk/loom')
     assert.equal(library.url, published.href)
+    assert.equal(library.alternateName, 'loom-core')
+    assert.equal(library.license, 'https://github.com/castlemilk/loom/blob/main/LICENSE')
+    const imageURL = new URL('illustrations/loom-social.jpg', published).href
+    assert.equal(library.image, imageURL)
+    assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'), imageURL)
+    assert.equal(await page.locator('meta[name="twitter:image"]').getAttribute('content'), imageURL)
+    assert.equal(await page.locator('meta[property="og:image:width"]').getAttribute('content'), '1200')
+    assert.equal(await page.locator('meta[property="og:image:height"]').getAttribute('content'), '630')
+    assert.match(await page.locator('meta[property="og:image:alt"]').getAttribute('content'), /Interactive graphs in TypeScript/)
+    assert.deepEqual(await page.evaluate(async path => {
+      const photo = new Image()
+      photo.src = path
+      await photo.decode()
+      return [photo.naturalWidth, photo.naturalHeight]
+    }, new URL(imageURL).pathname), [1200, 630])
+    const logo = page.getByRole('link', { name: 'Loom home' }).locator('img')
+    assert.equal(await logo.evaluate(img => img.naturalWidth), 256)
+    const shortcuts = page.getByRole('navigation', { name: 'SDK shortcuts' })
+    assert.equal(await shortcuts.getByRole('link').count(), 3)
     const sitemap = await request.get(new URL(await page.locator('link[rel=sitemap]').getAttribute('href'), base).href)
     assert.equal(sitemap.status(), 200)
     assert.match(sitemap.headers()['content-type'], /xml/)
@@ -20,7 +39,7 @@ export async function searchPages(browser, home) {
       .querySelectorAll('urlset > url > loc')].map(loc => loc.textContent), await sitemap.text())
     await page.getByRole('link', { name: 'Build your first graph' }).click()
     const chapters = await page.locator('.docs-sidebar nav li a').evaluateAll(links => links.map(a => a.pathname))
-    const expected = ['', 'artwork/', 'studio/', 'studio/cards/', 'studio/wikispeedia/'].map(path => new URL(path, published).href)
+    const expected = ['', 'artwork/', 'studio/', 'studio/cards/', 'studio/wikispeedia/', 'examples/bauhaus/', 'examples/outer-solar-system/'].map(path => new URL(path, published).href)
     assert.deepEqual(urls.slice().sort(), [...expected, ...chapters.map(path => new URL(path, published).href)].sort())
     const pages = await Promise.all(urls.map(async url => {
       const response = await request.get(new URL(new URL(url).pathname, base).href)
@@ -49,6 +68,13 @@ export async function searchPages(browser, home) {
       assert.equal(preview.status(), 200, image)
       assert.match(preview.headers()['content-type'], /^image\//)
     }
+    for (const [slug, articles] of [['bauhaus', 15], ['outer-solar-system', 16]]) {
+      await page.goto(new URL('examples/' + slug + '/', home).href)
+      const rows = page.locator('.article-groups li a')
+      assert.equal(await rows.count(), articles)
+      assert.ok((await rows.evaluateAll(links => links.map(a => a.search))).every(query => new URLSearchParams(query).get('example') === slug))
+      assert.equal(await page.getByRole('link', { name: 'CC BY-SA 4.0' }).getAttribute('href'), 'https://creativecommons.org/licenses/by-sa/4.0/')
+    }
     await page.goto(new URL('studio/wikispeedia/', base).href)
     await page.getByText(/4,604 articles and 119,882 hyperlinks/).waitFor()
     assert.equal(await page.getByRole('region', { name: 'Follow a Wikipedia link' }).getByRole('link').count(), 3)
@@ -65,6 +91,10 @@ export async function exampleJourney(context, home, touch = false) {
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   try {
+    const [collection, article] = touch ? ['outer-solar-system', 'Voyager 2'] : ['bauhaus', 'Anni Albers']
+    await page.goto(new URL('examples/' + collection + '/', home).href)
+    await click(page.getByRole('link', { name: 'Start with ' + article }))
+    await page.locator('#selection').getByText(article, { exact: true }).waitFor()
     await page.goto(home)
     await click(page.getByRole('link', { name: 'Follow Music → Sound' }))
     await details.getByRole('heading', { name: /Music.*Sound/ }).waitFor()

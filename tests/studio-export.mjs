@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { chooseGraph } from './graph-picker.mjs'
 import { serveExport } from '../scripts/serve-export.mjs'
+import sdk from '../package.json' with { type: 'json' }
+import { archiveName, fileIntegrity, publishedIntegrity } from '../scripts/npm-registry.mjs'
 
 const run = promisify(execFile)
 const json = async path => JSON.parse(await readFile(path, 'utf8'))
@@ -17,20 +19,31 @@ async function download(page, button) {
 }
 
 // Run the downloaded project outside the repository, including its real production build.
-async function tryProject(context, file, live, scene, name, language, expectedCode) {
+async function tryProject(context, file, live, scene, name, language, expectedCode, installCommand) {
   const dir = await mkdtemp(join(tmpdir(), 'loom-starter-'))
   const page = await context.newPage()
   let server
   try {
     await run('unzip', ['-q', await file.path(), '-d', dir])
     const manifest = await json(join(dir, 'package.json'))
-    assert.match(manifest.dependencies['loom-core'], /^https:\/\/castlemilk\.github\.io\/loom\/(?:packages\/[a-f\d]{40}\/)?loom-core-[\d.]+\.tgz$/)
-    if (process.env.GITHUB_SHA) assert.ok(manifest.dependencies['loom-core'].includes('/packages/' + process.env.GITHUB_SHA + '/'))
+    const dependency = manifest.dependencies[sdk.name]
+    const registered = dependency === sdk.version
+    const localArchive = fileURLToPath(new URL('../web/out/' + archiveName, import.meta.url))
+    if (registered) {
+      assert.equal(installCommand, 'npm install ' + sdk.name + '@' + sdk.version)
+      if (!live) assert.equal(await publishedIntegrity(), await fileIntegrity(localArchive))
+    } else {
+      const archiveURL = new URL(dependency)
+      assert.equal(archiveURL.origin, 'https://castlemilk.github.io')
+      const revision = process.env.GITHUB_SHA
+      if (revision) assert.equal(archiveURL.pathname, '/loom/packages/' + revision + '/' + archiveName)
+      assert.equal(archiveURL.pathname.split('/').pop(), archiveName)
+      assert.equal(installCommand, 'npm install ' + dependency)
+    }
     assert.deepEqual(await json(join(dir, 'scene.json')), scene)
     assert.equal((await readFile(join(dir, 'graph.' + language), 'utf8')).trimEnd(), expectedCode)
     // Before deployment the new SDK exists in the local Pages export. After deployment install the URL from the ZIP.
-    const archive = new URL(manifest.dependencies['loom-core']).pathname.split('/').pop()
-    const source = live ? [] : [fileURLToPath(new URL('../web/out/' + archive, import.meta.url))]
+    const source = live || registered ? [] : [localArchive]
     await run('npm', ['install', '--no-audit', '--no-fund', ...source], { cwd: dir, timeout: 90000 })
     await run('npm', ['run', 'build'], { cwd: dir, timeout: 40000 })
     server = await serveExport('/embed/', 0, join(dir, 'dist'))
@@ -106,6 +119,7 @@ export async function studioExport(context, url, { touch = false, live = false }
     const language = touch ? 'js' : 'ts'
     await dialog.getByLabel('Language').selectOption(language)
     const code = await dialog.locator('.export-code pre code').last().textContent()
+    const installCommand = await dialog.locator('.export-code pre code').first().textContent()
     if (!touch) {
       await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(url).origin })
       await press(button('Copy graph.ts', dialog))
@@ -130,7 +144,7 @@ export async function studioExport(context, url, { touch = false, live = false }
     await dialog.getByLabel('Project name').fill(projectName)
     const zip = await download(page, button('Download project ZIP', dialog))
     assert.equal(zip.suggestedFilename(), 'signal-lab-sound.zip')
-    await tryProject(context, zip, live, scene, projectName, language, code)
+    await tryProject(context, zip, live, scene, projectName, language, code, installCommand)
     await page.keyboard.press('Escape')
     assert.equal(await button('Export graph').evaluate(el => el === document.activeElement), true)
     if (touch) assert.ok(await button('Select and move').getByText('Select', { exact: true }).isVisible())

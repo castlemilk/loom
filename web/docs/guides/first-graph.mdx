@@ -4,20 +4,11 @@ import { SignalPreview } from '../signal-preview'
 
 ## Install Loom
 
-Start in an empty directory with Node.js 22.12 or newer and npm. The studio publishes a typed ESM package on GitHub Pages. Vite serves the example and resolves its package imports.
+Start in an empty directory with Node.js 22.12 or newer and npm. Vite serves the example and resolves the SDK imports.
 
-```bash
-npm init -y
-npm install https://castlemilk.github.io/loom/loom-core-0.1.0.tgz
-npm install --save-dev vite
-```
+<InstallLoom />
 
-For a build you can reproduce later, read the current source revision and install its permanent archive. Commit the resulting lockfile with your app.
-
-```bash
-revision=$(curl -fsSL https://castlemilk.github.io/loom/revision.txt)
-npm install "https://castlemilk.github.io/loom/packages/$revision/loom-core-0.1.0.tgz"
-```
+The install command matches this Studio build. Published releases use an exact npm version. Preview builds use their GitHub Pages archive. Commit the resulting lockfile with your app.
 
 ## Mount the graph
 

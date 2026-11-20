@@ -9,7 +9,7 @@ export function AtlasShell({ name, children }) {
     <div className="atlas-app">
       <header className="atlas-mast">
         <a href={homeURL} className="atlas-brand">
-          <img src={artURL('loom-mark.svg')} alt="" width="22" height="22" />
+          <img src={artURL('loom-logo.png')} alt="" width="22" height="22" />
           Loom
         </a>
         <span aria-hidden="true">/</span>

@@ -426,7 +426,7 @@ function Workbench({ sample }) {
 
   return <>
     <header className="shrink-0">
-      <div className="identity"><a className="wordmark studio-home" href={homeURL} aria-label="Loom field guide"><img src={artURL('loom-mark.svg')} width="20" height="18" alt="" />Loom</a>
+      <div className="identity"><a className="wordmark studio-home" href={homeURL} aria-label="Loom field guide"><img src={artURL('loom-logo.png')} width="22" height="22" alt="" />Loom</a>
         <span className="slash" aria-hidden="true">/</span><h1>Graph studio</h1></div>
       <EditorToolbar tool={tool} choose={chooseTool} select={() => { chooseTool(null); view.canvas.current?.focus() }}
         state={model.state} history={editHistory} ready={!remoteURL || !!remote.data}

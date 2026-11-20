@@ -1,15 +1,21 @@
 import { apiURL, artURL, docsURL, homeURL, modelURL, opticsURL, repositoryURL, settingsSections, studioURL } from '../site'
-import { absoluteURL, atlasImage, cardsImage, pageMetadata } from '../metadata'
+import { absoluteURL, atlasImage, brandImage, cardsImage, pageMetadata } from '../metadata'
 import { connectionURL, exampleConnections } from '../wiki-connections'
 import model from '../public/examples/wire-model.json'
 import { ModelPlate } from './model-plate'
 import { GuideFrame } from './guide-frame'
 import atlases from '../../demo/atlases/catalog.json'
+import sdk from '../.generated/sdk-package.json'
+import manifest from '../../package.json'
 
-const description = 'Loom is a TypeScript graph visualization library for WebGL2. Build interactive network diagrams, explore a Wikipedia topic map, and edit nodes and connections in the browser.'
-export const metadata = pageMetadata({ title: 'Loom · TypeScript graph visualization library for WebGL2', description, path: homeURL })
-const library = { '@context': 'https://schema.org', '@type': 'SoftwareSourceCode', name: 'Loom',
-  description, programmingLanguage: 'TypeScript', codeRepository: repositoryURL, url: absoluteURL(homeURL) }
+const description = 'Build interactive network diagrams and knowledge graphs with Loom. Draw in Graph Studio, export to TypeScript, and stream large graphs with SQLite and WebGL2.'
+export const metadata = pageMetadata({ title: 'Loom · TypeScript library for interactive graph visualization', description, path: homeURL })
+const library = { '@context': 'https://schema.org', '@type': 'SoftwareSourceCode', name: 'Loom', alternateName: manifest.name,
+  description, programmingLanguage: 'TypeScript', codeRepository: repositoryURL, url: absoluteURL(homeURL),
+  version: manifest.version, license: repositoryURL + '/blob/main/LICENSE', isAccessibleForFree: true,
+  image: absoluteURL(brandImage.url), thumbnailUrl: absoluteURL(artURL('loom-logo.png')),
+  subjectOf: { '@type': 'WebPage', name: 'Loom SDK documentation', url: absoluteURL(docsURL) }, keywords: manifest.keywords.join(', '),
+  ...(sdk.dependency === manifest.version && { sameAs: 'https://www.npmjs.com/package/' + manifest.name }) }
 const music = exampleConnections[0]
 
 const examples = {
@@ -31,11 +37,16 @@ export default function FieldGuide() {
       <section className="guide-width guide-hero" aria-labelledby="guide-title">
         <div className="guide-intro">
           <h1 id="guide-title">Interactive graphs<br />in <em>TypeScript.</em></h1>
-          <p>Loom is a WebGL2 graph library for the browser. Drag a cluster, trace a relationship to its source, or explore 4,604 Wikipedia articles one topic at a time.</p>
+          <p>Give Loom a set of nodes and links, or draw them in Graph Studio. Turn the result into a knowledge graph or network diagram you can embed in your own app.</p>
           <div className="guide-actions">
             <a className="guide-primary" href={docsURL}>Build your first graph <span aria-hidden="true">→</span></a>
             <a className="guide-text-link" href={studioURL}>Open graph studio <span aria-hidden="true">↗</span></a>
           </div>
+          <nav className="hero-guides" aria-label="SDK shortcuts">
+            <a href={docsURL + 'editing/#export-a-graph-to-your-app'}>Export to code</a>
+            <a href={docsURL + 'atlas/'}>Stream clusters with SQLite</a>
+            <a href={apiURL}>API reference</a>
+          </nav>
         </div>
         <ModelPlate nodes={model.nodes.length} links={model.links.length} />
       </section>
@@ -63,6 +74,9 @@ export default function FieldGuide() {
           <div className="index-intro"><h2>Graph studies</h2>
             <p>Try the same controls on a small graph. Change its layout, follow a wire or look inside a group.</p>
             <a className="guide-text-link" href={docsURL + 'drawing/'}>Layouts and styling <span aria-hidden="true">→</span></a>
+            <nav className="atlas-indexes" aria-label="Wikipedia graph article indexes">
+              {Object.entries(atlases).map(([slug, atlas]) => <a key={slug} href={homeURL + 'examples/' + slug + '/'}>{atlas.title} article index</a>)}
+            </nav>
           </div>
           <ul className="example-list">{settingsSections.map(({ id }) => {
             const example = examples[id]
@@ -86,7 +100,7 @@ export default function FieldGuide() {
             <div className="library-links"><a href={apiURL}>TypeScript API <span aria-hidden="true">↗</span></a>
               <a href={docsURL + 'ai-tooling/'}>Build an AI graph tool</a>
               <a href={docsURL + 'performance/'}>Measure graph performance</a>
-              <a href={homeURL + 'loom-core-0.1.0.tgz'} download>Download package <span aria-hidden="true">↓</span></a></div>
+              <a href={homeURL + sdk.filename} download>Download package <span aria-hidden="true">↓</span></a></div>
           </div>
           <div className="code-specimen"><div className="code-caption"><span>Mount the wire model</span><a href={modelURL} download>wire-model.json <span aria-hidden="true">↓</span></a></div>
             <pre tabIndex={0} aria-label="TypeScript example"><code><b>import</b> {'{ createGraph }'} <b>from</b> <i>'loom-core'</i>{'\n'}

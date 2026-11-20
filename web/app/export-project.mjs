@@ -58,14 +58,14 @@ function projectHTML(name, language) {
 `
 }
 
-/** Build the archive only on download. The preview and ZIP share the same mount code and SDK URL. */
-export async function projectZip({ name, scene, language, packageURL }) {
+/** Build the archive only on download. The preview and ZIP share the same mount code and SDK release. */
+export async function projectZip({ name, scene, language, dependency }) {
   const { strToU8, zip } = await import('fflate')
   const typescript = language === 'ts'
   const manifest = {
     name: 'loom-graph-export', private: true, type: 'module',
     scripts: { dev: 'vite', build: (typescript ? 'tsc --noEmit && ' : '') + 'vite build --base=./', preview: 'vite preview' },
-    dependencies: { 'loom-core': packageURL }, devDependencies: { vite: '7.3.8', ...(typescript && { typescript: '5.9.3' }) },
+    dependencies: { 'loom-core': dependency }, devDependencies: { vite: '7.3.8', ...(typescript && { typescript: '5.9.3' }) },
   }
   const readme = `# Your Loom graph
 

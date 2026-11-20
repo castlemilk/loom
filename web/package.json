@@ -6,7 +6,6 @@
     "predev": "node prepare.mjs",
     "dev": "next dev --webpack",
     "prebuild": "node prepare.mjs",
-    "postbuild": "npm --prefix .. run package:site",
     "build": "next build --webpack"
   },
   "dependencies": {
