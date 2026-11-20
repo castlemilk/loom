@@ -9,6 +9,7 @@ import bauhaus from './atlases/bauhaus.json' with { type: 'json' }
 import solar from './atlases/outer-solar-system.json' with { type: 'json' }
 import { fixture } from './fixture.js'
 import { maxNodeSize, minNodeSize, nodeCounts, sizeLabel, stepNodeSize } from './node-controls.js'
+import { mountGraphPicker } from './graph-picker.js'
 
 const byId = (id) => document.getElementById(id)
 const canvas = byId('graph')
@@ -307,6 +308,7 @@ byId('count').oninput = (e) => {
 }
 for (const n of nodeCounts) byId('node-counts').append(new Option(n.toLocaleString('en') + ' nodes · ' + (n * 4).toLocaleString('en') + ' links', 'count-' + n))
 for (const [key, item] of Object.entries(catalog)) byId('atlas-options').append(new Option(item.title, key))
+const graphPicker = mountGraphPicker(byId('dataset'))
 byId('atlas-article').onchange = (event) => graph?.select(event.target.value || null)
 byId('dataset').onchange = () => {
   const value = byId('dataset').value
@@ -325,7 +327,7 @@ byId('dataset').onchange = () => {
   }
   mount()
 }
-byId('count').onchange = () => { byId('dataset').value = 'stress'; mount() }
+byId('count').onchange = () => { byId('dataset').value = 'stress'; graphPicker.refresh(); mount() }
 byId('physics').onchange = mount
 byId('fit').onclick = () => graph?.fit()
 byId('reset').onclick = () => graph?.reset()

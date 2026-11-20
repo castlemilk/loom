@@ -128,6 +128,10 @@ def build(archive, root):
                 continue
             pages[source] = quote(str(path.relative_to("wpcd")), safe="/")
             dom = html.fromstring(bundle.extractfile(member).read(), parser=parser)
+            # text_content() includes script and stylesheet contents. Remove non-reader text before ranking
+            # passages, and preserve the article text following each element through lxml's drop_tree().
+            for element in dom.xpath("//script|//style|//noscript|//template|//*[@hidden or @aria-hidden='true']"):
+                element.drop_tree()
             content = dom.xpath('//*[@id="bodyContent"]')
             if content:
                 index_article(content[0], path, source, wanted[source], ids, proofs)

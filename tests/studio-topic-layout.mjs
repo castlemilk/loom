@@ -17,13 +17,14 @@ function at(actual, expected, what) {
 }
 
 // Use trusted mouse or touch input so capture, scrolling and hit testing all run in Chrome.
-async function drag(page, touch, [x, y], [dx, dy]) {
+async function drag(page, touch, [x, y], [dx, dy], held) {
   if (touch) {
     const session = await page.context().newCDPSession(page)
     const send = (type, touchPoints) => session.send('Input.dispatchTouchEvent', { type, touchPoints })
     try {
       await send('touchStart', [{ x, y }])
       for (let i = 1; i <= 4; i++) await send('touchMove', [{ x: x + (dx * i) / 4, y: y + (dy * i) / 4 }])
+      if (held) await held()
       await send('touchEnd', [])
     } finally {
       await session.detach()
@@ -32,17 +33,18 @@ async function drag(page, touch, [x, y], [dx, dy]) {
     await page.mouse.move(x, y)
     await page.mouse.down()
     await page.mouse.move(x + dx, y + dy, { steps: 4 })
+    if (held) await held()
     await page.mouse.up()
   }
   await frames(page)
 }
-async function dragDot(page, touch, selector, delta) {
+async function dragDot(page, touch, selector, delta, held) {
   const canvas = page.locator('canvas')
   await canvas.scrollIntoViewIfNeeded()
   const bounds = await canvas.boundingBox()
   const start = shift(await point(page, selector), [bounds.x, bounds.y])
   assert.equal(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.tagName, start), 'CANVAS')
-  await drag(page, touch, start, delta)
+  await drag(page, touch, start, delta, held)
 }
 async function dragLabel(page, touch, label, delta) {
   await label.scrollIntoViewIfNeeded()
@@ -138,6 +140,98 @@ export async function studioTopicLayout(context, home, touch = false) {
   }
 }
 
+export async function studioTopicMotion(context, home, touch = false) {
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  page.setDefaultTimeout(15000)
+  const hub = '[data-topic-ring="1"]',
+    article = '[data-map-marker="selected"]'
+  const click = (el) => (touch ? el.tap() : el.click())
+  async function trace() {
+    await page.locator('canvas').scrollIntoViewIfNeeded()
+    await frames(page)
+    await page.evaluate(() => {
+      const x = (name) => +document.querySelector(name).getAttribute('cx')
+      const read = () => [
+        x('[data-topic-ring="1"]'),
+        x('[data-map-marker="selected"]'),
+        parseFloat(document.querySelector('[data-map-topic="9"]').style.left),
+      ]
+      const start = read(),
+        samples = []
+      let released = false,
+        frame
+      document.querySelector('canvas').addEventListener(
+        'pointerup',
+        () => {
+          released = true
+        },
+        { once: true },
+      )
+      function sample() {
+        const [hub, article, science] = read()
+        samples.push({ hub: hub - start[0], article: article - start[1], science: science - start[2], released })
+        frame = requestAnimationFrame(sample)
+      }
+      sample()
+      window.readLoomDrag = () => {
+        cancelAnimationFrame(frame)
+        return samples
+      }
+    })
+    const original = await point(page, article)
+    await dragDot(page, touch, hub, [45, 10], () => frames(page))
+    await page.waitForFunction(
+      ([x]) => Math.abs(+document.querySelector('[data-map-marker="selected"]').getAttribute('cx') - x - 45) < 0.04,
+      original,
+    )
+    await frames(page)
+    return page.evaluate(() => window.readLoomDrag())
+  }
+  try {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto(new URL('studio/wikispeedia/?topic=music', home).href)
+    await page.locator('[data-visible-articles="96"]').waitFor()
+    await click(page.locator('[data-article-id="97"]'))
+    await page.locator(article).waitFor()
+    assert.ok(await page.getByRole('radio', { name: 'Spring', exact: true }).isChecked())
+    const spring = await trace()
+    assert.ok(
+      spring.some((s) => !s.released && s.hub - s.article > 3),
+      'Article visibly trails the held topic',
+    )
+    assert.ok(
+      spring.some((s) => s.released && s.hub - s.article > 1),
+      'Article continues to settle after release',
+    )
+    assert.ok(
+      spring.every((s) => Math.abs(s.science) < 0.1),
+      'Spring movement is confined to the dragged topic',
+    )
+    await click(page.getByRole('button', { name: 'Reset positions' }))
+    await click(page.locator('label').filter({ has: page.getByRole('radio', { name: 'Rigid', exact: true }) }))
+    assert.equal(new URL(page.url()).searchParams.get('motion'), 'rigid')
+    const rigid = await trace()
+    assert.ok(rigid.some((s) => s.hub > 40))
+    assert.ok(
+      rigid.every((s) => Math.abs(s.hub - s.article) < 0.15 && Math.abs(s.science) < 0.1),
+      'Rigid follows on every paint',
+    )
+    await page.reload()
+    assert.ok(await page.getByRole('radio', { name: 'Rigid', exact: true }).isChecked())
+    await click(page.getByRole('button', { name: 'Reset positions' }))
+    assert.deepEqual(errors, [])
+    return {
+      touch,
+      springLagPixels: Math.round(Math.max(...spring.map((s) => s.hub - s.article))),
+      rigidLagPixels: 0,
+    }
+  } finally {
+    await page.close()
+  }
+}
+
 export async function studioConnections(context, home, touch = false) {
   const page = await context.newPage()
   page.setDefaultTimeout(18000)
@@ -157,6 +251,14 @@ export async function studioConnections(context, home, touch = false) {
     assert.match(await inspector.locator('.wiki-pair-count').textContent(), /52 hyperlinks/)
     assert.match(await direction.locator('[value=out]').textContent(), /Mathematics → Computing \(23\)/)
     assert.match(await direction.locator('[value=in]').textContent(), /Computing → Mathematics \(29\)/)
+    await inspector.getByRole('searchbox').fill('Boolean logic Computer')
+    await click(inspector.getByRole('button', { name: 'Boolean logic links to Computer', exact: true }))
+    await inspector
+      .getByText('The binary arithmetic article discusses the use of binary numbers in computer systems.', {
+        exact: true,
+      })
+      .waitFor()
+    await inspector.getByRole('searchbox').fill('')
     await direction.selectOption('in')
     await inspector.getByText('1–5 of 29').waitFor()
     await click(inspector.getByRole('button', { name: 'Next', exact: true }))

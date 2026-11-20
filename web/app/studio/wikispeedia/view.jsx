@@ -135,6 +135,9 @@ function Explorer({ atlas }) {
   const snap = useSyncExternalStore(atlas.subscribe, atlas.getSnapshot, atlas.getSnapshot)
   const api = useRef(null)
   const [carry, setCarry] = useState(true),
+    [memberMotion, setMemberMotion] = useState(() =>
+      new URL(location.href).searchParams.get('motion') === 'rigid' ? 'rigid' : 'spring',
+    ),
     [pair, setPair] = useState(bookmarkedPair),
     [inspection, setInspection] = useState(0),
     [edge, setEdge] = useState(null)
@@ -251,6 +254,7 @@ function Explorer({ atlas }) {
             api={api}
             keep={keep}
             carry={carry}
+            memberMotion={memberMotion}
             pair={pair}
             edge={edge}
             theme={theme}
@@ -369,6 +373,26 @@ function Explorer({ atlas }) {
           <input type="checkbox" checked={carry} onChange={(e) => setCarry(e.target.checked)} />
           Move articles with their topic
         </label>
+        <div className="wiki-motion">
+          <ModeSwitch
+            label="Article motion"
+            value={memberMotion}
+            disabled={!carry}
+            choices={[
+              ['spring', 'Spring'],
+              ['rigid', 'Rigid'],
+            ]}
+            onChange={(mode) => {
+              setMemberMotion(mode)
+              const url = new URL(location.href)
+              url.searchParams.set('motion', mode)
+              history.replaceState(history.state, '', url)
+            }}
+          />
+          {carry && memberMotion === 'spring' && (
+            <p className="wiki-reduced-motion">Reduced motion is on. Articles move together.</p>
+          )}
+        </div>
         <div className="wiki-position-tools">
           <p>
             Drag a topic dot or name. Arrow keys move a focused topic. Select a line between topics to inspect its
@@ -501,8 +525,8 @@ function Explorer({ atlas }) {
             </a>
           </p>
           <p>
-            Graph data read counts the uncompressed articles and links. The topic overview, SQLite runtime and archived
-            evidence have their own download sizes.
+            Graph data read counts the uncompressed articles and links. The topic overview, SQLite runtime and
+            archived evidence have their own download sizes.
           </p>
           <p>
             Source excerpts and section names come from the 2007 Schools Wikipedia Selection, by Wikipedia

@@ -6,6 +6,13 @@ interface Point {
   x: number
   y: number
 }
+export type AtlasMemberMotion = 'rigid' | 'spring'
+interface ArticleSpring extends Point {
+  target: Point
+  vx: number
+  vy: number
+  frequency: number
+}
 /** Sparse, world-space offsets relative to the published layout. */
 export interface AtlasPositions {
   topics: Record<string, Point>
@@ -17,6 +24,8 @@ export interface AtlasMapOptions {
   keepView?: boolean
   /** Translate article positions with their topic, including articles that load later. Defaults to true. */
   moveMembers?: boolean
+  /** How carried articles approach their new positions. Defaults to rigid. Springs respect reduced motion. */
+  memberMotion?: AtlasMemberMotion
   positions?: AtlasPositions
   onPositionsChange?: (positions: AtlasPositions) => void
   onPick?: (node: AtlasNode) => void
@@ -48,7 +57,8 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
     open: readonly number[] = []
   let selected: string | null = null,
     keepView = options.keepView ?? true,
-    moveMembers = options.moveMembers ?? true
+    moveMembers = options.moveMembers ?? true,
+    memberMotion = options.memberMotion ?? 'rigid'
   let theme = options.theme,
     events: AbortController | undefined
   let byId = new Map<string, AtlasNode>(),
@@ -57,6 +67,9 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
   const hubOffsets = offsets(options.positions?.topics),
     groupOffsets = offsets(options.positions?.members),
     articleOffsets = offsets(options.positions?.articles)
+  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
+  const springs = new Map<string, ArticleSpring>()
+  let lastSpringFrame = 0
   function positions(): AtlasPositions {
     const copy = (map: Map<string, Point>) => Object.fromEntries(Array.from(map, ([id, p]) => [id, { ...p }]))
     return { topics: copy(hubOffsets), members: copy(groupOffsets), articles: copy(articleOffsets) }
@@ -66,6 +79,55 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
       base = (node.article === undefined ? hubOffsets : groupOffsets).get(topic) ?? zero
     const local = node.article === undefined ? zero : (articleOffsets.get(node.id) ?? zero)
     return { x: node.x! + base.x + local.x, y: node.y! + base.y + local.y }
+  }
+  function finishSprings() {
+    for (const [id, spring] of springs) graph.pin(id, spring.target)
+    springs.clear()
+  }
+  function onMotionPreference() {
+    if (motionPreference.matches) finishSprings()
+  }
+  function updateSprings() {
+    if (!springs.size) return
+    const now = performance.now(),
+      dt = Math.max(0, (now - lastSpringFrame) / 1000)
+    lastSpringFrame = now
+    for (const [id, s] of springs) {
+      // Exact solution of a critically damped spring. A dropped frame cannot make it oscillate.
+      const dx = s.x - s.target.x,
+        dy = s.y - s.target.y
+      const cx = s.vx + s.frequency * dx,
+        cy = s.vy + s.frequency * dy
+      const decay = Math.exp(-s.frequency * dt)
+      s.x = s.target.x + (dx + cx * dt) * decay
+      s.y = s.target.y + (dy + cy * dt) * decay
+      s.vx = (s.vx - s.frequency * cx * dt) * decay
+      s.vy = (s.vy - s.frequency * cy * dt) * decay
+      if (
+        Math.max(Math.abs(s.x - s.target.x), Math.abs(s.y - s.target.y)) < 0.025 &&
+        Math.max(Math.abs(s.vx), Math.abs(s.vy)) < 0.5
+      ) {
+        graph.pin(id, s.target)
+        springs.delete(id)
+      } else graph.pin(id, s)
+    }
+  }
+  function follow(hub: AtlasNode, node: AtlasNode) {
+    const target = placed(node)
+    if (memberMotion !== 'spring' || motionPreference.matches) {
+      graph.pin(node.id, target)
+      return
+    }
+    const active = springs.get(node.id)
+    if (active) {
+      active.target = target
+      return
+    }
+    if (!springs.size) lastSpringFrame = performance.now()
+    const { x, y } = graph.getPosition(node.id)
+    const local = articleOffsets.get(node.id) ?? zero
+    const radius = Math.hypot(node.x! + local.x - hub.x!, node.y! + local.y - hub.y!)
+    springs.set(node.id, { x, y, target, vx: 0, vy: 0, frequency: 25 / (1 + Math.min(radius, 110) / 110) })
   }
   function moveHub(hub: AtlasNode, position: Point, alreadyPinned: boolean) {
     const id = String(hub.topic),
@@ -77,7 +139,7 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
     if (moveMembers) {
       const base = groupOffsets.get(id) ?? zero
       remember(groupOffsets, id, base.x + dx, base.y + dy)
-      for (const node of members.get(hub.topic) ?? []) graph.pin(node.id, placed(node))
+      for (const node of members.get(hub.topic) ?? []) follow(hub, node)
     }
     return true
   }
@@ -87,10 +149,19 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
   function syncHubs() {
     for (const hub of hubs) if (moveHub(hub, graph.getPosition(hub.id), true)) changed = true
   }
+  // A native drag takes ownership of an article immediately, even while it is catching up.
+  function releaseDraggedArticles() {
+    for (const [id, s] of springs) {
+      const p = graph.getPosition(id)
+      if (p.x !== Math.fround(s.x) || p.y !== Math.fround(s.y)) springs.delete(id)
+    }
+  }
   function commitPositions() {
     syncHubs()
+    releaseDraggedArticles()
     for (const group of members.values())
       for (const node of group) {
+        if (springs.has(node.id)) continue
         const pos = graph.getPosition(node.id),
           base = groupOffsets.get(String(node.topic)) ?? zero
         if (remember(articleOffsets, node.id, pos.x - node.x! - base.x, pos.y - node.y! - base.y)) changed = true
@@ -119,12 +190,16 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
         members.get(node.topic)!.push(node)
       }
     }
+    for (const id of springs.keys()) if (!byId.has(id)) springs.delete(id)
     graph = createGraph(canvas, {
       ...scene,
-      nodes: scene.nodes.map((n) => ({ ...n, ...placed(n) })),
+      nodes: scene.nodes.map((n) => {
+        const { x, y } = springs.get(n.id) ?? placed(n)
+        return { ...n, x, y }
+      }),
       theme,
       mode: 'drift',
-      layout: { pinOnDrag: true },
+      layout: { pinOnDrag: true, blend: 1 },
       sim: 'main',
       transparentBackground: true,
     })
@@ -143,13 +218,19 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
     })
     if (options.onBackgroundClick)
       graph.on('backgroundclick', (point) => options.onBackgroundClick!(point, graph.getFrame(), scene))
-    if (options.onFrame) graph.onFrame((frame) => options.onFrame!(frame, scene))
+    graph.onFrame((frame) => {
+      options.onFrame?.(frame, scene)
+      updateSprings()
+    })
     events = new AbortController()
     const signal = events.signal
     canvas.addEventListener(
       'pointermove',
       (e) => {
-        if (e.buttons === 1) syncHubs()
+        if (e.buttons === 1) {
+          syncHubs()
+          releaseDraggedArticles()
+        }
       },
       { signal },
     )
@@ -158,6 +239,7 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
     canvas.addEventListener('lostpointercapture', commitPositions, { signal })
   }
   mount()
+  motionPreference.addEventListener('change', onMotionPreference)
   const off = atlas.subscribe(mount)
   return {
     fit: () => graph.fit(),
@@ -177,7 +259,13 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
       keepView = value
     },
     setMoveMembers(value: boolean) {
+      if (!value) finishSprings()
       moveMembers = value
+    },
+    setMemberMotion(value: AtlasMemberMotion) {
+      if (value !== 'spring' && value !== 'rigid') throw new RangeError('Invalid atlas article motion')
+      memberMotion = value
+      if (value === 'rigid') finishSprings()
     },
     moveTopic(id: number, position: Point) {
       const hub = byId.get('topic:' + id)
@@ -201,6 +289,7 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
       graph.setViewport({ ...camera, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, zoom })
     },
     resetPositions() {
+      springs.clear()
       hubOffsets.clear()
       groupOffsets.clear()
       articleOffsets.clear()
@@ -218,6 +307,8 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
     destroy() {
       off()
       commitPositions()
+      motionPreference.removeEventListener('change', onMotionPreference)
+      springs.clear()
       events?.abort()
       graph.destroy()
     },

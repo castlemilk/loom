@@ -30,6 +30,7 @@ import { DrillControls, DrillTrail, detailOptions, navigationDefaults } from './
 import { artURL, fetchGraphFile, homeURL, modelURL, studioURL } from '../site'
 import { findInGraph, SettingsPanel, SettingsTabs } from './settings-tabs'
 import { wireAnchor, wireForces, wireModelStyle } from './wire-study'
+import { GraphPicker } from './graph-picker'
 
 const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas'], ['model', 'Wire model'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
 const emptyGraph = { nodes: [], links: [] }
@@ -322,15 +323,15 @@ function Workbench({ sample }) {
     if (value === 'wikispeedia' || value === 'cards') { location.assign(studioURL + value + '/'); return }
     pickGraph(value)
     const url = new URL(location.href)
-    if (!getAtlas(value) && !getAtlas(url.searchParams.get('example'))) return
     for (const param of ['example','article','group','bubbles']) url.searchParams.delete(param)
-    const example = getAtlas(value) ? value : { sections: 'clusters', model: 'wire-model' }[value]
+    const example = getAtlas(value) ? value : { sections: 'clusters', model: 'wire-model', full: 'full', stress: 'stress' }[value]
     if (example) url.searchParams.set('example', example)
     history.replaceState(history.state, '', url)
   }
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const example = params.get('example')
+    if (example === 'full' || example === 'stress') pickGraph(example)
     if (getAtlas(example)) {
       pickGraph(example)
       requestedGroup.current = params.get('group')
@@ -392,16 +393,12 @@ function Workbench({ sample }) {
         <span className="slash" aria-hidden="true">/</span><h1>Graph studio</h1></div>
       <EditorToolbar tool={tool} choose={chooseTool} select={() => { chooseTool(null); view.canvas.current?.focus() }}
         state={model.state} history={editHistory} ready={!remoteURL || !!remote.data}/>
-      <label className="dataset">Graph<select id="dataset" value={dataset} onChange={(e) => selectDataset(e.target.value)}>
-        {datasets.slice(0, 1).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-        <optgroup label="Wikipedia atlases"><option value="wikispeedia">Wikispeedia · 4,604 articles</option>{Object.entries(atlasCatalog).map(([key, item]) => <option key={key} value={key}>{item.title}</option>)}</optgroup>
-        <option value="cards">Around Canva · cards</option>
-        {datasets.slice(1).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+      <GraphPicker value={dataset} onChange={selectDataset}>
         {custom && <option value="custom">{custom.name}</option>}
         {!!model.drafts.length && <optgroup label="Edited graphs">{model.drafts.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}</optgroup>}
         <optgroup label="Generated node counts">{countOptions.map(({ value, config }) =>
           <option key={value} value={value}>{formatCount.format(config.nodes)} nodes · {formatCount.format(config.nodes * config.degree)} links</option>)}</optgroup>
-      </select></label>
+      </GraphPicker>
       <div className="node-sizing" role="group" aria-label="Node sizing">
         <label htmlFor="node-size">Node size</label>
         <button type="button" id="size-down" aria-label="Decrease node size" disabled={nodeSize <= minNodeSize}

@@ -1,6 +1,7 @@
 'use client'
 
 import { artURL, homeURL, studioURL } from '../site'
+import { GraphPicker, graphPaths } from './graph-picker'
 import './atlas.css'
 
 export function AtlasShell({ name, children }) {
@@ -13,27 +14,16 @@ export function AtlasShell({ name, children }) {
         </a>
         <span aria-hidden="true">/</span>
         <a href={studioURL}>Graph studio</a>
-        <label>
-          Graph{' '}
-          <select value={name} onChange={(e) => location.assign(studioURL + e.target.value)}>
-            <option value="">Knowledge console</option>
-            <optgroup label="Wikipedia atlases">
-              <option value="wikispeedia/">Wikispeedia</option>
-              <option value="?example=bauhaus">Bauhaus</option>
-              <option value="?example=outer-solar-system">Outer Solar System</option>
-            </optgroup>
-            <option value="cards/">Around Canva · cards</option>
-          </select>
-        </label>
+        <GraphPicker value={name.replace(/\/$/, '')} onChange={(key) => location.assign(studioURL + graphPaths[key])} />
       </header>
       {children}
     </div>
   )
 }
 
-export function ModeSwitch({ label, value, choices, onChange }) {
+export function ModeSwitch({ label, value, choices, onChange, disabled = false }) {
   return (
-    <fieldset className="atlas-switch">
+    <fieldset className="atlas-switch" disabled={disabled}>
       <legend>{label}</legend>
       <div>
         {choices.map(([id, text]) => (

@@ -100,7 +100,7 @@ main {
   cursor: grab;
 }
 #article-links { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0 8px; }
-#atlas-credit { color: var(--muted); font-size: 11px; }
+#atlas-credit { color: var(--muted); font-size: 13px; }
 #atlas-detail a, #atlas-credit a { color: #813b24; text-underline-offset: 3px; }
 .stage canvas:active {
   cursor: grabbing;
@@ -337,7 +337,7 @@ details[open] > summary {
   overflow-wrap: anywhere;
 }
 #selection-meta {
-  font: 11px var(--mono);
+  font: 12px var(--mono);
   color: var(--muted);
   margin-top: 4px;
 }
@@ -399,13 +399,13 @@ footer {
     gap: 8px;
   }
   .dataset {
-    font-size: 0;
     gap: 0;
   }
+  .dataset>label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .dataset select {
     min-width: 0;
     max-width: 47vw;
-    font-size: 11px;
+    font-size: 12px;
   }
   main {
     display: block;

@@ -1,3 +1,4 @@
+import { chooseGraph } from './graph-picker.mjs'
 import assert from 'node:assert/strict'
 import { mkdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -85,7 +86,7 @@ export async function studioAtlases(context, home, touch = false) {
     await search.fill('textile')
     await click(page.locator('[data-result="Anni_Albers"]'))
     await current('Anni Albers')
-    await page.locator('#dataset').selectOption('outer-solar-system')
+    await chooseGraph(page, 'outer-solar-system')
     await page.locator('#totals').getByText('16 nodes · 62 links', {exact:true}).waitFor()
     assert.equal(new URL(page.url()).searchParams.get('example'), 'outer-solar-system')
     await page.reload()

@@ -21,7 +21,7 @@ function useEvidence(a, b) {
       return
     }
     const abort = new AbortController()
-    fetch(homeURL + 'examples/wikispeedia/evidence/' + name + '.json', { signal: abort.signal })
+    fetch(homeURL + 'examples/wikispeedia/evidence/' + name + '.json?edition=2007-prose-v2', { signal: abort.signal })
       .then((r) => {
         if (!r.ok) throw Error('Evidence returned HTTP ' + r.status)
         return r.json()

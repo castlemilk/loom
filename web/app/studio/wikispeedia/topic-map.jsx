@@ -46,6 +46,7 @@ export function TopicMap({
   onConnection,
   keep,
   carry,
+  memberMotion,
   selected,
   hidden,
   theme,
@@ -165,6 +166,7 @@ export function TopicMap({
         theme: displayTheme,
         keepView: keep,
         moveMembers: carry,
+        memberMotion,
         positions: storedPositions(),
         onPositionsChange: (positions) => {
           pending = positions
@@ -195,7 +197,8 @@ export function TopicMap({
   useEffect(() => {
     api.current?.setKeepView(keep)
     api.current?.setMoveMembers(carry)
-  }, [keep, carry, api])
+    api.current?.setMemberMotion(memberMotion)
+  }, [keep, carry, memberMotion, api])
   useEffect(() => {
     api.current?.setTheme(displayTheme)
   }, [displayTheme, api])

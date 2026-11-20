@@ -1,3 +1,4 @@
+import { chooseGraph, studioPicker } from '../tests/graph-picker.mjs'
 import assert from 'node:assert/strict'
 import { serveExport } from './serve-export.mjs'
 import { chromium } from 'playwright'
@@ -11,7 +12,7 @@ import { studioAuthoring } from '../tests/studio-authoring.mjs'
 import { studioWires } from '../tests/studio-wires.mjs'
 import { studioAtlases } from '../tests/studio-atlases.mjs'
 import { studioProgressive } from '../tests/studio-progressive.mjs'
-import { studioConnections, studioTopicLayout } from '../tests/studio-topic-layout.mjs'
+import { studioConnections, studioTopicLayout, studioTopicMotion } from '../tests/studio-topic-layout.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
@@ -39,10 +40,14 @@ try {
   const mobileProgressive = await studioProgressive(mobile, home, true)
   const topicLayout = await studioTopicLayout(context, home)
   const mobileTopicLayout = await studioTopicLayout(mobile, home, true)
+  const spring = await studioTopicMotion(context, home)
+  const mobileSpring = await studioTopicMotion(mobile, home, true)
   const connections = await studioConnections(context, home)
   const mobileConnections = await studioConnections(mobile, home, true)
+  await studioPicker(context, home, false)
+  await studioPicker(mobile, home, true)
   await mobile.close()
-  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires, desktopAtlases, mobileAtlases, progressive, mobileProgressive, topicLayout, mobileTopicLayout, connections, mobileConnections })
+  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires, desktopAtlases, mobileAtlases, progressive, mobileProgressive, topicLayout, mobileTopicLayout, spring, mobileSpring, connections, mobileConnections })
   const guide = await fieldGuide(context, home)
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)
@@ -58,8 +63,8 @@ try {
     if (res.status() >= 400) failures.push(res.status() + ' ' + resource)
   })
   const result = await studio(page, url, (name) => page.getByRole('tab', { name, exact: true }).click())
-  await page.locator('#dataset').selectOption('sample')
-  await page.locator('#dataset').selectOption('full')
+  await chooseGraph(page, 'sample')
+  await chooseGraph(page, 'full')
   await page.getByText('508 nodes · 746 links', { exact: true }).waitFor()
   assert.equal(snapshots, 1, 'Full graph should be fetched once per session')
   await page.locator('#blend').focus()

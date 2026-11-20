@@ -1,3 +1,4 @@
+import { chooseGraph } from './graph-picker.mjs'
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -168,7 +169,7 @@ export async function studioProgressive(context, home, touch = false) {
       await click(button('Collapse all'))
       await visible(0)
     }
-    await page.getByRole('combobox', { name: 'Graph', exact: true }).selectOption('cards/')
+    await chooseGraph(page, 'cards', touch)
     await page.getByRole('heading', { name: 'Around Canva' }).waitFor()
     const cards = page.locator('[data-card-id]')
     await cards.first().waitFor()

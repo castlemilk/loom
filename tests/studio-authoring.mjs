@@ -1,3 +1,4 @@
+import { chooseGraph } from './graph-picker.mjs'
 import assert from 'node:assert/strict'
 import { mkdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -33,10 +34,9 @@ export async function studioAuthoring(context, url, touch = false) {
   assert.match(draft, /^draft-/)
   await page.locator('#selection').getByText('Signal lens', { exact: true }).waitFor()
   assert.equal(await page.locator('details.selected-object').getAttribute('open'), '')
-  const file = page.locator('#dataset')
-  await file.selectOption('sample')
+  await chooseGraph(page, 'sample', touch)
   await totals(25, 30)
-  await file.selectOption(draft)
+  await chooseGraph(page, draft, touch)
   await totals(26, 30)
   await pick(button('JSON commands'))
   const json = form.getByLabel('Transaction')

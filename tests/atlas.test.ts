@@ -242,6 +242,9 @@ test('each historical source record belongs to a real directed crossing in preci
       assert.ok(crossings.has(key), file + ' contains a link outside its pair')
       assert.ok(section && anchor)
       if (quote) assert.ok(quote.includes(anchor))
+      assert.doesNotMatch(quote, /<!\[CDATA\[|showTocToggle|tocShowText|<\/?(?:script|style)\b/i, file + ' ' + key)
+      if (key === '1965:4098')
+        assert.equal(quote, 'The binary arithmetic article discusses the use of binary numbers in computer systems.')
       found++
     }
   }

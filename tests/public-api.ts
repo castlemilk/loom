@@ -7,7 +7,7 @@ import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
 import { createWireGraph, wireEffectsSchema, type WireEffects } from 'loom-core/wires'
 import { atlasConnections, createAtlas, createFullAtlasReader, type AtlasManifest } from 'loom-core/atlas'
 import { createSQLiteAtlasReader, type AtlasSQLiteOptions } from 'loom-core/atlas-sqlite'
-import { mountAtlasMap, type AtlasPositions } from 'loom-core/atlas-map'
+import { mountAtlasMap, type AtlasPositions, type AtlasMemberMotion } from 'loom-core/atlas-map'
 import { createCardGraph } from 'loom-core/cards'
 
 interface Paper extends GraphNode {
@@ -15,13 +15,13 @@ interface Paper extends GraphNode {
   year: number
 }
 interface Citation extends GraphLink { reviewed: boolean }
-export function mountStreamingAtlas(canvas: HTMLCanvasElement, manifest: AtlasManifest, sqlite: AtlasSQLiteOptions, baseline: URL, positions?: AtlasPositions) {
+export function mountStreamingAtlas(canvas: HTMLCanvasElement, manifest: AtlasManifest, sqlite: AtlasSQLiteOptions, baseline: URL, positions?: AtlasPositions, memberMotion: AtlasMemberMotion = 'spring') {
   const atlas = createAtlas(manifest, { 'on-demand': () => createSQLiteAtlasReader(sqlite), full: () => createFullAtlasReader(baseline) })
-  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, moveMembers: true, positions,
+  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, moveMembers: true, positions, memberMotion,
     onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) } })
   return {
     setLoading: atlas.setLoading, expand: atlas.setExpanded, fit: map.fit,
-    moveTopic: map.moveTopic, setMoveMembers: map.setMoveMembers, save: map.getPositions, reset: map.resetPositions,
+    moveTopic: map.moveTopic, setMoveMembers: map.setMoveMembers, setMemberMotion: map.setMemberMotion, save: map.getPositions, reset: map.resetPositions,
     connectedTopics: (topic: number) => atlasConnections(manifest, topic), crossings: atlas.crossings, focusConnection: map.focusConnection,
     close() { map.destroy(); atlas.close() },
   }

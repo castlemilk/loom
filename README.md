@@ -44,7 +44,7 @@ Stable link IDs determine the order of parallel paths across input reordering an
 
 Open a topic to reveal its articles. Opening another adds the hyperlinks between them and keeps existing nodes and the camera in place. Pick an article to read it on Wikipedia or open a labeled card view of its visible neighbors. Links to the studio preserve the open topics and loading mode. [Try the topic map](https://castlemilk.github.io/loom/studio/wikispeedia/) · [Start in Mathematics](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=mathematics)
 
-Drag the Music dot or its name to move all 96 articles together. You can move a closed topic before its first data read, or drag individual articles within an open topic. Arrow keys move a focused topic, and Shift takes a larger step. **Move articles with their topic** switches between moving the group and moving only the topic dot. The studio saves positions in this browser. **Reset positions** restores the published layout. [Arrange Music](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music)
+Drag the Music dot or its name. In **Article motion → Spring**, nearby articles catch up first and the outer articles settle into their positions after release. **Rigid** moves all 96 in step with Music. The surrounding topics keep their positions. You can move a closed topic before its first data read or arrange individual articles. Arrow keys move a focused topic and Shift takes a larger step. Turn off **Move articles with their topic** to move its dot alone. The studio saves the resting layout in this browser, and **Reset positions** restores the published layout. Reduced motion uses immediate movement. [Try Spring](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&motion=spring) · [Compare Rigid](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&motion=rigid)
 
 Select a line between topics or choose **Explore connections** to inspect the underlying articles. Mathematics and Computing share 52 hyperlinks, with 23 pointing from Mathematics to Computing and 29 in the reverse direction. Search the pair list, inspect a link's original section and anchor, then choose **Show link on map** to frame both endpoints. Evidence loads only for the topic pair being inspected. [Explore Mathematics and Computing](https://castlemilk.github.io/loom/studio/wikispeedia/?connections=mathematics,computing)
 
@@ -69,10 +69,11 @@ const atlas = createAtlas(manifest, {
   }),
   full: () => createFullAtlasReader(new URL(manifest.full, base)),
 })
-const map = mountAtlasMap(canvas, atlas, { theme: parchment, keepView: true, moveMembers: true,
+const map = mountAtlasMap(canvas, atlas, { theme: parchment, keepView: true, moveMembers: true, memberMotion: 'spring',
   onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) },
 })
 map.moveTopic(1, { x: -140, y: -175 }) // Music and its articles, even before loading
+// map.setMemberMotion('rigid') switches a running map back to the library default.
 await atlas.setExpanded([8, 12]) // Mathematics and Computing in this edition
 const topics = atlasConnections(manifest, 8) // directional counts from the overview
 const links = atlas.crossings(8, 12) // actual article pairs from the two loaded topics

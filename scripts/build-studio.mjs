@@ -3,9 +3,10 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import './build.mjs'
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8')
-const [html, css, worker] = await Promise.all([
+const [html, css, picker, worker] = await Promise.all([
   read('../demo/index.html'),
   read('../demo/studio.css'),
+  read('../demo/graph-picker.css'),
   read('../dist/layout-worker.js'),
 ])
 const { outputFiles } = await build({
@@ -18,6 +19,7 @@ const { outputFiles } = await build({
 })
 const script = (text) => text.replace(/<\/script/gi, '<\\/script')
 const result = html
+  .replace('<link rel="stylesheet" href="./graph-picker.css" />', () => '<style>' + picker + '</style>')
   .replace(
     /<link\s+rel="stylesheet"\s+href="\.\/studio\.css"\s*\/?>/,
     () => '<style>' + css + '</style>',

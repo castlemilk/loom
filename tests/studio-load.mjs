@@ -1,3 +1,4 @@
+import { chooseGraph } from './graph-picker.mjs'
 import assert from 'node:assert/strict'
 
 export async function studioLoad(page, url) {
@@ -18,7 +19,7 @@ export async function studioLoad(page, url) {
   await page.goto(url)
   await page.locator('#graph[data-ready]').waitFor()
   assert.equal(specimenRequests.size, 0, 'The gallery must remain lazy on the knowledge excerpt')
-  await byId('dataset').selectOption('stress')
+  await chooseGraph(page, 'stress')
   await byId('workload-preset').selectOption('images')
   await byId('workload-nodes').fill('48')
   await byId('workload-variety').fill('4')
@@ -123,7 +124,7 @@ export async function studioLoad(page, url) {
   await byId('workload-nodes').fill('20')
   await create()
   await byId('totals').getByText('20 nodes · 240 links', { exact: true }).waitFor()
-  await byId('dataset').selectOption('count-25000')
+  await chooseGraph(page, 'count-25000')
   await byId('totals').getByText('25,000 nodes · 100,000 links', { exact: true }).waitFor()
   assert.equal(await byId('workload-nodes').inputValue(), '25000')
   assert.equal(await byId('workload-degree').inputValue(), '4')
@@ -137,7 +138,7 @@ export async function studioLoad(page, url) {
   const draws = parseInt(await metric('Draws / labels').textContent())
   assert.ok(draws > 0 && draws <= 4, '25k-node cloud should fit within four draw calls')
   assert.equal(await graph.evaluate((el) => el.getContext('webgl2').getError()), 0)
-  await byId('dataset').selectOption('count-1000')
+  await chooseGraph(page, 'count-1000')
   await byId('totals').getByText('1,000 nodes · 12,000 links', { exact: true }).waitFor()
   assert.equal(await byId('workload-degree').inputValue(), '12')
   assert.deepEqual(errors, [])

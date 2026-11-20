@@ -83,7 +83,7 @@ try {
     const wiki = new URL('../web/public/examples/wikispeedia/', import.meta.url)
     const manifest = JSON.parse(await readFile(new URL('manifest.json', wiki), 'utf8'))
     const blocks = JSON.parse(await readFile(new URL(manifest.full, wiki), 'utf8'))
-    report.atlasGravity = await run('atlasGravity', [manifest, blocks.filter(b => b.topic === 0 || b.topic === 1)])
+    report.atlasGravity = await run('atlasGravity', [manifest, blocks.filter(b => b.topic === 0 || b.topic === 1)], { motion:'no-preference' })
     report.springMain = await run('springDrag', ['main'])
     report.springShared = await run('springDrag', ['shared'])
     report.springTransfer = await run('springDrag', ['transfer'], { isolated: false })

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Loom · Graph studio</title>
     <link rel="stylesheet" href="./studio.css" />
+    <link rel="stylesheet" href="./graph-picker.css" />
   </head>
   <body>
     <header>
@@ -13,15 +14,14 @@
         ><span class="slash" aria-hidden="true">/</span>
         <h1>Graph studio</h1>
       </div>
-      <label class="dataset"
-        >Graph<select id="dataset">
+      <div class="dataset"><label for="dataset">Graph</label><div class="graph-picker">
+        <select id="dataset">
           <option value="sample">Knowledge console · excerpt</option>
           <optgroup id="atlas-options" label="Wikipedia atlases"></optgroup>
           <option value="full">Knowledge console · full</option>
           <option value="stress">Generated stress graph</option>
           <optgroup id="node-counts" label="Generated node counts"></optgroup>
-        </select></label
-      >
+        </select></div></div>
       <div class="node-sizing" role="group" aria-label="Node sizing">
         <label for="node-size">Node size</label>
         <button type="button" id="size-down" aria-label="Decrease node size">−</button>

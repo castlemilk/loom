@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { chooseGraph } from './graph-picker.mjs'
 
 export async function studioDrilldown(page, url) {
   const showcase = new URL(url)
@@ -88,7 +89,7 @@ export async function studioDrilldown(page, url) {
   await control('find-node').fill('optics-3')
   await page.locator('[data-result="optics-3"]').click()
   await totals('3 nodes · 2 links')
-  await control('dataset').selectOption('sample')
+  await chooseGraph(page, 'sample')
   await totals('25 nodes · 30 links')
   await trail.waitFor({ state: 'detached' })
   await page.setViewportSize({ width: 390, height: 844 })
