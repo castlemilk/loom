@@ -27,7 +27,7 @@ import { useGraph } from './use-graph'
 import { Grouping, useGrouping } from './grouping'
 import { Splitter } from './splitter'
 import { DrillControls, DrillTrail, detailOptions, navigationDefaults } from './drilldown-controls'
-import { artURL, fetchGraphFile, homeURL, modelURL, studioURL } from '../site'
+import { artURL, docsURL, fetchGraphFile, homeURL, modelURL, studioURL } from '../site'
 import { findInGraph, SettingsPanel, SettingsTabs } from './settings-tabs'
 import { wireAnchor, wireForces, wireModelStyle } from './wire-study'
 import { GraphPicker } from './graph-picker'
@@ -570,7 +570,7 @@ function Workbench({ sample }) {
       <span>{level.kind === 'group' && level.action === 'expand' ? 'Drag a member to pull its neighbors. Back collapses the group.' :
         groupEnabled && grouping.annotations.bubblesVisible && navigation.groupGesture !== 'controls' && Object.values(grouping.annotations.bubbles).some((terms) => terms === true || terms.length) ? (navigation.groupGesture === 'click' ? 'Click' : 'Double-click') + ' inside a bubble to open its group. Drag a node to move it.' :
         'Drag a node to pull its neighbors. Enter activates the selection.'}</span>
-      <a className="underline underline-offset-2" href="https://github.com/castlemilk/loom#drilldowns-and-group-interactions">TypeScript API</a>
+      <a className="underline underline-offset-2" href={docsURL}>SDK docs</a>
     </footer>
   </>
 }

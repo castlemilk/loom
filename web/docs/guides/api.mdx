@@ -1,0 +1,28 @@
+import { ApiExplorer } from '../api-explorer'
+import index from '../../../dist/api-index.json'
+
+## Package modules
+
+Expand a module for its exports. Open a type to see its fields, or expand a factory’s returned methods to see what its controller can do after mounting. Try searching for `GraphOptions` or `setLayoutSpeed`.
+
+<ApiExplorer index={index} />
+
+## Schemas and runtime files
+
+- `loom-core/editor.schema.json` describes versioned document transactions. <AssetLink path="editor.schema.json">Open the editor schema</AssetLink>
+- `loom-core/wire-effects.schema.json` and `loom-core/drawing-style.schema.json` describe drawing controls. <AssetLink path="wire-effects.schema.json">Wire effects</AssetLink> · <AssetLink path="drawing-style.schema.json">Drawing style</AssetLink>
+- `loom-core/layout-worker.js` is the optional force-layout worker. The SQLite worker and its WASM binary ship separately under `loom-core/atlas-runtime/*`. <DocLink guide="atlas">Set up a streaming atlas</DocLink>
+
+## Read the index from code
+
+The same versioned JSON index powers this page and ships in the package. Look up an import, enumerate its exports, or inspect a controller’s methods. TypeScript declarations in the archive contain the full types.
+
+```js
+import index from 'loom-core/api-index.json' with { type: 'json' }
+
+const atlas = index.modules.find(module => module.name === 'loom-core/atlas-map')
+const mount = atlas.exports.find(item => item.name === 'mountAtlasMap')
+console.log(mount.methods.find(method => method.name === 'setLayoutSpeed'))
+```
+
+<AssetLink path="docs/api-index.json">Open the API index as JSON →</AssetLink>

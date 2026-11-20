@@ -1,0 +1,27 @@
+import { CardPreview } from '../card-preview'
+
+## Inspect a connection
+
+Build an index over a graph snapshot when you need search or adjacency. A neighbor contains the other node and every parallel link to it, in source order. Use the links’ own IDs and metadata to explain why two records connect.
+
+<ExampleFile name="inspect.ts" />
+
+For the signal path in the first guide, inspecting `mixer` returns `filter` as its outgoing neighbor. Ask for incoming neighbors to find `osc` and `noise`. Rebuild the index after a document edit. <DocLink guide="">Open the signal path example →</DocLink>
+
+## Navigate a group
+
+`createDrilldown(data)` owns the current scope, selection and breadcrumb trail. `openNeighborhood(id)` narrows the visible graph. `followNode(id)` can follow a reference across group boundaries. Read `getSnapshot().data` for the nodes and links to display.
+
+For overlapping named groups, use `compileTaxonomies` and convert a compiled group to stable member IDs with `drilldownGroup`. Opening a group with the `expand` action and a bound renderer spreads its members in the current map. The `isolate` action gives the group its own view. Subscribe to the controller, remount a changed scope, and call `bind` with that scope’s graph. `back()` restores the parent selection and camera. <StudioLink path="?example=drilldown&group=Optics">Explore the Optics group →</StudioLink>
+
+## Open relationship cards
+
+`cardNeighborhood(data, id, limit)` selects up to the requested number of distinct one-hop neighbors. It retains parallel links, self-loops and direction. Mount the result with `createCardGraph(svg, neighborhood, options)` from `loom-core/cards`. Set `root` to the inspected ID and supply `relationship` to name each edge. Call `destroy()` when leaving the view.
+
+<CardPreview />
+
+Drag a card to change its position. The example gives Blackbird extra space because its relationship has a longer caption. Loom places captions where they fit between cards.
+
+<ExampleFile name="cards.ts" />
+
+In the Canva demo, an investor and a founder can both be one hop from the company. The relationship label explains which connection you are looking at. <StudioLink path="cards/">Inspect the relationship cards →</StudioLink>

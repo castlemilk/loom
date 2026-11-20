@@ -10,6 +10,7 @@
     "proto",
     "README.md",
     "docs/editor-api.md",
+    "docs/examples",
     "benchmarks/m2-max.json"
   ],
   "exports": {
@@ -22,6 +23,7 @@
       "import": "./dist/editor.js"
     },
     "./editor.schema.json": "./dist/editor.schema.json",
+    "./api-index.json": "./dist/api-index.json",
     "./wire-effects.schema.json": "./dist/wire-effects.schema.json",
     "./drawing-style.schema.json": "./dist/drawing-style.schema.json",
     "./wires": {
@@ -80,10 +82,10 @@
     }
   },
   "scripts": {
-    "build": "node scripts/build.mjs && tsc",
+    "build": "node scripts/build.mjs && tsc && node scripts/api-index.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/unit.mjs",
-    "test:types": "tsc --strict --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext tests/public-api.ts",
+    "test:types": "tsc --strict --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext tests/public-api.ts docs/examples/*.ts",
     "test:browser": "node scripts/browser.mjs",
     "bench": "node scripts/browser.mjs --bench",
     "bench:contours": "node scripts/measure-contours.mjs",
@@ -92,7 +94,7 @@
     "demo:build": "node scripts/build-studio.mjs",
     "site:dev": "npm --prefix web run dev",
     "site:build": "npm --prefix web run build",
-    "package:site": "tsc && npm pack --ignore-scripts --pack-destination web/out",
+    "package:site": "npm pack --pack-destination web/out",
     "test:site": "node scripts/test-site.mjs",
     "prepack": "npm run build && npm run size"
   },

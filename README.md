@@ -2,6 +2,8 @@
 
 Loom draws interactive node graphs on a WebGL2 canvas. The first draw contains nodes and Bézier wires. The default layout seeds unpositioned nodes on a deterministic golden-angle spiral. A structured layout can seed on diagram anchors or blend the two positions. Force layout, label rasterization and artwork loading begin on later frames.
 
+Build a working graph with the [SDK quickstart](https://castlemilk.github.io/loom/docs/), or follow the [SQLite/WASM atlas guide](https://castlemilk.github.io/loom/docs/atlas/) to load articles as topics open. The [API reference](https://castlemilk.github.io/loom/docs/api/) covers the package’s public imports, types and controller methods. Tools can read the same [JSON index](https://castlemilk.github.io/loom/docs/api-index.json) from `loom-core/api-index.json`. Proposed additions are on the [SDK roadmap](https://castlemilk.github.io/loom/docs/roadmap/).
+
 On the M2 Max, the bundle including the optional worker measured 23,945 bytes minified and gzipped. The 1,000-node graph presented its first frame in 27.3–40.5 ms across seven fresh contexts, above the 10 ms release budget. A clear-only WebGL canvas presented in 19.2–20.5 ms. The layout settled in 295 ms in a separate run. With the knowledge-console styling, camera movement sustained 118.9 fps at 5,000 nodes and 118.1 fps at 25,000 nodes. Both sizes used four draw calls. The [hardware measurements](benchmarks/m2-max.json) include the raw samples.
 
 ## Edit a graph

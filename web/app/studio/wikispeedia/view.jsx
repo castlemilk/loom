@@ -12,7 +12,7 @@ import { cardNeighborhood } from '../../../../dist/cards.js'
 import manifest from '../../../public/examples/wikispeedia/manifest.json'
 import { AtlasShell, ModeSwitch } from '../../atlas-shell'
 import { CardView } from '../../card-view'
-import { homeURL, studioURL } from '../../../site'
+import { docsURL, homeURL, studioURL } from '../../../site'
 
 const base = homeURL + 'examples/wikispeedia/',
   runtime = homeURL + 'atlas-runtime/0.8.12/'
@@ -622,6 +622,7 @@ function Explorer({ atlas }) {
         <a className="atlas-text-link" href={studioURL + 'cards/'}>
           Around Canva · card example →
         </a>
+        <a className="atlas-text-link" href={docsURL + 'atlas/'}>Build a streaming atlas →</a>
       </aside>
     </main>
   )

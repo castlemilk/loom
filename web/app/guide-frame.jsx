@@ -1,5 +1,5 @@
 import localFont from 'next/font/local'
-import { artURL, homeURL, repositoryURL } from '../site'
+import { artURL, docsURL, homeURL, repositoryURL, studioURL } from '../site'
 import './field-guide.css'
 
 const display = localFont({ src: [
@@ -15,16 +15,17 @@ export const pigments = [
 ]
 const colors = Object.fromEntries(pigments.map((color) => [color.property, color.hex]))
 
-export function GuideFrame({ artwork = false, children }) {
+export function GuideFrame({ artwork = false, docs = false, children }) {
   return <div id="top" className={'field-guide ' + display.variable} style={colors}>
     <a className="guide-skip" href="#guide-main">Skip to content</a>
     <header className="guide-mast"><div className="guide-width mast-inner">
-      <a className="guide-brand" href={homeURL} aria-label="Loom home">
+      <div className="guide-identity"><a className="guide-brand" href={homeURL} aria-label="Loom home">
         <img src={artURL('loom-mark.svg')} width="29" height="25" alt="" />Loom
-      </a>
+      </a>{docs && <a className="docs-product" href={docsURL}>SDK docs</a>}</div>
+      {docs ? <nav aria-label="Loom"><a href={repositoryURL}>GitHub ↗</a><a className="docs-studio" href={studioURL}>Open studio →</a></nav> :
       <nav aria-label="Field guide"><a href={homeURL + '#examples'}>Examples</a>
         <a href={homeURL + 'artwork/'} aria-current={artwork ? 'page' : undefined}>Artwork</a>
-        <a href={homeURL + '#typescript'}>TypeScript</a></nav>
+        <a href={docsURL}>SDK docs</a></nav>}
     </div></header>
     {children}
     <footer className="guide-width guide-footer"><a className="guide-brand" href={homeURL}><img src={artURL('loom-mark.svg')} width="20" height="18" alt="" />Loom</a>

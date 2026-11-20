@@ -6,9 +6,11 @@ import { writeSpecimens } from './specimen-art.mjs'
 
 const root = new URL('../', import.meta.url)
 const target = (path) => new URL(path, import.meta.url)
-execFileSync(process.execPath, ['scripts/build.mjs'], { cwd: fileURLToPath(root), stdio: 'inherit' })
+execFileSync('npm', ['run', 'build'], { cwd: fileURLToPath(root), stdio: 'inherit' })
 await mkdir(target('./public/graphs/art/'), { recursive: true })
 await mkdir(target('./.generated/'), { recursive: true })
+await mkdir(target('./public/docs/'), { recursive: true })
+await copyFile(new URL('dist/api-index.json', root), target('./public/docs/api-index.json'))
 await writeSpecimens(target('./public/graphs/specimens/v1/'))
 const atlases = JSON.parse(await readFile(new URL('demo/atlases/catalog.json', root), 'utf8'))
 for (const name of Object.keys(atlases)) {

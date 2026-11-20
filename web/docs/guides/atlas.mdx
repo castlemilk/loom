@@ -1,0 +1,33 @@
+## Open topic blocks on demand
+
+The public Wikispeedia example contains 4,604 articles and 119,882 directed links. Its manifest places the topic hubs and gives aggregate counts before any article blocks load. Opening Music brings 96 articles onto the map.
+
+<StudioLink path="wikispeedia/?topic=music&speed=0.25">Try Music at quarter speed →</StudioLink>
+
+In this example, `site` is the root URL of your own static deployment, including its trailing slash. Copy the contents of the package’s `dist/atlas-runtime/` directory to `atlas-runtime/0.8.12/` on that origin. Put the manifest, SQLite database and full JSON snapshot in `examples/wikispeedia/`. Their filenames are recorded in the manifest. The worker must load from the page’s origin. Serve the database with HTTP byte-range support and pass the uncompressed byte count. [Get the demo data](https://github.com/castlemilk/loom/tree/main/web/public/examples/wikispeedia)
+
+<ExampleFile name="atlas.ts" />
+
+## Follow Music into Orbit
+
+The atlas controller owns the open topic IDs and data. Its map owns the camera and motion. Apply a layout to the controller and focus a node through the map. A user can also double-click or double-tap a topic. Panning or choosing Fit view releases the camera.
+
+<ExampleFile name="follow-music.ts" />
+
+For an app hosted at `/loom/`, create the session with `await openAtlas(canvas, new URL('/loom/', location.origin))`, then pass it to `await followMusic(session)`.
+
+`map.setLayoutSpeed(0.25)` changes the rate during a move. At quarter speed, the 700 ms transition takes 2.8 seconds. `map.setAnimateLayouts(false)` lands immediately. `map.setSpring({ strength: 0.5, damping: 0.45 })` tunes how far articles trail a dragged topic and how quickly they settle. Call the returned `close()` when the view unmounts.
+
+## Inspect links across topics
+
+`atlasConnections(manifest, topicId)` ranks other topics by incoming and outgoing link counts. Open both topics, then call `atlas.crossings(a, b)` for actual article IDs, titles and directions. The studio loads archived source excerpts separately so the inspector can point to the paragraph that contains the link. <StudioLink path="wikispeedia/?connections=mathematics,computing">Inspect Mathematics and Computing →</StudioLink>
+
+Compare the readers with `await atlas.setLoading('full')` and `await atlas.setLoading('on-demand')`. The snapshot’s `reads`, `loaded`, `pending` and `error` fields let a host show data costs and retry failed reads. Changing the layout alone reads no new topic blocks.
+
+## Fetch a node image
+
+Request a thumbnail when a node becomes visible or selected. The image source batches concurrent titles, follows redirects and caches both hits and missing images. Its result includes the canonical title and a file-description link for credits. The selection counter below prevents a slow reply from displaying the previous article’s image.
+
+<ExampleFile name="node-image.ts" />
+
+The studio shares one source between the map, cards and article inspector. Disable **Wikipedia node images** to compare the plain graph. <StudioLink path="wikispeedia/?topic=music&images=off">Open Music without images →</StudioLink>

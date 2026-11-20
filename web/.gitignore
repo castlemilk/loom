@@ -7,5 +7,6 @@ public/atlas-runtime/
 public/editor.schema.json
 public/wire-effects.schema.json
 public/drawing-style.schema.json
+public/docs/api-index.json
 public/examples/bauhaus.json
 public/examples/outer-solar-system.json

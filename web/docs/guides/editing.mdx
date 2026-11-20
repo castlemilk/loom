@@ -1,0 +1,22 @@
+## Preview and commit
+
+Create an editor for each graph document. A batch can add a node and connect it in one undo step. Operations see the results of earlier operations in the same batch. A validation error leaves the entire document at its original revision.
+
+<ExampleFile name="edit.ts" />
+
+On success, this example returns revision 1 and a link named `signal` from `mixer` to `filter`. A preview leaves the revision unchanged. Another edit can land between preview and apply, so always check the apply receipt.
+
+## Build an agent workflow
+
+1. Call `describe()` for the document ID, revision and supported operations.
+2. Query a bounded page of IDs with `query({ entity: 'node', text: 'mixer', limit: 10 })`. Read a full record with `getNode` or `getLink`.
+3. Preview a transaction with `expectedRevision`, then apply the same payload. If the receipt reports `stale_revision`, read the current state and reconcile the proposed edit.
+4. Read back affected IDs. Store the checkpoint to resume that document later.
+
+The transaction schema is available as a package export and from the public studio. The generated API index also lists the methods on each controller. <AssetLink path="editor.schema.json">Transaction schema</AssetLink> · <AssetLink path="docs/api-index.json">Machine-readable API index</AssetLink>
+
+## Save and restore
+
+`checkpoint()` captures document identity, graph metadata and revision. `restoreEditor()` resumes that revision with a fresh undo history. Undo and redo each advance the revision. A host with multiple writers must compare the stored revision when saving the next checkpoint.
+
+The editor runs in Node.js and in a browser. A mounted WebGL graph has its own buffers and transient positions. The studio remembers the camera and surviving positions when it rebuilds the view after an edit. A shared live-update API is the first proposal on the roadmap. <DocLink guide="roadmap">Read the SDK roadmap →</DocLink>

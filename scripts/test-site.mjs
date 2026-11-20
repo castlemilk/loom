@@ -7,6 +7,7 @@ import { studioConfiguration } from '../tests/studio-config.mjs'
 import { studioLoad } from '../tests/studio-load.mjs'
 import { studioDrilldown } from '../tests/studio-drilldown.mjs'
 import { fieldGuide } from '../tests/field-guide.mjs'
+import { sdkDocs } from '../tests/sdk-docs.mjs'
 import { studioMenu } from '../tests/studio-menu.mjs'
 import { studioAuthoring } from '../tests/studio-authoring.mjs'
 import { studioWires } from '../tests/studio-wires.mjs'
@@ -33,6 +34,9 @@ try {
   const context = await siteContext()
   const desktopMenu = await studioMenu(context, url)
   const mobile = await siteContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+  const docs = await sdkDocs(context, home)
+  const mobileDocs = await sdkDocs(mobile, home, true)
+  console.log({ docs, mobileDocs })
   const mobileMenu = await studioMenu(mobile, url, true)
   const desktopEdits = await studioAuthoring(context, url)
   const mobileEdits = await studioAuthoring(mobile, url, true)

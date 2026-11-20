@@ -1,0 +1,48 @@
+import { SignalPreview } from '../signal-preview'
+
+<SignalPreview />
+
+## Install Loom
+
+Start in an empty directory with Node.js 22.12 or newer and npm. The studio publishes a typed ESM package on GitHub Pages. Vite serves the example and resolves its package imports.
+
+```bash
+npm init -y
+npm install https://castlemilk.github.io/loom/loom-core-0.1.0.tgz
+npm install --save-dev vite
+```
+
+For a build you can reproduce later, read the current source revision and install its permanent archive. Commit the resulting lockfile with your app.
+
+```bash
+revision=$(curl -fsSL https://castlemilk.github.io/loom/revision.txt)
+npm install "https://castlemilk.github.io/loom/packages/$revision/loom-core-0.1.0.tgz"
+```
+
+## Mount the graph
+
+Save these three files in the same directory, or copy them from `node_modules/loom-core/docs/examples/` after installing the package. Give the canvas a CSS width and height so the renderer can measure it on the first draw.
+
+<ExampleFile name="index.html" />
+
+Each node has a unique string ID. Each connection names its source and target by ID. In this patch, two sound sources feed a mixer, which sends its output through a filter to an amplifier. The preview above runs this function.
+
+<ExampleFile name="signal-path.ts" />
+
+The graph handle owns its GPU buffers, listeners and layout. In a component, call `destroy()` when the canvas unmounts. This standalone entry keeps the graph available if the browser restores the page from its back-forward cache.
+
+<ExampleFile name="main.ts" />
+
+## Run it
+
+```bash
+npx vite
+```
+
+Open the local address printed by Vite. Drag a module or double-click one to focus it. A browser with WebGL2 can run the preview. A host can catch `WebGL2UnavailableError` and offer a list or card view when WebGL2 is unavailable.
+
+## Choose your next guide
+
+- To draw arrows, style a node by kind or change layouts, read <DocLink guide="drawing">Layouts and styling</DocLink>.
+- To load Wikipedia topics on demand and follow Music into Orbit, read <DocLink guide="atlas">Stream a Wikipedia atlas</DocLink>.
+- To drive edits from TypeScript or JSON, read <DocLink guide="editing">Edit a graph document</DocLink>.
