@@ -59,6 +59,8 @@ function check(value: unknown, field: Field | false, path: string) {
   if (!valid) reject('invalid_input', path, 'Expected ' + field.type + '.')
   if (typeof value === 'string' && value.length < (field.minLength ?? 0)) reject('invalid_input', path, 'Expected a nonempty string.')
   if (typeof value === 'string' && field.not?.enum.includes(value)) reject('invalid_input', path, 'Required field cannot be removed.')
+  if (typeof value === 'string' && ((field.enum && !field.enum.includes(value)) || (field.pattern && !new RegExp(field.pattern).test(value))))
+    reject('invalid_input', path, 'Unsupported field value.')
   if (typeof value === 'number' && (value < (field.minimum ?? -Infinity) || value > (field.maximum ?? Infinity))) reject('invalid_input', path, 'Value outside the supported range.')
   if (Array.isArray(value)) {
     if (value.length < (field.minItems ?? 0)) reject('invalid_input', path, 'Provide at least one item.')

@@ -38,6 +38,50 @@ graph.setWireEffects({ direction: 'arrow' })
 
 Stable link IDs determine the order of parallel paths across input reordering and protobuf round trips. Anonymous links follow input order. Strokes, arrowheads and pulses share one instanced wire draw. Reduced motion displays static arrows. Pausing the graph, hiding the page or moving the canvas offscreen suspends the pulse. The base `createGraph` entry point loads the original wire renderer.
 
+## Explore the Wikipedia atlases
+
+Open **Wikipedia atlases** in the field guide or choose either collection from the studio’s **Graph** menu.
+
+| Collection | Articles | Directed links | Topics |
+| --- | ---: | ---: | --- |
+| [Bauhaus snapshot](demo/atlases/bauhaus.json) | 15 | 52 | Schools, designers and works |
+| [Outer Solar System snapshot](demo/atlases/outer-solar-system.json) | 16 | 62 | Worlds, moons and spacecraft |
+
+Pick a topic to see its members. **Beyond this group** lists the outside nodes connected to those members, ordered by the number of crossing links. Select an article to read its description, open its Wikipedia revision, or follow an incoming or outgoing link across the atlas. **Back** returns to the previous selection and camera position. Press **/** to search names, IDs, sections, kinds and summaries. Enter opens the first match. An **Article permalink** reopens its neighborhood, for example `/studio/?example=bauhaus&article=Anni_Albers`.
+
+The collections index links between selected English Wikipedia articles. For each article, the indexer counts direct links in prose paragraphs, excludes self-references, and retains up to four destinations. Link weight is the number of occurrences. First mention breaks ties. Builds and browsing use the bundled snapshots. Run `python3 scripts/index-wikipedia.py` to rebuild from recorded revisions or pass `--latest` to capture a fresh edition. The article descriptions are by English Wikipedia contributors. The JSON records each source revision in `wikipediaRevision`. [Corpus definition](demo/atlases/catalog.json) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+```ts
+import { createGraphIndex } from 'loom-core/explore'
+import { createDrilldown } from 'loom-core/drilldown'
+
+const index = createGraphIndex(data)
+const matches = index.search('laszlo', { limit: 5 })
+const outbound = index.neighbors('Anni_Albers', 'outgoing')
+const bridges = index.boundary(['Anni_Albers', 'Josef_Albers'])
+const navigation = createDrilldown(data)
+navigation.followNode('Black_Mountain_College')
+navigation.back()
+```
+
+Search accepts an optional `within` set of node IDs. It folds accents and ranks exact names and IDs ahead of prefixes, substrings and metadata matches. Neighbor rows retain the actual links, including parallel edges. Boundary rows count incoming and outgoing links relative to the supplied members. Rebuild the index when the graph document changes. `openNeighborhood` drills into the current view. `followNode` searches the original graph and adds a breadcrumb from the current view.
+
+## Sketchbook styling
+
+In **Style**, choose **Sketchbook**, then try the paper swatches, marker fills, hatch spacing, linework and outline width. To style a single node, select it and open **Marker style**. Its ink and shape support undo, redo and JSON export. In the library, the optional `markerColor` and `markerShape` node fields override the theme for that node and survive a protobuf round trip.
+
+```ts
+import { createWireGraph, sketchbook } from 'loom-core/wires'
+
+const graph = createWireGraph(canvas, {
+  ...data, theme: sketchbook,
+  drawingStyle: { fill: 'hachure', roughness: 1, hatchSpacing: 5 },
+})
+graph.setDrawingStyle({ fill: 'cross-hatch', roughness: 2 })
+```
+
+`fill` accepts `solid`, `hachure` or `cross-hatch`. `roughness` ranges from 0 to 2 and affects both marker outlines and wire curves. `hatchSpacing` ranges from 2 to 16 CSS pixels. The defaults are solid fill, zero roughness and 5 px spacing. The strokes stay still between frames. Hosts can store `getDrawingStyle()` alongside the view and discover settings through `drawingStyleSchema` or `loom-core/drawing-style.schema.json`.
+
 ## Run the studio
 
 Use Node.js 22 or later.
@@ -77,7 +121,7 @@ npm ci
 npm run dev
 ```
 
-Open the URL printed by the server. The studio opens a 25-node, 30-link excerpt of the benebsworth.com knowledge console, with offline artwork. The graph picker also offers the full 508-node, 746-link snapshot and a generated 100–25,000-node stress graph. Move **Structure** between free physics and an exactly positioned diagram. **Spacing & forces** adjusts lane geometry and spring behaviour. **Style controls** edits marker shapes, colours, wire weights and labels in place. Select a node to pin or release it. Open **Simulation & diagnostics** to switch transports or sample the counters. For a single HTML file that also works offline, run `npm run demo:build` and open `artifacts/loom-studio.html`.
+Open the URL printed by the server. The studio opens a 25-node, 30-link excerpt of the benebsworth.com knowledge console, with offline artwork. The graph picker includes both Wikipedia atlases, the full 508-node console and a generated 100–25,000-node stress graph. In an atlas, choose an **Article** to see its source and follow its outgoing links. Move **Structure** between free physics and an exactly positioned diagram. **Spacing & forces** adjusts lane geometry and spring behaviour. **Style controls** edits marker shapes, colours, fill, linework, wire weights and labels in place. Select a node to pin or release it. Open **Simulation & diagnostics** to switch transports or sample the counters. For a single HTML file with both Wikipedia atlases embedded, run `npm run demo:build` and open `artifacts/loom-studio.html`.
 
 ## Use the core
 
@@ -267,10 +311,12 @@ The release includes captures from the same browser interaction tests. [Desktop 
 | `inspect(id)` | Select a node for an inspector independently of the configured canvas gesture. Pass null to clear. |
 | `arrangement`, `memberSpacing`, `spread` | Rings place coincident nodes on spaced targets in the camera-facing plane captured when a Cloud group opens. You can orbit those targets afterwards. Radial expansion follows previous directions. Default ring targets are 28 world units × 2 apart. The studio scales spacing with node size. |
 | `expansionBlend` | Defaults to 0.7. Intermediate values let springs and repulsion respond to dragging. At 1, movable nodes use the exact targets. Pinned nodes keep their positions. |
-| `neighborhood`, `detail` | Set hop count, direction and a typed link filter. Each drilldown stays inside its parent view. Isolated detail uses free Drift by default. Pass an empty detail object to inherit the overview layout. |
+| `neighborhood`, `detail` | Set hop count, direction and a typed link filter. `openNeighborhood(id)` uses the current scope. `followNode(id)` can cross group boundaries. Isolated detail uses free Drift by default. Pass an empty detail object to inherit the overview layout. |
+| `getTrail()` | Read the level and selected node at each breadcrumb, including the article from which a reference was followed. |
+| `bubbleLabels` (annotations) | Show the names of visible group boundaries on the canvas. With an `onOpenGroup` callback, each name becomes a keyboard-accessible button. Defaults to false. |
 | Annotation options | `groupGesture` accepts `click`, `double-click` or `controls`. The opened boundary can use `outline`, `fade`, `hide` or `keep`. Set `activeGroup.shape` to change its geometry. The studio uses one unfilled hull around expanded rings. Child nodes and labels take priority over a boundary. |
 
-The framework-independent controller ships in `loom-core/drilldown`. Its snapshot supplies nodes and links in source order, a selection and a navigation path. On a scope change, remount with the new data. A bound in-place expansion keeps the same data and renderer. Apply the resolved layout when navigation or configuration changes. Back restores the parent positions and selection, incorporates current pins and refits the parent view.
+The framework-independent controller ships in `loom-core/drilldown`. Its snapshot supplies nodes and links in source order, a selection and a navigation path. On a scope change, remount with the new data. A bound in-place expansion keeps the same data and renderer. Apply the resolved layout when navigation or configuration changes. Back restores the parent positions, selection and saved camera, and incorporates current pins. Hosts without viewport controls can fit the restored positions.
 
 The example expects an underlay, canvas and overlay in that DOM order inside one positioned host. Give them the same bounds, set the host background to the graph theme and use `pointer-events: none` on the two annotation layers. The transparent WebGL canvas paints the links, nodes and labels above all bubble fills.
 
@@ -355,7 +401,7 @@ export function mountSections(canvas: HTMLCanvasElement, overlay: HTMLElement, d
 }
 ```
 
-`clusterLayout` sorts stable group and node IDs, sizes envelopes by membership and packs them into rows. Use `dimensions: 2` with Drift for disks or `dimensions: 3` with Cloud for volumes. `spacing` and `gap` use world units. `depth` scales the Z coordinate. `groups` exposes the members, center and radius of each envelope before depth scaling. Intermediate structure values retain spring response and node dragging. A blend of 1 uses exact anchors for movable nodes. Set `graph.setLayout({ anchor: null })` to restore native placement. Orbit uses hop rings and Lanes uses its lane classifier in the studio.
+`clusterLayout` sorts stable group and node IDs, sizes envelopes by membership and packs them into rows. Set `aspectRatio` to a preferred width divided by height for the packing area. It defaults to 1. Use `dimensions: 2` with Drift for disks or `dimensions: 3` with Cloud for volumes. `spacing` and `gap` use world units. `depth` scales the Z coordinate. `groups` exposes the members, center and radius of each envelope before depth scaling. Intermediate structure values retain spring response and node dragging. A blend of 1 uses exact anchors for movable nodes. Set `graph.setLayout({ anchor: null })` to restore native placement. Orbit uses hop rings and Lanes uses its lane classifier in the studio.
 
 For topology-based placement, `connectedComponents(data)` returns a classifier suitable for a taxonomy or `clusterLayout`. Pass a link predicate such as `edge => edge.kind === 'contains'` to choose which relationships connect groups. Components ignore direction, include isolated nodes and use the lexically smallest member ID as their identifier. A section taxonomy can express overlapping membership. Placement uses its first term, and each enabled boundary includes all its members.
 

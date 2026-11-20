@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { homeURL } from '../site'
 import { InspectorSection, InspectorSummary } from './fields'
+import { shapes } from './appearance'
 
 const paths = {
   select: 'M5 3.5 20 13l-7 .8-3.1 6.4L5 3.5Z',
@@ -167,12 +168,44 @@ export function DocumentComposer({ tool, model, selectedId, graph, link, run, cl
   </section>
 }
 
-export function NodeProperties({ node, connectionsLabel, model, run, editLink }) {
+const inks = [['', 'Inherit'], ['#384038','Graphite'], ['#a95036','Copper'], ['#39796e','Teal'], ['#6b609a','Violet']]
+
+export function MarkerProperties({ node, ink, model, run }) {
+  const [color, setColor] = useState(node.markerColor ?? ''), [shape, setShape] = useState(node.markerShape ?? '')
+  const custom = color || ink
+  const dirty = color !== (node.markerColor ?? '') || shape !== (node.markerShape ?? '')
+  function apply(event) {
+    event.preventDefault()
+    const changes = {}, unset = []
+    for (const [key, value] of [['markerColor', color], ['markerShape', shape]]) {
+      if (value) changes[key] = value
+      else if (node[key] !== undefined) unset.push(key)
+    }
+    run(guarded(model.editor(), [{ op: 'node.update', id: node.id,
+      ...(Object.keys(changes).length > 0 && { changes }), ...(unset.length > 0 && { unset }) }]), node.id)
+  }
+  return <InspectorSection title="Marker style" value={node.markerColor || node.markerShape ? 'Custom' : 'Inherited'}>
+    <form onSubmit={apply} className="marker-form">
+      <fieldset className="marker-inks"><legend>Marker ink</legend>
+        <div>{inks.map(([hex, label]) => <button type="button" key={label} aria-label={label + ' ink'} title={label}
+          aria-pressed={hex === color} onClick={() => setColor(hex)}><i aria-hidden="true" style={hex ? { backgroundColor: hex } : undefined}/></button>)}
+          <label className="custom-ink" title="Custom ink"><span className="sr-only">Custom ink</span>
+            <input type="color" value={custom.length === 4 ? '#' + [...custom.slice(1)].map(c => c+c).join('') : custom}
+              onChange={(e) => setColor(e.target.value)}/></label></div>
+      </fieldset>
+      <label>Shape for this node<select value={shape} onChange={(e) => setShape(e.target.value)}>
+        <option value="">Inherit shape</option>{shapes.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+      <button className="commit-edit" disabled={!dirty}>Apply marker</button>
+    </form>
+  </InspectorSection>
+}
+
+export function NodeProperties({ node, connectionsLabel, model, run, editLink, initialOpen = true }) {
   const [name, setName] = useState(node.label ?? node.id), [kind, setKind] = useState(node.kind ?? '')
   const [connections, list] = useState(false), [offset, setOffset] = useState(0)
   const page = connections ? model.editor().query({ entity:'link', incidentTo:node.id, offset, limit:6 }) : null
   return <>
-    <InspectorSection title="Node properties" value={node.kind || 'Node'} initialOpen>
+    <InspectorSection title="Node properties" value={node.kind || 'Node'} initialOpen={initialOpen}>
       <form onSubmit={(e) => {
         e.preventDefault()
         run(guarded(model.editor(), [{ op:'node.update', id:node.id, changes:{ label:name.trim(), kind:kind.trim() } }]), node.id)

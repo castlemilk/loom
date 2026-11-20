@@ -1,7 +1,11 @@
+import { rgbPattern } from './theme.js'
+
 // The same field definitions produce the published JSON Schema and validate commands.
 export interface Field {
   type?: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean'
   const?: string | number
+  enum?: readonly string[]
+  pattern?: string
   description?: string
   minLength?: number
   minimum?: number
@@ -24,7 +28,9 @@ const uint: Field = { type: 'integer', minimum: 0, maximum: 0xffffffff }
 const bool: Field = { type: 'boolean' }
 const metrics: Field = { type: 'object', additionalProperties: number }
 const nodeFields = { id, label: string, kind: string, x: number, y: number, z: number, pinned: bool, degree: uint,
-  art: string, section: string, summary: string, content: string, contentSize: uint, complexity: number, metrics }
+  art: string, section: string, summary: string, content: string, contentSize: uint, complexity: number, metrics,
+  markerColor: { type: 'string', pattern: rgbPattern.source } as Field,
+  markerShape: { type: 'string', enum: ['circle','ring','square','rounded-square'] } as Field }
 const linkFields = { id, source: id, target: id, kind: string, weight: number, metrics }
 
 export const nodeRecord: Field = { type: 'object', required: ['id'], properties: nodeFields }

@@ -52,11 +52,11 @@ export const blueprint: Theme = {
   bezel: '#25465e',
 }
 
+export const rgbPattern = /^#(?:[\da-fA-F]{3}){1,2}$/
 export function rgb(color: string): [number, number, number] {
+  if (!rgbPattern.test(color)) throw new TypeError('Expected an RGB hex colour, received ' + color)
   let hex = color.slice(1)
-  if (hex.length === 3) hex = hex[0].repeat(2) + hex[1].repeat(2) + hex[2].repeat(2)
-  if (!color.startsWith('#') || !/^[0-9a-f]{6}$/i.test(hex))
-    throw new TypeError('Expected an RGB hex colour, received ' + color)
+  if (hex.length === 3) hex = hex.replace(/./g, '$&$&')
   const value = parseInt(hex, 16)
   return [value >> 16, (value >> 8) & 255, value & 255]
 }

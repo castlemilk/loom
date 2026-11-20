@@ -1,6 +1,12 @@
-import { createGraph, fromConsole, ink, parchment, blueprint, knowledgeConsole } from '../dist/index.js'
+import { fromConsole, ink, parchment, blueprint, knowledgeConsole } from '../dist/index.js'
+import { createWireGraph, sketchbook } from '../dist/wires.js'
+import { createGraphIndex } from '../dist/explore.js'
+import { clusterLayout } from '../dist/clusters.js'
 import { consoleLayout } from '../dist/console.js'
 import snapshot from './knowledge.json' with { type: 'json' }
+import catalog from './atlases/catalog.json' with { type: 'json' }
+import bauhaus from './atlases/bauhaus.json' with { type: 'json' }
+import solar from './atlases/outer-solar-system.json' with { type: 'json' }
 import { fixture } from './fixture.js'
 import { maxNodeSize, minNodeSize, nodeCounts, sizeLabel, stepNodeSize } from './node-controls.js'
 
@@ -20,12 +26,16 @@ const excerpt = {
   nodes: full.nodes.filter((n) => sampleIds.has(n.id)),
   links: full.links.filter((l) => sampleIds.has(l.source) && sampleIds.has(l.target)),
 }
-const themes = { console: knowledgeConsole, ink, parchment, blueprint }
+const atlases = { bauhaus, 'outer-solar-system': solar }
+const themes = { console: knowledgeConsole, ink, parchment, blueprint, sketchbook }
 const defaultOrder = ['study', 'concept', 'tag', 'blog', 'lab', 'category']
 const hub = (k) => ['tag', 'concept', 'category'].includes(k)
 let graph,
   data,
   kinds,
+  articleIndex,
+  atlasLayout,
+  atlasMarks,
   selected = null,
   paused = false,
   mode = 'drift',
@@ -51,7 +61,7 @@ function currentTheme() {
       ...theme.nodes,
       scale: Number(byId('node-size').value) / 100,
       artwork: byId('artwork').checked,
-      byKind: { ...theme.nodes?.byKind, ...edits },
+      byKind: { ...theme.nodes?.byKind, ...atlasMarks, ...edits },
     },
     wires: { ...wires, byKind, opacity, routing: byId('route').value },
     labels: { ...theme.labels, visibility: byId('labels').value },
@@ -60,6 +70,7 @@ function currentTheme() {
 }
 function currentLayout() {
   return {
+    anchor: atlasLayout?.anchor ?? null,
     blend: Number(byId('blend').value) / 100,
     laneGap: Number(byId('lane-gap').value),
     rowGap: Number(byId('row-gap').value),
@@ -117,7 +128,10 @@ function styleInputs() {
   byId('grid').checked = !!t.grid
   byId('artwork').checked = t.nodes?.artwork !== false
   byId('labels').value = t.labels?.visibility ?? 'auto'
+  byId('drawing-fill').value = t === sketchbook ? 'hachure' : 'solid'
+  byId('linework').value = t === sketchbook ? '1' : '0'
 }
+const drawingStyle = () => ({ fill: byId('drawing-fill').value, roughness: Number(byId('linework').value) })
 function showNodeSize() {
   const size = Number(byId('node-size').value)
   byId('size-value').value = sizeLabel(size)
@@ -129,6 +143,7 @@ function showNodeSize() {
 function restyle() {
   const t = currentTheme()
   graph?.setTheme(t)
+  graph?.setDrawingStyle(drawingStyle())
   legend(t)
   showNodeSize()
   byId('opacity-value').value = Math.round(t.wires.opacity * 100) + '%'
@@ -145,6 +160,19 @@ function inspect() {
   const n = data.nodes.find((n) => n.id === selected)
   byId('selection').textContent = n ? n.label : 'Select a node to inspect its links.'
   byId('selection-tools').hidden = !n
+  byId('atlas-article').value = selected ?? ''
+  byId('atlas-detail').hidden = !articleIndex || !n
+  if (articleIndex && n) {
+    byId('article-summary').textContent = n.summary
+    byId('wiki-source').href = 'https://en.wikipedia.org/w/index.php?oldid=' + n.wikipediaRevision
+    const buttons = articleIndex.neighbors(n.id, 'outgoing').map(({node}) => {
+      const button = document.createElement('button')
+      button.textContent = node.label
+      button.onclick = () => { graph.select(node.id); graph.focus(node.id) }
+      return button
+    })
+    byId('article-links').replaceChildren(...(buttons.length ? buttons : ['No outgoing links.']))
+  }
   if (!n) {
     byId('selection-meta').textContent = ''
     return
@@ -166,10 +194,15 @@ function mount() {
   byId('size-control').hidden = !stress
   data = stress
     ? fixture(Number(byId('count').value), physics === 'seeded' ? 'seeded' : physics === 'fixed')
-    : dataset === 'full'
-      ? full
-      : excerpt
-  kinds = defaultOrder.filter((k) => data.nodes.some((n) => n.kind === k))
+    : atlases[dataset] ?? (dataset === 'full' ? full : excerpt)
+  const atlas = catalog[dataset]
+  articleIndex = atlas ? createGraphIndex(data) : null
+  atlasLayout = atlas ? clusterLayout(data.nodes, n => n.section, { spacing: 54, aspectRatio: 1.65 }) : null
+  atlasMarks = atlas ? Object.fromEntries(Object.values(atlas.sections).map(({kind, color, shape}) => [kind, {color,shape}])) : {}
+  byId('article-field').hidden = byId('atlas-credit').hidden = !atlas
+  byId('atlas-article').replaceChildren(new Option('Choose an article', ''), ...(atlas ? data.nodes.map(n => new Option(n.label, n.id)) : []))
+  const present = new Set(data.nodes.map(n => n.kind))
+  kinds = [...new Set([...defaultOrder, ...present])].filter(k => present.has(k))
   byId('kind').replaceChildren(...kinds.map((k) => new Option(k, k)))
   const edgeKinds = [...new Set(data.links.map((l) => l.kind ?? ''))].sort()
   byId('wire-kind').replaceChildren(...edgeKinds.map((k) => new Option(k || 'Untyped', k)))
@@ -178,10 +211,11 @@ function mount() {
   graph = undefined
   const theme = currentTheme()
   try {
-    graph = createGraph(canvas, {
+    graph = createWireGraph(canvas, {
       ...data,
       mode,
       theme,
+      drawingStyle: drawingStyle(), wireEffects: { direction: 'none', separation: atlas ? 12 : 0 },
       layout: currentLayout(),
       workerURL,
       art: { urlFor: (n) => snapshot.thumbnails[n.art] },
@@ -236,7 +270,7 @@ byId('theme').onchange = () => {
   kindControls()
   wireControls()
 }
-for (const id of ['route', 'grid', 'artwork', 'labels']) byId(id).onchange = restyle
+for (const id of ['route', 'grid', 'artwork', 'labels', 'drawing-fill', 'linework']) byId(id).onchange = restyle
 for (const id of ['node-size', 'wire-opacity']) byId(id).oninput = restyle
 function sizeNodes(percent) {
   byId('node-size').value = String(percent)
@@ -272,8 +306,18 @@ byId('count').oninput = (e) => {
   byId('countLabel').value = Number(e.target.value).toLocaleString()
 }
 for (const n of nodeCounts) byId('node-counts').append(new Option(n.toLocaleString('en') + ' nodes · ' + (n * 4).toLocaleString('en') + ' links', 'count-' + n))
+for (const [key, item] of Object.entries(catalog)) byId('atlas-options').append(new Option(item.title, key))
+byId('atlas-article').onchange = (event) => graph?.select(event.target.value || null)
 byId('dataset').onchange = () => {
   const value = byId('dataset').value
+  if (catalog[value]) {
+    byId('theme').value = 'sketchbook'
+    byId('blend').value = '100'
+    byId('blend-value').value = '100%'
+    styleInputs()
+    showNodeSize()
+    byId('opacity-value').value = byId('wire-opacity').value + '%'
+  }
   if (value.startsWith('count-')) {
     const n = Number(value.slice(6))
     byId('count').value = String(n)

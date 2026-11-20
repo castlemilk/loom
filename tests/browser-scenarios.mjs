@@ -111,6 +111,35 @@ export async function wireGeometry() {
 }
 
 let mediaFixture
+export async function drawingStyles() {
+  const c = canvas(400, 220), g = createWireGraph(c, {
+    nodes: [{ id: 'a', kind: 'mark', x: -80, y: 0 }, { id: 'b', kind: 'mark', x: 80, y: 0 }],
+    links: [{ source: 'a', target: 'b' }], wireEffects: { direction: 'none' },
+    theme: { ...ink, bg: '#fff', bezel: '#fff', nodes: { fill: 1, byKind: { mark: { color: '#0000ff', shape: 'circle', radius: 24 } } },
+      wires: { routing: 'straight', color: '#ff0000', width: 3, opacity: 1 } },
+  })
+  g.setViewport({ ...g.getViewport(), x: 0, y: 0, zoom: 1 })
+  const blue = (p) => p.reduce((n, v, i) => n + Number(i % 4 === 2 && v > 200 && p[i-2] < 80), 0)
+  const solid = blue(await nextPixels(c, g))
+  g.setDrawingStyle({ fill: 'hachure' })
+  const hatched = blue(await nextPixels(c, g))
+  g.setDrawingStyle({ fill: 'cross-hatch' })
+  const cross = await nextPixels(c, g)
+  check(solid > 1500 && hatched < solid * .65 && blue(cross) > hatched * 1.2, 'Hatch patterns must change the marker interior')
+  g.setDrawingStyle({ roughness: 2 })
+  const loose = await nextPixels(c, g)
+  let wirePixels = 0
+  for (let i = 0; i < loose.length; i += 4) if (loose[i] > 175 && loose[i+1] < 60 && cross[i+1] > 175) wirePixels++
+  check(wirePixels > 35, 'Loose strokes must visibly move the wire')
+  check(loose.every((v, i) => v === cross[i]) === false, 'Drawing style should update on the mounted graph')
+  const stable = await nextPixels(c, g)
+  check(loose.every((v, i) => v === stable[i]), 'Pencil strokes must remain still across frames')
+  g.setDrawingStyle({ roughness: 0, fill: 'solid' })
+  check(blue(await nextPixels(c, g)) === solid, 'Returning to precise solid restores marker pixels')
+  check(g.stats().drawCalls === 2, 'Drawing styles share the original draw passes')
+  free(c,g)
+  return { solid, hatched, crossHatched: blue(cross), wirePixels }
+}
 export async function wireMotion() {
   const { c, g } = wireFixture([{ source: 'a', target: 'b' }], { direction:'flow', scope:'selected' })
   mediaFixture = { c, g }

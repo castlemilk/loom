@@ -99,6 +99,9 @@ main {
 .stage canvas[data-node] {
   cursor: grab;
 }
+#article-links { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0 8px; }
+#atlas-credit { color: var(--muted); font-size: 11px; }
+#atlas-detail a, #atlas-credit a { color: #813b24; text-underline-offset: 3px; }
 .stage canvas:active {
   cursor: grabbing;
 }

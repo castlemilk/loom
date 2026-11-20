@@ -37,7 +37,7 @@ export class Renderer {
   #hasLabels = false
   #artStarted = false
   #extras = false
-  #scene = new Float32Array(52)
+  #scene = new Float32Array(56)
   #sceneBuffer: WebGLBuffer
   #segments: number
   draws = 0
@@ -60,7 +60,7 @@ export class Renderer {
     this.#theme = theme
     const r = (this.#res = new Resources(gl))
     try {
-      const nodes = r.program(nodeVertex, nodeFragment),
+      const nodes = r.program(nodeVertex, options.wireProgram?.nodeFragment ?? nodeFragment),
         wires = r.program(options.wireProgram?.vertex ?? wireVertex, options.wireProgram?.fragment ?? wireFragment)
       this.#wire = { p: wires, vao: r.vao() }
       r.attribute(0, 2, gl.UNSIGNED_INT, false, model.endpoints)

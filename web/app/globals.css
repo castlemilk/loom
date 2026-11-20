@@ -330,7 +330,9 @@ input, textarea { caret-color: var(--accent); }
 }
 @media (max-width: 700px) {
   .editor-dock { grid-row: 2; grid-column: 1 / -1; width: 100%; justify-content: space-between; margin: 2px 0; }
-  .editor-dock button { min-height: 36px; flex: 1; }
+  .editor-dock button { min-height: 36px; flex: 0 0 32px; padding-inline: 3px; }
+  .editor-dock button:has(span) { flex: 1 1 auto; }
+  .editor-dock svg { flex-shrink: 0; }
   header:has(.editor-dock) .dataset { grid-area: 1 / 2; }
   header:has(.editor-dock) .node-sizing { grid-area: 3 / 1 / 4 / -1; }
   #document-composer { scroll-margin-top: 78px; }
@@ -338,4 +340,88 @@ input, textarea { caret-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .inspector-section > summary > i { transition: none; } }
 @media (forced-colors: active) {
   .editor-dock button:is([aria-pressed="true"],[aria-expanded="true"]) { border-color: Highlight; }
+}
+
+/* Keep the atlas title, navigation and drawing in their own parts of the canvas. */
+#studio-stage[data-atlas] { --atlas-top: 117px; --atlas-bottom: 58px; }
+#studio-stage[data-atlas]:has(.drill-trail):not([data-member-detail]) { --atlas-top: 154px; }
+#studio-stage[data-atlas] .graph-surface { inset: var(--atlas-top) 0 var(--atlas-bottom); }
+.atlas-title { position: absolute; left: 22px; top: 12px; max-width: calc(100% - 110px); color: var(--map-ink); }
+.atlas-title > span { font: 550 10px/1.4 var(--mono); letter-spacing: .075em; text-transform: uppercase; }
+.atlas-title h2 { margin: 1px 0 0; font: normal clamp(26px, 5cqw, 39px)/1.05 Georgia, serif; letter-spacing: -.045em; }
+.atlas-find, .atlas-inspect { position: absolute; border: 1px solid color-mix(in srgb, var(--map-ink) 27%, var(--map-bg));
+  background: var(--map-bg); color: var(--map-ink); }
+.atlas-find { top: 19px; right: 18px; display: flex; align-items: center; gap: 8px; }
+.atlas-find kbd { padding-inline: 4px; border: 1px solid currentColor; border-radius: 3px; font: 10px/1.5 var(--mono); }
+.atlas-inspect { bottom: 18px; right: 18px; max-width: calc(100% - 285px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atlas-find:hover, .atlas-inspect:hover { background: color-mix(in srgb, var(--map-ink) 8%, var(--map-bg)); }
+#studio-stage[data-atlas] .legend { inset: 75px 18px auto; max-width: calc(100% - 36px); }
+#studio-stage[data-atlas] .drill-trail { inset: 111px auto auto 18px; max-width: calc(100% - 36px); }
+#studio-stage[data-atlas][data-member-detail] .drill-trail { top: 75px; }
+.atlas-directory { margin: 12px 0 17px; }
+.atlas-directory p, .follow-inspector p { margin: 6px 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.atlas-directory h3 { margin: 17px 0 7px; font-size: 13px; font-weight: 650; }
+.atlas-directory ul, .follow-list { padding: 0; margin: 0; list-style: none; }
+.atlas-directory li button, .follow-list button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  min-height: 35px; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: transparent; padding-inline: 3px; }
+.atlas-directory li:first-child, .follow-list li:first-child { border-top: 1px solid var(--rule); }
+.atlas-directory li button:hover, .follow-list button:hover { background: #e7e7dd; }
+.atlas-directory li button span, .follow-list button span { flex: 1; overflow-wrap: anywhere; }
+.atlas-directory li button small, .follow-list small { color: var(--muted); font: 10px/1.4 var(--mono); }
+.atlas-directory li button b, .follow-list b { margin-inline: 1px; color: var(--muted); font-weight: 500; }
+.atlas-directory li i { width: 10px; height: 10px; flex: none; border: 2px solid var(--tone); background: color-mix(in srgb, var(--tone) 40%, var(--paper)); }
+.atlas-directory i[data-shape="circle"], .atlas-directory i[data-shape="ring"] { border-radius: 50%; }
+.atlas-directory i[data-shape="ring"] { background: none; }
+.atlas-directory i[data-shape="rounded-square"] { border-radius: 3px; }
+.atlas-credit { margin-top: 11px; font-size: 11px; }
+.atlas-credit summary { min-height: 28px; color: var(--muted); }
+.atlas-credit a, .article-source a { color: #813b24; text-decoration: underline; text-underline-offset: 3px; }
+.article-source { margin: 3px 0 12px; }
+.article-source p { margin: 2px 0 6px; font: 16px/1.4 Georgia, serif; color: #3e443b; }
+.article-source a { display: inline-block; margin: 0 10px 3px 0; font-size: 12px; }
+.direction-switch { display: flex; gap: 3px; margin: 2px 0 8px; }
+.direction-switch button { flex: 1; font-size: 11px; }
+.direction-switch button[aria-pressed="true"] { color: var(--control-surface); border-color: #374037; background: #374037; }
+.direction-switch small { margin-left: 4px; font: 10px var(--mono); }
+.follow-list small { max-width: 36%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.more-links { margin-top: 6px; font-size: 11px; }
+
+.drawing-kit { margin: 12px 0 16px; padding-block: 0 9px; border-block: 1px solid var(--rule); }
+.drawing-choices { min-width: 0; margin: 11px 0; padding: 0; border: 0; }
+.drawing-choices legend { padding: 0; margin-bottom: 5px; font-size: 12px; font-weight: 600; }
+.drawing-choices > div { display: flex; gap: 4px; }
+#studio-controls .drawing-choices label { position: relative; display: flex; flex: 1; min-width: 0; align-items: center;
+  justify-content: center; flex-direction: column; gap: 3px; min-height: 44px; margin: 0; padding: 4px 1px;
+  border: 1px solid var(--rule); border-radius: 5px; background: var(--control-surface); cursor: pointer; font-size: 11px; }
+.drawing-choices input { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+#studio-controls .drawing-choices label:hover { border-color: #8b8471; }
+#studio-controls .drawing-choices label:has(:checked) { border-color: #9d5739; color: #713a23; background: #f3e8d9; }
+.drawing-choices label:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.drawing-choices svg { width: 32px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.drawing-choices i { width: 22px; height: 15px; border-radius: 3px; border: 1px solid currentColor; }
+.drawing-choices i[data-fill] { --hatch: repeating-linear-gradient(128deg, transparent 0 3px, currentColor 3px 4px); }
+.drawing-choices [data-fill="solid"] { background: currentColor; }
+.drawing-choices [data-fill="hachure"] { background: var(--hatch); }
+.drawing-choices [data-fill="cross-hatch"] { background: var(--hatch), repeating-linear-gradient(52deg, transparent 0 3px, currentColor 3px 4px); }
+.drawing-choices .paper-swatch { border-color: #909284; width: 17px; height: 17px; border-radius: 50%; }
+.marker-inks { margin: 0; padding: 0; border: 0; }
+.marker-inks legend { margin-bottom: 4px; font-size: 12px; }
+.marker-inks > div { display: flex; align-items: center; gap: 4px; }
+.marker-inks button, #studio-controls .marker-inks .custom-ink { display: grid; place-items: center; margin: 0; padding: 3px;
+  width: 29px; height: 29px; border: 1px solid var(--rule); border-radius: 4px; background: var(--control-surface); }
+.marker-inks button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.marker-inks i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #666b62; }
+.marker-inks button:first-child i { background: linear-gradient(135deg, transparent 45%, #8f6052 47% 55%, transparent 57%); }
+#studio-controls .selection form .custom-ink input { width: 19px; height: 19px; margin: 0; padding: 0; border: 0; }
+#studio-controls .marker-form .commit-edit { justify-self: start; }
+@container graph-stage (max-width: 580px) {
+  .atlas-title { left: 12px; }
+  .atlas-find { right: 10px; }
+  #studio-stage[data-atlas] .legend { inset-inline: 9px; max-width: calc(100% - 18px); }
+  #studio-stage[data-atlas] .drill-trail { left: 9px; max-width: calc(100% - 18px); }
+  #studio-stage[data-atlas] .graph-surface:has(~ .atlas-inspect) { bottom: 94px; }
+  .atlas-inspect { bottom: 54px; right: 10px; max-width: calc(100% - 20px); }
+}
+@media (forced-colors: active) {
+  .drawing-choices label:has(:checked), .direction-switch button[aria-pressed="true"] { outline: 2px solid Highlight; }
 }

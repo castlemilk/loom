@@ -135,6 +135,8 @@ export function importWorkload(raw) {
   for (const n of raw.nodes) {
     if (!n || typeof n.id !== 'string' || !n.id || ids.has(n.id)) throw Error('Each node needs a unique, nonempty string id.')
     if (stringFields.some((k) => n[k] !== undefined && typeof n[k] !== 'string') ||
+      (n.markerColor !== undefined && (typeof n.markerColor !== 'string' || !/^#(?:[\da-f]{3}){1,2}$/i.test(n.markerColor))) ||
+      (n.markerShape !== undefined && !['circle','ring','square','rounded-square'].includes(n.markerShape)) ||
       ['x','y','z','complexity'].some((k) => n[k] !== undefined && !Number.isFinite(n[k])) || badMetrics(n.metrics) ||
       (n.contentSize !== undefined && (!Number.isInteger(n.contentSize) || n.contentSize < 0 || n.contentSize > 0xffffffff)) ||
       (n.pinned !== undefined && typeof n.pinned !== 'boolean') ||

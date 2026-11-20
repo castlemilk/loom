@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { createEditor, restoreEditor, editorSchema } from '../src/editor.js'
 import type { EditorOperation } from '../src/editor.js'
 import { importWorkload } from '../web/app/workload.mjs'
@@ -114,4 +115,37 @@ test('bounded discovery and checkpoint round-trip preserve document identity, re
   assert.throws(() => restoreEditor({ ...checkpoint, version:2 }))
   assert.deepEqual(importWorkload(doc.checkpoint().data).provenance, source().provenance)
   assert.throws(() => importWorkload({ nodes:[{id:'a'}], links:[{id:'e',source:'a',target:'a'},{id:'e',source:'a',target:'a'}] }))
+})
+
+test('per-node style edits validate, undo, redo, and reset to the inherited style', () => {
+  const doc = createEditor(source())
+  for (const changes of [{ markerColor: '#aa' }, { markerColor: 'red' }, { markerShape: 'hexagon' }]) {
+    assert.equal(doc.apply(tx([{ op:'node.update', id:'a', changes } as EditorOperation])).ok, false)
+  }
+  assert.ok(doc.apply(tx([{ op:'node.update', id:'a', changes:{markerColor:'#abc', markerShape:'square'} }])).ok)
+  assert.equal(doc.undo().ok, true)
+  assert.equal(doc.getNode('a')?.markerColor, undefined)
+  assert.equal(doc.redo().ok, true)
+  assert.equal(doc.getNode('a')?.markerShape, 'square')
+  assert.ok(doc.transact([{ op:'node.update', id:'a', unset:['markerColor','markerShape'] }]).ok)
+  assert.equal(Object.hasOwn(doc.getNode('a')!, 'markerShape'), false)
+})
+
+test('the bundled atlases carry per-article provenance and ranked, distinct in-collection links', () => {
+  for (const [id, count] of [['bauhaus',15], ['outer-solar-system',16]] as const) {
+    const file = new URL('../demo/atlases/' + id + '.json', import.meta.url)
+    const doc = createEditor(importWorkload(JSON.parse(readFileSync(file, 'utf8'))))
+    const { nodes, links, attribution } = doc.getSnapshot().data
+    assert.equal(nodes.length, count)
+    assert.match(String(attribution), /Wikipedia contributors/)
+    for (const node of nodes) {
+      assert.ok(Number.isSafeInteger(node.wikipediaRevision))
+      assert.ok(node.section && node.summary)
+      const outgoing = links.filter((e) => e.source === node.id)
+      assert.ok(outgoing.length <= 4)
+      assert.equal(new Set(outgoing.map(e => e.target)).size, outgoing.length)
+      assert.ok(outgoing.every((e, i) => e.kind === 'wikilink' && e.target !== node.id && e.weight! >= 1 &&
+        Number.isInteger(e.weight) && (!i || e.weight! <= outgoing[i-1].weight!)))
+    }
+  }
 })

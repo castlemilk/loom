@@ -1,5 +1,6 @@
 import type { GraphData, WireProgram } from '../types.js'
-import { effectsWireFragment, effectsWireVertex } from './shaders.js'
+import { drawingNodeFragment, effectsWireFragment, effectsWireVertex } from './shaders.js'
+import { defaultDrawingStyle, drawingSettings, drawingStyleSchema, type DrawingStyle } from './drawing-style.js'
 
 export interface WireEffects {
   /** Centre-to-centre separation of parallel paths at their midpoint, in CSS pixels. */
@@ -77,11 +78,18 @@ function topology(data: GraphData) {
 }
 
 /** Build the immutable GPU topology and mutable visual parameters for one graph. */
-export function prepareWireEffects(data: GraphData, initial: Partial<WireEffects> = {}) {
+export function prepareWireEffects(data: GraphData, initial: Partial<WireEffects> = {}, drawing: Partial<DrawingStyle> = {}) {
   const { slots, incident } = topology(data)
   let current = defaultWireEffects
+  let style = defaultDrawingStyle
   let distance = 0
-  const parameters = new Float32Array([0, 0, 0, -1])
+  const parameters = new Float32Array(8)
+  function setDrawing(patch: Partial<DrawingStyle>) {
+    style = drawingSettings(style, patch)
+    parameters[4] = style.roughness
+    parameters[5] = drawingStyleSchema.properties.fill.enum.indexOf(style.fill)
+    parameters[6] = style.hatchSpacing
+  }
   function update(patch: Partial<WireEffects>) {
     current = settings(current, patch)
     parameters[0] = current.separation
@@ -90,8 +98,9 @@ export function prepareWireEffects(data: GraphData, initial: Partial<WireEffects
     parameters[3] = -1
   }
   update(initial)
+  setDrawing(drawing)
   const program: WireProgram = {
-    vertex: effectsWireVertex, fragment: effectsWireFragment, slots, parameters,
+    vertex: effectsWireVertex, fragment: effectsWireFragment, nodeFragment: drawingNodeFragment, slots, parameters,
     step(deltaMs, selectedIndex, reducedMotion) {
       const active = !reducedMotion && current.direction === 'flow' && current.speed > 0 &&
         (current.scope === 'all' ? data.links.length > 0 : incident[selectedIndex] === 1)
@@ -100,5 +109,5 @@ export function prepareWireEffects(data: GraphData, initial: Partial<WireEffects
       return active
     },
   }
-  return { program, get: () => current, update }
+  return { program, get: () => current, update, getDrawing: () => style, setDrawing }
 }

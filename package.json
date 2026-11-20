@@ -23,6 +23,7 @@
     },
     "./editor.schema.json": "./dist/editor.schema.json",
     "./wire-effects.schema.json": "./dist/wire-effects.schema.json",
+    "./drawing-style.schema.json": "./dist/drawing-style.schema.json",
     "./wires": {
       "types": "./dist/wires.d.ts",
       "import": "./dist/wires.js"
@@ -35,6 +36,10 @@
     "./drilldown": {
       "types": "./dist/drilldown.d.ts",
       "import": "./dist/drilldown.js"
+    },
+    "./explore": {
+      "types": "./dist/explore.d.ts",
+      "import": "./dist/explore.js"
     },
     "./clusters": {
       "types": "./dist/clusters.d.ts",

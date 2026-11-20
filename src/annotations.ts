@@ -18,6 +18,8 @@ export interface AnnotationOptions {
   bubbles?: Readonly<Record<string, true | readonly string[]>>
   /** Hide every boundary and its canvas hit area while retaining per-taxonomy choices. Defaults to true. */
   bubblesVisible?: boolean
+  /** Label visible group boundaries at their upper edge. Labels can open the group. */
+  bubbleLabels?: boolean
   padding?: number
   laneTaxonomy?: string
   tooltips?: boolean
@@ -42,6 +44,7 @@ const badge = 'position:absolute;box-sizing:border-box;background:var(--loom-ove
 
 function validate(options: AnnotationOptions) {
   if (options.bubblesVisible !== undefined && typeof options.bubblesVisible !== 'boolean') throw new TypeError('bubblesVisible must be a boolean')
+  if (options.bubbleLabels !== undefined && typeof options.bubbleLabels !== 'boolean') throw new TypeError('bubbleLabels must be a boolean')
   const padding = options.padding ?? 9
   if (!Number.isFinite(padding) || padding < 0) throw new RangeError('Invalid bubble padding.')
   if (options.groupGesture !== undefined && !['click', 'double-click', 'controls'].includes(options.groupGesture)) throw new RangeError('Invalid group gesture')
@@ -72,7 +75,8 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   tip.setAttribute('role', 'tooltip')
   tip.style.cssText = badge + 'padding:7px 10px;max-width:min(270px,95%);overflow-wrap:anywhere;box-shadow:0 3px 14px #0003;'
   tip.hidden = true
-  root.append(svg, captions, tip)
+  const groupCaptions = doc.createElement('div')
+  root.append(svg, groupCaptions, captions, tip)
   host.append(root)
   let destroyed = false
   let frame: GraphFrame | undefined, hovered: string | null = null
@@ -80,6 +84,7 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
     geometry: ReturnType<typeof cacheOutline>; revision?: number }[] = []
   let laneMap: GraphFrame['lanes'] | undefined
   let laneTags: { offset: number; tag: HTMLSpanElement }[] = []
+  let groupTags = new Map<TaxonGroup, HTMLElement>()
   const removers: (() => void)[] = []
 
   function showTooltip() {
@@ -109,9 +114,20 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
   function draw(view: GraphFrame) {
     frame = view
     for (const entry of paths) {
-      if (view.projectionVersion !== undefined && entry.revision === view.projectionVersion) continue
+      const tag = groupTags.get(entry.group)
+      if (view.projectionVersion !== undefined && entry.revision === view.projectionVersion && (!tag || tag.style.left)) continue
       const d = entry.geometry(view.points)
       if (d !== undefined) entry.path.setAttribute('d', d)
+      if (tag && (d !== undefined || !tag.style.left)) {
+        let top = Infinity, x = 0
+        for (const i of entry.group.members) {
+          const k = 4*i, y = view.points[k+1] - view.points[k+2] - entry.padding
+          if (y < top) { top = y; x = view.points[k] }
+        }
+        tag.hidden = top < 0 || top > view.height || x < 0 || x > view.width
+        tag.style.left = x + 'px'
+        tag.style.top = Math.max(23, top) + 'px'
+      }
       entry.revision = view.projectionVersion
     }
     const lanes = view.mode === 'lanes' && options.laneTaxonomy ? view.lanes : undefined
@@ -203,6 +219,28 @@ export function attachAnnotations(graph: Pick<LoomGraph, 'on' | 'onFrame'>, host
       else root.prepend(svg)
     }
     paths = nextPaths
+    const tags = new Map<TaxonGroup, HTMLElement>()
+    for (const { group } of options.bubbleLabels ? paths : []) {
+      let tag = groupTags.get(group)
+      const button = !!options.onOpenGroup
+      if (!tag || (tag.tagName === 'BUTTON') !== button) {
+        tag = doc.createElement(button ? 'button' : 'span')
+        tag.dataset.bubbleLabel = group.id
+        tag.style.cssText = badge + 'padding:1px 6px;min-height:18px;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:translate(-50%,-100%);'
+        tag.textContent = group.label
+        if (button) {
+          tag.setAttribute('type', 'button')
+          tag.style.pointerEvents = 'auto'
+          tag.setAttribute('aria-label', 'Browse ' + group.label + ' group')
+          tag.onclick = () => options.onOpenGroup?.(group)
+        }
+      }
+      tags.set(group, tag)
+    }
+    if (tags.size !== groupTags.size || [...tags].some(([g, tag]) => groupTags.get(g) !== tag)) {
+      groupCaptions.replaceChildren(...tags.values())
+    }
+    groupTags = tags
     laneMap = undefined
     captions.replaceChildren()
     laneTags = []

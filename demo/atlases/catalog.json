@@ -1,0 +1,20 @@
+{
+  "bauhaus": {
+    "title": "Bauhaus",
+    "description": "Follow the designers, schools and works connected to the Bauhaus.",
+    "sections": {
+      "Schools": { "kind": "school", "color": "#3f7181", "shape": "square", "articles": ["Bauhaus", "Black Mountain College", "Ulm School of Design", "Vkhutemas"] },
+      "Designers": { "kind": "designer", "color": "#a95036", "shape": "circle", "articles": ["Walter Gropius", "Anni Albers", "Josef Albers", "Marcel Breuer", "László Moholy-Nagy", "Marianne Brandt"] },
+      "Works": { "kind": "work", "color": "#927025", "shape": "rounded-square", "articles": ["Bauhaus Dessau", "Haus am Horn", "Fagus Factory", "Wassily chair", "ADGB Trade Union School"] }
+    }
+  },
+  "outer-solar-system": {
+    "title": "Outer Solar System",
+    "description": "Trace the links between distant worlds, their moons and the spacecraft that visited them.",
+    "sections": {
+      "Worlds": { "kind": "world", "color": "#5d6096", "shape": "circle", "articles": ["Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"] },
+      "Moons": { "kind": "moon", "color": "#39796e", "shape": "ring", "articles": ["Io (moon)", "Europa (moon)", "Titan (moon)", "Enceladus", "Triton (moon)", "Charon (moon)"] },
+      "Spacecraft": { "kind": "spacecraft", "color": "#ab5942", "shape": "rounded-square", "articles": ["Voyager 2", "Cassini–Huygens", "Galileo (spacecraft)", "New Horizons", "Juno (spacecraft)"] }
+    }
+  }
+}

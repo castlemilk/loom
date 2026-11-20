@@ -5,7 +5,7 @@ vec2 corner() { return vec2(gl_VertexID & 1, (gl_VertexID >> 1) & 1); }
 // or GPU round trips are required to submit the first frame.
 const scene = `
 layout(std140) uniform Scene {
-  vec4 screenData, centerData, basis, stateData, bgData, bezelData, accentData, dimData, wireData, markData, gridData, laneData, effectData;
+  vec4 screenData, centerData, basis, stateData, bgData, bezelData, accentData, dimData, wireData, markData, gridData, laneData, effectData, drawingData;
 };
 #define viewport screenData.xy
 #define origin centerData.xyz
@@ -55,7 +55,7 @@ void main() {
   gl_Position = clip(p.xy+local*r, p.w);
 }
 `
-export const nodeFragment =
+const nodeDistance =
   scene +
   `
 in vec2 local;
@@ -67,12 +67,16 @@ void main() {
   vec2 q = abs(local)-vec2(0.69);
   float d = pigment.a > 0.5 ? length(local)-1.0 : length(max(q,0.0))+min(max(q.x,q.y),0.0)-0.31;
   if (pigment.a > 0.1 && pigment.a < 0.5) d = max(abs(local.x),abs(local.y))-1.0;
+`
+const nodeSurface = `
   float aa = max(fwidth(d)*0.65, 0.002);
   if (d > aa) discard;
   vec3 ring = mix(pigment.rgb, accent, details.y);
   float ringWidth = min(0.48, (markData.x+details.y)/details.w);
   vec3 fill = mix(bezel, pigment.rgb, markData.y);
   if (pigment.a > 0.5 && pigment.a < 0.9) fill = mix(bezel, fill, 1.0-smoothstep(0.55-aa,0.55+aa,length(local)));
+`
+const nodeComposite = `
   if (markData.w > 0.5 && details.x > 0.5 && d < -ringWidth) {
     int slot = int(details.x)-1;
     vec2 cell = vec2(slot & 31, (slot >> 5) & 31);
@@ -90,6 +94,20 @@ void main() {
   color = vec4(mix(rgb,bg,details.z*0.74), 1.0-smoothstep(-aa,aa,d));
 }
 `
+export const nodeFragment = nodeDistance + nodeSurface + nodeComposite
+export const drawingNodeFragment = nodeDistance + `
+  if (drawingData.x>0.0 && dot(local,local)>0.2) {
+    float angle=atan(local.y,local.x);
+    d+=drawingData.x*min(0.15,2.4/details.w)*(0.5+0.3*sin(angle*3.0)+0.2*cos(angle*5.0));
+  }
+` + nodeSurface + `
+  if(drawingData.y>0.5){
+    vec2 lines=vec2(local.x+local.y,local.x-local.y)*details.w*0.7071;
+    vec2 dist=abs(fract(lines/drawingData.z+0.5)-0.5)*drawingData.z;
+    float stripe=drawingData.y>1.5 ? min(dist.x,dist.y) : dist.x;
+    fill=mix(bezel,fill,0.08+0.92*(1.0-smoothstep(0.2,1.2,stripe)));
+  }
+` + nodeComposite
 export const wireInputs =
   projection +
   `
@@ -194,11 +212,20 @@ void main(){` + wireEndpoints + wireControls + `
     c+=offset;
     d+=offset;
   }
+  if(drawingData.x>0.0){
+    vec2 handle=d-c;
+    vec2 across=vec2(-handle.y,handle.x)/max(length(handle),0.01);
+    float seed=float(ends.x)*2.39996+float(ends.y)*1.61803;
+    vec2 wobble=across*min(12.0,(length(delta)+a.z)*0.14)*drawingData.x;
+    if((gl_InstanceID & 1)==1) wobble=-wobble;
+    c+=wobble*(0.65+0.35*sin(seed));
+    d-=wobble*(0.65+0.35*cos(seed));
+  }
 ` + wireCurve + wireStroke + `
   bool marked=effectData.y>0.5 && (effectData.z>0.5 || int(ends.x)==selected || int(ends.y)==selected);
   float along=0.0, tip=0.0;
   if(pattern>0.5 || marked){
-    if(wireData.x==2.0 && ends.x!=ends.y && (laneSlot.y<=1.0 || effectData.x==0.0)){
+    if(wireData.x==2.0 && drawingData.x==0.0 && ends.x!=ends.y && (laneSlot.y<=1.0 || effectData.x==0.0)){
       along=t*length(delta);
       tip=length(delta);
     }else{

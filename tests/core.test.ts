@@ -12,6 +12,19 @@ import { fixture } from '../demo/fixture.js'
 import { buildWorkload, initialWorkload, presets, mergeWorkload, importWorkload, imageURL } from '../web/app/workload.mjs'
 import { cloudTargets } from '../src/sim/cloud.js'
 import { observePerformance } from '../src/performance.js'
+import { appearance } from '../src/appearance.js'
+
+test('authored marker ink and shape survive binary and JSON exchange and override resolved taxonomy marks', () => {
+  const data = { nodes: [{ id: 'styled', markerColor: '#abc', markerShape: 'ring' as const }, { id: 'ordinary' }], links: [] }
+  assert.deepEqual(fromBinary(toBinary(data)), data)
+  const { style } = appearance(importWorkload(data), new Uint32Array(2), {
+    ...parchment, nodes: { resolve: () => ({ color: '#112233', shape: 'square' }) },
+  })
+  assert.deepEqual([...style], [170,187,204,192,17,34,51,64])
+  for (const bad of [{ markerColor: 'red' }, { markerColor: null }, { markerShape: 'hexagon' }]) {
+    assert.throws(() => importWorkload({ nodes:[{ id: 'x', ...bad }], links:[] }), /Invalid fields/)
+  }
+})
 
 test('repeatable workloads change payload independently of topology and support capped append and import', () => {
   const config = { ...initialWorkload, nodes: 60, coverage: 100, variety: 6, text: 'articles' }

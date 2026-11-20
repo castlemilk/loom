@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { defaultDrawingStyle, drawingStyleSchema } from '../src/render/drawing-style.js'
 import { fromBinary, toBinary } from '../src/io/binary.js'
 import { defaultWireEffects, prepareWireEffects, wireEffectsSchema } from '../src/render/wire-effects.js'
 import type { GraphData, GraphLink } from '../src/types.js'
@@ -66,4 +67,21 @@ test('API defaults match the schema and invalid patches leave GPU parameters int
     assert.equal(effects.get(), before)
     assert.deepEqual(effects.program.parameters, uniforms)
   }
+})
+
+test('drawing styles patch atomically and independently of wire animation', () => {
+  const effects = prepareWireEffects({ nodes, links }, { direction: 'flow', scope: 'all' }, { fill: 'hachure', roughness: 1 })
+  effects.program.step(1000, 0, false)
+  const wire = effects.program.parameters.slice(0, 4)
+  effects.setDrawing({ hatchSpacing: 8, fill: 'cross-hatch' })
+  assert.deepEqual(effects.getDrawing(), { roughness: 1, fill: 'cross-hatch', hatchSpacing: 8 })
+  assert.deepEqual([...effects.program.parameters.slice(4, 7)], [1, 2, 8])
+  assert.deepEqual(effects.program.parameters.slice(0,4), wire)
+  const previous = effects.getDrawing(), saved = effects.program.parameters.slice()
+  for (const bad of [{ fill: 'scribbles' }, { roughness: 3 }, { roughness: NaN }, { hatchSpacing: 1 }, { x: 1 }, null]) {
+    assert.throws(() => effects.setDrawing(bad as never))
+    assert.equal(effects.getDrawing(), previous)
+    assert.deepEqual(effects.program.parameters, saved)
+  }
+  assert.deepEqual(Object.fromEntries(Object.entries(drawingStyleSchema.properties).map(([k,v]) => [k, v.default])), defaultDrawingStyle)
 })

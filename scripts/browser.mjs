@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
 import { serve } from './serve.mjs'
 import { measure } from './measure.mjs'
-import { studio } from '../tests/studio.mjs'
+import { standaloneAtlases, studio } from '../tests/studio.mjs'
 
 const bench = process.argv.includes('--bench'),
   update = process.argv.includes('--update-golden')
@@ -61,7 +61,9 @@ try {
       reducedMotion: 'reduce',
     })
     try {
-      report.studio = await studio(await studioCtx.newPage(), sites[0].url + '/demo/')
+      const page = await studioCtx.newPage(), demoURL = sites[0].url + '/demo/'
+      report.studio = await studio(page, demoURL)
+      report.standaloneAtlases = await standaloneAtlases(page, demoURL)
     } finally {
       await studioCtx.close()
     }
@@ -75,6 +77,7 @@ try {
     }
     report.styledGeometry = await run('styledGeometry')
     report.wireGeometry = await run('wireGeometry')
+    report.drawingStyles = await run('drawingStyles')
     report.wireMotion = await run('wireMotion', [], { motion:'no-preference' })
     report.dragPin = await run('dragPin')
     report.springMain = await run('springDrag', ['main'])

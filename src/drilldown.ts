@@ -1,4 +1,4 @@
-import type { GraphData, GraphLink, GraphNode, LayoutOptions, LoomGraph, Mode } from './types.js'
+import type { GraphData, GraphLink, GraphNode, GraphViewport, LayoutOptions, LoomGraph, Mode } from './types.js'
 import type { TaxonGroup } from './taxonomy.js'
 
 export type NodeAction = 'inspect' | 'focus' | 'neighbors' | 'group'
@@ -35,7 +35,7 @@ export interface DrilldownOptions<N extends GraphNode = GraphNode, E extends Gra
 }
 export type DrilldownLevel =
   | { kind: 'overview'; label: string }
-  | { kind: 'node'; id: string; label: string; hops: number; direction: LinkDirection }
+  | { kind: 'node'; id: string; label: string; hops: number; direction: LinkDirection; fromOverview?: true }
   | { kind: 'group'; taxonomy: string; id: string; label: string; memberCount: number; action: GroupView }
 export interface DrilldownSnapshot<N extends GraphNode, E extends GraphLink> {
   /** Directly mountable, in source order. Only a scope change replaces this object. */
@@ -47,7 +47,7 @@ export interface DrilldownSnapshot<N extends GraphNode, E extends GraphLink> {
   readonly options: Readonly<DrilldownOptions<N, E>>
 }
 type Pose = ReturnType<LoomGraph['getPosition']>
-type GraphPort = Pick<LoomGraph, 'on' | 'getPosition' | 'select' | 'focus'> & Partial<Pick<LoomGraph, 'onFrame'>>
+type GraphPort = Pick<LoomGraph, 'on' | 'getPosition' | 'select' | 'focus'> & Partial<Pick<LoomGraph, 'onFrame' | 'getViewport' | 'setViewport'>>
 interface Expansion {
   members: readonly string[]
   origin: Map<string, Pose>
@@ -60,6 +60,7 @@ interface Scope<N extends GraphNode, E extends GraphLink> {
   selected: string | null
   ids?: Map<string, N>
   poses?: Map<string, Pose>
+  viewport?: GraphViewport
   expansion?: Expansion
   members?: readonly N[]
   contextPoses?: ReadonlyMap<string, Pose>
@@ -158,7 +159,7 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
   let options = { ...initial }
   const stack: Scope<N, E>[] = [{ source, level: { kind: 'overview', label: 'Overview' }, selected: null }]
   const current = () => stack[stack.length - 1]
-  const ids = () => current().ids ??= new Map(current().source.nodes.map((node) => [node.id, node]))
+  const ids = (scope = current()) => scope.ids ??= new Map(scope.source.nodes.map((node) => [node.id, node]))
   const listeners = new Set<() => void>()
   // A pin or explicit release follows its node across independently saved scope positions.
   const pins = new Map<string, Pose | null>()
@@ -176,6 +177,7 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
   function live() { return binding?.data === snapshot.data ? binding.graph : undefined }
   function capture() {
     const scope = current(), graph = live()
+    if (graph?.getViewport) scope.viewport = graph.getViewport()
     const poses = new Map<string, Pose>()
     for (const [i, node] of scope.source.nodes.entries()) {
       const pose = graph ? graph.getPosition(node.id) : initialPose(snapshot.data.nodes[i], i)
@@ -213,20 +215,26 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
     try { live()?.select(id) } finally { syncing = false }
     publish()
   }
-  function openNeighborhood(id: string, patch: Neighborhood<E> = {}) {
-    const node = ids().get(id)
+  function openNode(id: string, patch: Neighborhood<E>, fromOverview: boolean) {
+    const parent = current(), context = fromOverview ? stack[0] : parent
+    const node = ids(context).get(id)
     if (!node) throw new RangeError('Node outside the current scope: ' + id)
     const rule = { ...options.neighborhood, ...patch }, hops = rule.hops ?? 1, direction = rule.direction ?? 'both'
     checkNeighborhood(rule)
-    const parent = current(), level = parent.level
-    if (level.kind === 'node' && level.id === id && level.hops === hops && level.direction === direction && parent.filter === rule.includeLink) return false
-    const next = neighborhood(parent.source, id, rule)
-    mark(id)
+    const level = parent.level
+    if (level.kind === 'node' && level.id === id && level.hops === hops && level.direction === direction &&
+        !!level.fromOverview === fromOverview && parent.filter === rule.includeLink) return false
+    const next = neighborhood(context.source, id, rule)
+    if (!fromOverview) mark(id)
     capture()
-    stack.push({ source: next, level: { kind: 'node', id, label: node.label ?? id, hops, direction }, selected: id, filter: rule.includeLink })
+    stack.push({ source: next, level: { kind: 'node', id, label: node.label ?? id, hops, direction,
+      ...(fromOverview && { fromOverview: true }) }, selected: id, filter: rule.includeLink })
     show(parent.poses)
     return true
   }
+  function openNeighborhood(id: string, patch: Neighborhood<E> = {}) { return openNode(id, patch, false) }
+  /** Follow a reference anywhere in the original graph. Back restores the previous view and selection. */
+  function followNode(id: string, patch: Neighborhood<E> = {}) { return openNode(id, patch, true) }
   function groupScope(parent: Scope<N, E>, level: Extract<DrilldownLevel, { kind: 'group' }>, members: readonly N[], selected: string | null): Scope<N, E> {
     const memberIds = new Set(members.map((node) => node.id))
     if (level.action === 'isolate') {
@@ -299,6 +307,8 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
   const activate = (id: string) => act(id, options.openAction ?? 'neighbors')
   return {
     getSnapshot: () => snapshot,
+    /** Read each breadcrumb's selection, including the origin of cross-group references. */
+    getTrail: () => stack.map(({ level, selected }) => ({ level, selected })),
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
     setOptions(patch: DrilldownOptions<N,E>) {
       const next = { ...options, ...patch }
@@ -306,7 +316,7 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
       options = next
       publish()
     },
-    select, activate, openNeighborhood, openGroup, setGroupView, goTo,
+    select, activate, openNeighborhood, followNode, openGroup, setGroupView, goTo,
     /** Select for inspection without running the configured canvas gesture. */
     inspect: mark,
     back: () => goTo(stack.length - 2),
@@ -333,6 +343,8 @@ export function createDrilldown<N extends GraphNode = GraphNode, E extends Graph
       binding?.detach()
       const boundData = snapshot.data
       graph.select(snapshot.selected)
+      const viewport = current().viewport
+      if (viewport) graph.setViewport?.(viewport)
       const off = [graph.on('select', (id) => { if (!syncing && snapshot.data === boundData) select(id) }),
         graph.on('open', (id) => { if (snapshot.data === boundData) activate(id) }), graph.on('destroy', () => detach())]
       yaw = pitch = 0

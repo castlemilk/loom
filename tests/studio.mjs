@@ -1,3 +1,37 @@
+import assert from 'node:assert/strict'
+
+export async function standaloneAtlases(page, url) {
+  const errors = [], remote = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  page.on('request', (req) => { if (/^https?:/.test(req.url())) remote.push(req.url()) })
+  await page.goto(url)
+  const dataset = page.locator('#dataset'), article = page.locator('#atlas-article')
+  const select = (id) => article.selectOption(id)
+  await dataset.selectOption('bauhaus')
+  await page.getByText('15 nodes · 52 links', { exact: true }).waitFor()
+  assert.equal(await article.locator('option').count(), 16)
+  await select('Anni_Albers')
+  await page.locator('#article-summary').getByText(/textile artist/).waitFor()
+  assert.match(await page.locator('#wiki-source').getAttribute('href'), /wikipedia\.org\/w\/index\.php\?oldid=\d+$/)
+  await page.locator('#article-links').getByRole('button', { name: 'Bauhaus', exact: true }).click()
+  assert.equal(await article.inputValue(), 'Bauhaus')
+  await page.getByText('Style controls', { exact:true }).click()
+  await page.getByLabel('Marker fill style').selectOption('cross-hatch')
+  await page.getByLabel('Linework').selectOption('2')
+  assert.equal(await article.inputValue(), 'Bauhaus')
+  await dataset.selectOption('outer-solar-system')
+  await page.getByText('16 nodes · 62 links', { exact:true }).waitFor()
+  await select('Voyager_2')
+  await page.locator('#article-links').getByRole('button', { name:'Uranus', exact:true }).click()
+  assert.equal(await article.inputValue(), 'Uranus')
+  await dataset.selectOption('sample')
+  assert.equal(await page.locator('#atlas-detail').isVisible(), false)
+  assert.equal(await article.isVisible(), false)
+  assert.deepEqual(errors, [])
+  if (url.startsWith('file:')) assert.deepEqual(remote, [])
+  return { articles:31, articleNavigation:true, embedded:url.startsWith('file:') }
+}
+
 // The standalone HTML demo keeps its controls in a single scrolling panel.
 export async function studio(page, url, openSettings = () => {}) {
   const errors = []

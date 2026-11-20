@@ -5,6 +5,15 @@ import { artURL, settingsSections } from '../site'
 
 const ActiveSection = createContext('explore')
 
+export function findInGraph() {
+  document.getElementById('tab-explore')?.click()
+  requestAnimationFrame(() => {
+    const field = document.getElementById('find-node')
+    field?.focus()
+    field?.select()
+  })
+}
+
 export function SettingsTabs({ children }) {
   const [active, setActive] = useState('explore')
   const controls = useRef(null)
@@ -32,6 +41,12 @@ export function SettingsTabs({ children }) {
   }, [active])
 
   useEffect(() => {
+    function shortcut(event) {
+      if (event.key !== '/' || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey ||
+        event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return
+      event.preventDefault()
+      findInGraph()
+    }
     function readLocation(event) {
       const section = settingsSections.find(({ id }) => location.hash === '#settings-' + id)
       const id = section?.id ?? 'explore'
@@ -42,7 +57,11 @@ export function SettingsTabs({ children }) {
     }
     readLocation()
     window.addEventListener('hashchange', readLocation)
-    return () => window.removeEventListener('hashchange', readLocation)
+    window.addEventListener('keydown', shortcut)
+    return () => {
+      window.removeEventListener('hashchange', readLocation)
+      window.removeEventListener('keydown', shortcut)
+    }
   }, [])
 
   function select(id) {

@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "web/app/field-guide.css"
+        ],
+        "createdAt": "2026-11-19T22:58:35.207Z",
+        "reason": "Agent review: the colored left border on .play-symbol and its two transparent borders draw the 8 by 10 pixel play triangle inside the Run live model button. Desktop and touch tests verified the transition between the play triangle and stop square."
+      }
+    ]
+  }
+}

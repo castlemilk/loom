@@ -1,4 +1,4 @@
-import type { GraphData, GraphLink, GraphNode } from '../types.js'
+import type { GraphData, GraphLink, GraphNode, NodeShape } from '../types.js'
 import { pinFlag } from '../model.js'
 
 const encoder = new TextEncoder(),
@@ -22,8 +22,8 @@ class Writer {
     this.bytes[this.at++] = n
   }
   message(tag: number) {
-    this.room(6)
-    this.bytes[this.at++] = tag
+    this.room(10)
+    this.uint(tag)
     const start = this.at
     this.at += 5
     return start
@@ -98,6 +98,8 @@ export function toBinary(data: GraphData): Uint8Array {
     w.metrics(106, n.metrics)
     w.string(114, n.summary, true)
     w.string(122, n.content, true)
+    w.string(130, n.markerColor)
+    w.string(138, n.markerShape)
     w.finish(start)
   }
   for (const l of data.links) {
@@ -303,6 +305,8 @@ export function fromBinary(buffer: Uint8Array | ArrayBuffer): {
           case 106: r.metric(n); break
           case 114: n.summary = r.string(); break
           case 122: n.content = r.string(); break
+          case 130: n.markerColor = r.string(true); break
+          case 138: n.markerShape = r.string(true) as NodeShape; break
           default:
             r.skip(field)
         }

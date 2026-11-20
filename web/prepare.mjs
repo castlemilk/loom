@@ -10,9 +10,14 @@ execFileSync(process.execPath, ['scripts/build.mjs'], { cwd: fileURLToPath(root)
 await mkdir(target('./public/graphs/art/'), { recursive: true })
 await mkdir(target('./.generated/'), { recursive: true })
 await writeSpecimens(target('./public/graphs/specimens/v1/'))
+const atlases = JSON.parse(await readFile(new URL('demo/atlases/catalog.json', root), 'utf8'))
+for (const name of Object.keys(atlases)) {
+  await copyFile(new URL('demo/atlases/' + name + '.json', root), target('./public/examples/' + name + '.json'))
+}
 await copyFile(new URL('dist/layout-worker.js', root), target('./public/layout-worker.js'))
 await copyFile(new URL('dist/editor.schema.json', root), target('./public/editor.schema.json'))
 await copyFile(new URL('dist/wire-effects.schema.json', root), target('./public/wire-effects.schema.json'))
+await copyFile(new URL('dist/drawing-style.schema.json', root), target('./public/drawing-style.schema.json'))
 
 const snapshot = JSON.parse(await readFile(new URL('demo/knowledge.json', root), 'utf8'))
 const artwork = {}

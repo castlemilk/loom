@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { InspectorSection, Range, Select } from './fields'
+import { GroupLinks } from './explore-links'
 import { opticsURL } from '../site'
 
 export const navigationDefaults = {
@@ -18,11 +19,9 @@ export function detailOptions(value) {
 }
 
 const pageSize = 8
-const matches = (node, term) => (node.label ?? '').toLowerCase().includes(term) || node.id.toLowerCase().includes(term)
 
-function GroupMembers({ level, members, selected, term, inspect, setView }) {
+function GroupMembers({ level, members, filtered, selected, term, inspect, setView }) {
   const [page, setPage] = useState(0)
-  const filtered = useMemo(() => term ? members.filter((n) => matches(n, term)) : members, [members, term])
   const last = Math.max(0, Math.ceil(filtered.length / pageSize) - 1)
   const current = Math.min(last, page)
   const start = current * pageSize
@@ -48,44 +47,61 @@ function GroupMembers({ level, members, selected, term, inspect, setView }) {
   </div>
 }
 
-function NodeBrowser({ snapshot, select, inspect, setView }) {
+function NodeBrowser({ snapshot, select, inspect, setView, index, follow, atlas, group, openTerm }) {
   const [query, setQuery] = useState('')
   const { data, groupMembers, selected } = snapshot
   const level = snapshot.path.at(-1)
   const inGroup = level.kind === 'group'
   const term = query.trim().toLowerCase()
-  const memberIds = useMemo(() => inGroup && level.action === 'expand' ? new Set(groupMembers.map((n) => n.id)) : null,
-    [groupMembers, inGroup, level.action])
-  const results = useMemo(() => {
-    if (!term || level.action === 'isolate') return []
-    const hits = []
-    for (const node of data.nodes) {
-      if (!memberIds?.has(node.id) && matches(node, term)) hits.push(node)
-      if (hits.length === 12) break
-    }
-    return hits
-  }, [term, data.nodes, level.action, memberIds])
+  const within = useMemo(() => level.kind === 'overview' ? undefined : new Set(data.nodes.map((n) => n.id)), [level.kind, data.nodes])
+  const found = useMemo(() => index.search(term, { within, limit: inGroup ? data.nodes.length : 12 }), [index, term, within, inGroup, data.nodes.length])
+  const memberIds = useMemo(() => new Set(groupMembers.map((n) => n.id)), [groupMembers])
+  const results = inGroup ? found.filter((n) => !memberIds.has(n.id)).slice(0, 12) : found
+  const matchingMembers = inGroup && term ? found.filter((n) => memberIds.has(n.id)) : groupMembers
+  function chooseResult(node) {
+    if (memberIds.has(node.id)) inspect(node.id, true)
+    else select(node.id)
+    setQuery('')
+  }
   return <><div className="explore-heading"><h2 id="settings-explore" tabIndex={-1}>Explore</h2>
-    {level.kind === 'overview' && <a className="example-link" href={opticsURL}>Try Optics <span aria-hidden="true">↗</span></a>}
+    {level.kind === 'overview' && !atlas && <a className="example-link" href={opticsURL}>Try Optics <span aria-hidden="true">↗</span></a>}
     </div>
     <label className="sr-only" htmlFor="find-node">Find a node in this view</label>
-    <input id="find-node" type="search" autoComplete="off" placeholder={level.action === 'isolate' ? 'Filter members by name or ID' : 'Find a node by name or ID'} value={query} onChange={(e) => setQuery(e.target.value)} />
-    {inGroup && <GroupMembers key={term} level={level} members={groupMembers} selected={selected} term={term}
-      setView={setView} inspect={(id) => { inspect(id, !!term); if (term) setQuery('') }} />}
+    <input id="find-node" type="search" autoComplete="off" placeholder={inGroup ? 'Filter group members…' : atlas ? 'Search articles or topics…' : 'Search nodes…'} value={query}
+      aria-keyshortcuts="/" onChange={(e) => setQuery(e.target.value)} onKeyDown={(event) => {
+        const first = matchingMembers[0] ?? results[0]
+        if (event.key === 'Enter' && term && first && !event.nativeEvent.isComposing) { event.preventDefault(); chooseResult(first) }
+      }} />
+    {inGroup && <><GroupMembers key={term} level={level} members={groupMembers}
+      filtered={matchingMembers} selected={selected} term={term}
+      setView={setView} inspect={(id) => { inspect(id, !!term); if (term) setQuery('') }} />
+      {!term && <GroupLinks members={groupMembers} index={index} follow={follow}/>}</>}
     {term && (!inGroup || results.length > 0) && <div className="node-results" aria-label="Matching nodes">
       {inGroup && <p>Elsewhere in this view</p>}
       {results.map((node) => <button type="button" data-result={node.id} key={node.id}
-        onClick={() => { select(node.id); setQuery('') }}>{node.label || node.id}<small>{node.kind}</small></button>)}
+        onClick={() => chooseResult(node)}>{node.label || node.id}<small>{node.kind}</small></button>)}
       {!results.length && <p role="status">No matching nodes in this view.</p>}
+    </div>}
+    {atlas && !term && level.kind === 'overview' && <div className="atlas-directory">
+      <p>{atlas.description}</p>
+      {openTerm && group.groups.length > 0 && <><h3>Browse {group.active.id === 'section' ? 'topics' : 'groups'}</h3>
+        <ul>{group.groups.slice(0, 12).map((entry) => <li key={entry.key}><button type="button" onClick={() => openTerm(entry)}>
+          <i aria-hidden="true" data-shape={entry.shape} style={{ '--tone': group.displayStyle(entry).color }}/>
+          <span>{entry.label}</span><small>{entry.members.length}</small><b aria-hidden="true">›</b>
+        </button></li>)}</ul></>}
+      <details className="atlas-credit"><summary>How the links were indexed</summary>
+        <p>Each article points to up to four other articles in this atlas, ranked by links in its paragraphs. First mention breaks ties. Link weight counts those mentions.</p>
+        <p>Article descriptions and links come from English Wikipedia contributors. Each article opens its recorded revision. <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0 ↗</a></p>
+      </details>
     </div>}
   </>
 }
 
-export function DrillControls({ dataset, snapshot, config, change, select, inspect, setView }) {
+export function DrillControls({ dataset, snapshot, config, change, select, inspect, setView, index, follow, atlas, group, openTerm }) {
   const level = snapshot.path.at(-1)
   return <section className="drill-controls">
     <NodeBrowser key={JSON.stringify([dataset, level.kind, level.taxonomy, level.id])}
-      snapshot={snapshot} select={select} inspect={inspect} setView={setView} />
+      snapshot={snapshot} select={select} inspect={inspect} setView={setView} index={index} follow={follow} atlas={atlas} group={group} openTerm={openTerm} />
     <Select id="group-action" label="Open a group" options={groupActions} value={config.groupAction} onChange={(v) => change('groupAction', v)} />
     <InspectorSection title="Drilldown settings" value={groupActions.find(([key]) => key === config.groupAction)?.[1]} reveal={config.groupAction}>
       <Select id="select-action" label="Select a node" options={actions} value={config.selectAction} onChange={(v) => change('selectAction', v)} />

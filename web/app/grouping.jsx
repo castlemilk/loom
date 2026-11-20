@@ -22,11 +22,12 @@ const storageKey = 'loom.taxonomies.v1'
 
 const defaultWords = { singular: 'link', plural: 'links', ungrouped: 'Ungrouped' }
 
-export function useGrouping(source, data, theme, packed) {
+export function useGrouping(source, data, theme, packed, atlasSections) {
   const [custom, setCustom] = useState([])
   const [activeId, setActive] = useState('kind')
   const [bubbles, setBubbles] = useState({})
   const [bubblesVisible, setBubblesVisible] = useState(true)
+  const [bubbleLabels, setBubbleLabels] = useState(false)
   const [tooltips, setTooltips] = useState(true)
   const [boundary, setBoundary] = useState({ shape: 'hull', padding: 12, pattern: 'solid', fillOpacity: 0.09 })
   const [words, setWords] = useState(defaultWords)
@@ -41,10 +42,12 @@ export function useGrouping(source, data, theme, packed) {
   const needComponents = activeId === 'component' || bubbles.component === true || !!bubbles.component?.length
   const definitions = useMemo(() => {
     const component = { id: 'component', label: 'Connected component', by: needComponents ? connectedComponents(source) : () => undefined }
-    const rules = new Map([types, category, section, component].map((d) => [d.id, d]))
+    const sections = atlasSections ? { ...section, label: 'Topic', terms: Object.fromEntries(
+      Object.entries(atlasSections).map(([label, { color, shape }]) => [label, { label, color, shape }])) } : section
+    const rules = new Map([types, category, sections, component].map((d) => [d.id, d]))
     for (const d of custom) rules.set(d.id, d)
     return [...rules.values()]
-  }, [custom, source, needComponents])
+  }, [custom, source, needComponents, atlasSections])
   const root = useMemo(() => compileTaxonomies(source, { taxonomies: definitions,
     language: { ungrouped: words.ungrouped, connections: (n) => n + ' ' + (n === 1 ? words.singular : words.plural) } }), [source, definitions, words])
   const index = useMemo(() => data.nodes === source.nodes ? root : scopeTaxonomies(root, data.nodes), [root, data.nodes, source.nodes])
@@ -56,8 +59,8 @@ export function useGrouping(source, data, theme, packed) {
   const displayStyle = useCallback((term) => term.taxonomy === 'kind' && kindStyles ? marker(theme, term.id) : term, [kindStyles, theme])
   const annotations = useMemo(() => ({
     bubbles: packed && !Object.hasOwn(bubbles, active.id) ? { ...bubbles, [active.id]: groups.length <= 12 ? true : groups.slice(0, 8).map((g) => g.id) } : bubbles,
-    bubblesVisible, boundary, tooltips, laneTaxonomy: active.id, colorFor: (group) => displayStyle(group).color,
-  }), [bubbles, bubblesVisible, packed, groups, boundary, tooltips, active.id, displayStyle])
+    bubblesVisible, bubbleLabels, boundary, tooltips, laneTaxonomy: active.id, colorFor: (group) => displayStyle(group).color,
+  }), [bubbles, bubblesVisible, bubbleLabels, packed, groups, boundary, tooltips, active.id, displayStyle])
   function save(next) {
     setCustom(next)
     try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* Edits still apply in this tab. */ }
@@ -77,7 +80,7 @@ export function useGrouping(source, data, theme, packed) {
   }
   return { definitions, custom, root, index, active, groups, laneBy, laneOrder, annotations, setActive, apply, remove,
     words, language, displayStyle, nativeMarkers: kindStyles && active.id === 'kind',
-    setTooltips, setBubblesVisible, setBoundary: (patch) => setBoundary((old) => ({ ...old, ...patch })),
+    setTooltips, setBubblesVisible, setBubbleLabels, setBoundary: (patch) => setBoundary((old) => ({ ...old, ...patch })),
     setVisible: (visible, taxonomy = active.id) => setBubbles((old) => ({ ...old, [taxonomy]: visible })) }
 }
 
@@ -145,6 +148,7 @@ export function Grouping({ level, group, packed, setPacked, gap, setGap, openTer
     <Check id="tooltips" label="Node tooltips" checked={group.annotations.tooltips} onChange={group.setTooltips} />
     <InspectorSection title="Group bubbles" value={group.annotations.bubblesVisible ? list.filter((term) => checked(term.id)).length + '/' + list.length : 'Off'}
       reveal={group.annotations.bubblesVisible && group.active.id}>
+      <Check id="bubble-labels" label="Label overview groups" checked={group.annotations.bubbleLabels} onChange={group.setBubbleLabels}/>
       <Select id="boundary-shape" label="Boundary" options={[[ 'hull','Enclosing hull'],['cloud','Cloud contour']]}
         value={group.annotations.boundary.shape} onChange={(shape) => group.setBoundary({ shape })} />
       <Select id="boundary-pattern" label="Outline stroke" options={patterns} value={group.annotations.boundary.pattern}

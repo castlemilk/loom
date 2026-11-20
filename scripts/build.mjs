@@ -28,7 +28,8 @@ const shaders = {
         'ringWidth', 'artIndex', 'wireWidth', 'wireColor', 'tangent', 'normal', 'spacing', 'selected',
         'hovered', 'segments', 'density', 'bezel', 'accent', 'origin', 'local', 'curve', 'depth',
         'scale', 'side', 'along', 'stroke', 'pattern', 'width', 'alpha', 'phase', 'delta', 'light',
-        'world', 'clip', 'mid', 'bend', 'unit', 'axis', 'far', 'head', 'slot', 'cell', 'edge', 'color', 'dash', 'shaft']
+        'world', 'clip', 'mid', 'bend', 'unit', 'axis', 'far', 'head', 'slot', 'cell', 'edge', 'color', 'dash', 'shaft',
+        'guide', 'index', 'dots', 'styled', 'period', 'coverage', 'hot', 'halo', 'stripe', 'lines', 'handle', 'wobble']
       internal.forEach((name, index) => names.set(name, short(block.length + index)))
       const contents = source.replace(/`([^`]+)`/g, (_, shader) => {
         const compact = shader.replace(/\/\/[^\n]*/g, '').trim().replace(/\b\w+\b/g, (word) => names.get(word) ?? word)
@@ -56,15 +57,16 @@ const core = await build({ ...options, write: false, entryPoints: { index: 'src/
 await mkdir(options.outdir, { recursive: true })
 // These methods and fields are internal to a single compiled renderer or worker.
 // Keep public options, user records, GPU names and posted message keys intact.
-const internals = /^(?:targetZoom|resetAngle|zoomAt|unproject|project|basis|focal|pan|pickLabel|labelCount|projected|rebuild|draggingNode|startX|startY|advance|configure|settling|needsFrame|wake|suspend|paint|uniformBlock|vao|attribute|texture|upload|place|repel|insert|items|res|ready|actions|camera|model|neighborhood|byId|laneMap|movable|room|uint|finish|string|float|integer|double|limit|metric|skip|bytes|program|check|draws|wireColors|wireWidths|look|tx|ty|tz)$/
+const internals = /^(?:targetZoom|resetAngle|zoomAt|unproject|project|basis|focal|pan|rotate|pick|pickLabel|labelCount|projected|rebuild|draggingNode|held|reduced|startX|startY|advance|configure|settling|needsFrame|wake|suspend|pending|maximum|paint|uniformBlock|vao|attribute|texture|upload|place|repel|insert|items|res|ready|actions|camera|model|neighborhood|byId|laneMap|offsets|movable|room|uint|finish|string|float|integer|double|limit|metric|skip|bytes|program|check|draws|wireColors|wireWidths|look|tx|ty|tz)$/
 await Promise.all(core.outputFiles.map(async (file) => {
   const result = await minify(file.text, { ecma: 2022, module: true, compress: { passes: 3 }, mangle: { properties: { regex: internals } } })
   await writeFile(file.path, result.code)
 }))
 await build({ ...options, entryPoints: ['src/console.ts', 'src/wires.ts'], external: ['./index.js'] })
 await build({ ...options, entryPoints: ['src/taxonomy.ts'] })
-await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts'] })
+await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts', 'src/explore.ts'] })
 const { editorSchema } = await import('../dist/editor.js')
 await writeFile('dist/editor.schema.json', JSON.stringify(editorSchema, null, 2) + '\n')
-const { wireEffectsSchema } = await import('../dist/wires.js')
+const { wireEffectsSchema, drawingStyleSchema } = await import('../dist/wires.js')
 await writeFile('dist/wire-effects.schema.json', JSON.stringify(wireEffectsSchema, null, 2) + '\n')
+await writeFile('dist/drawing-style.schema.json', JSON.stringify(drawingStyleSchema, null, 2) + '\n')

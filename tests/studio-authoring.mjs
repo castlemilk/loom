@@ -60,21 +60,26 @@ export async function studioAuthoring(context, url, touch = false) {
   await pick(button('Connect nodes'))
   await form.getByLabel('From', {exact:true}).fill('signal-lens')
   if (!touch) {
+    await pick(button('Pause'))
     const graph = page.locator('#graph')
     const point = await graph.evaluate((canvas) => {
       const box = canvas.getBoundingClientRect()
-      for (let y = box.height * .2; y < box.height * .8; y += 6) {
-        for (let x = box.width * .15; x < box.width * .85; x += 6) {
+      for (let y = Math.ceil(box.height * .2); y < box.height * .8; y += 6) {
+        for (let x = Math.ceil(box.width * .15); x < box.width * .85; x += 6) {
           const clientX = box.x + x, clientY = box.y + y
           if (document.elementFromPoint(clientX, clientY) !== canvas) continue
-          canvas.dispatchEvent(new PointerEvent('pointermove', {clientX,clientY}))
-          if (canvas.hasAttribute('data-node')) return { x, y }
+          const inside = [[0,0], [-2,0], [2,0], [0,-2], [0,2]].every(([dx,dy]) => {
+            canvas.dispatchEvent(new PointerEvent('pointermove', {clientX:clientX+dx,clientY:clientY+dy}))
+            return canvas.hasAttribute('data-node')
+          })
+          if (inside) return { x, y }
         }
       }
     })
     assert.ok(point, 'The canvas exposes a selectable endpoint')
     await graph.click({position:point})
     await page.waitForFunction(() => document.getElementById('endpoint-To')?.value)
+    await pick(button('Resume'))
   }
   await form.getByLabel('To', {exact:true}).fill('receiver')
   await page.locator('.wire-preview[data-active][data-snapped]').waitFor({state:'attached'})

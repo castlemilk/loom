@@ -2,10 +2,11 @@ import { apiURL, artURL, homeURL, modelURL, opticsURL, settingsSections, studioU
 import model from '../public/examples/wire-model.json'
 import { ModelPlate } from './model-plate'
 import { GuideFrame } from './guide-frame'
+import atlases from '../../demo/atlases/catalog.json'
 
 export const metadata = {
   alternates: { canonical: homeURL },
-  openGraph: { title: 'Loom · A field guide to graphs', description: 'Handle a wire model in 3D, then explore four working graph studies.',
+  openGraph: { title: 'Loom · A field guide to graphs', description: 'Handle a wire model in 3D and explore connections between Wikipedia articles.',
     url: homeURL, images: [{ url: artURL('wire-study-1280.webp'), width: 1280, height: 853, alt: 'A wire-and-bead graph model on a charcoal workbench.' }] },
 }
 
@@ -33,6 +34,16 @@ export default function FieldGuide() {
         <ModelPlate nodes={model.nodes.length} links={model.links.length} />
       </section>
       <section className="guide-examples" id="examples" aria-labelledby="examples-title">
+        <div className="guide-width guide-index atlas-index">
+          <div className="index-intro"><h2>Wikipedia atlases</h2>
+            <p>Open a topic, pick an article and follow the references across the map.</p></div>
+          <ul className="example-list atlas-examples">{Object.entries(atlases).map(([key, atlas]) =>
+            <li key={key}><a href={studioURL + '?example=' + key} aria-labelledby={'example-' + key}>
+              <div className="example-copy"><h3 id={'example-' + key}>{atlas.title}</h3><p>{atlas.description}</p></div>
+              <span className="example-measure">{Object.values(atlas.sections).reduce((n, group) => n + group.articles.length, 0)} articles</span>
+              <span className="example-arrow" aria-hidden="true">↗</span>
+            </a></li>)}</ul>
+        </div>
         <div className="guide-width guide-index">
           <div className="index-intro"><h2 id="examples-title">Studio examples</h2>
             <p>Four starting points for exploring the data. Each opens with its layout and settings ready to edit.</p>

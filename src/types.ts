@@ -3,6 +3,9 @@ export interface GraphNode {
   id: string
   label?: string
   kind?: string
+  /** Authored overrides for this marker, applied after theme and taxonomy styling. */
+  markerColor?: string
+  markerShape?: NodeShape
   x?: number
   y?: number
   z?: number
@@ -112,8 +115,9 @@ export interface GraphOptions<N extends GraphNode = GraphNode, E extends GraphLi
   workerURL?: string | URL
   reducedMotion?: 'respect' | 'ignore'
 }
-/** @internal One instanced attribute and one uniform vector for optional wire rendering. */
+/** @internal Instanced lane attributes and scene parameters for optional drawing effects. */
 export interface WireProgram {
+  nodeFragment?: string
   vertex: string
   fragment: string
   slots: Float32Array

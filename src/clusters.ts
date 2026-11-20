@@ -5,6 +5,8 @@ export interface ClusterOptions {
   gap?: number
   /** Controls density within each group, in world units. */
   spacing?: number
+  /** Preferred width divided by height when packing rows. */
+  aspectRatio?: number
   dimensions?: 2 | 3
   depth?: number
 }
@@ -19,8 +21,8 @@ const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
 
 /** Stable packed rows of disks or volumes. The returned anchor works in both simulation transports. */
 export function clusterLayout<N extends GraphNode>(nodes: readonly N[], groupBy: (node: N, index: number) => string,
-  { gap = 70, spacing = 28, dimensions = 2, depth = 1 }: ClusterOptions = {}) {
-  if (![gap, spacing, depth].every(Number.isFinite) || gap < 0 || spacing <= 0 || depth < 0 || ![2, 3].includes(dimensions))
+  { gap = 70, spacing = 28, dimensions = 2, depth = 1, aspectRatio = 1 }: ClusterOptions = {}) {
+  if (![gap, spacing, depth, aspectRatio].every(Number.isFinite) || gap < 0 || spacing <= 0 || depth < 0 || aspectRatio <= 0 || ![2, 3].includes(dimensions))
     throw new RangeError('Invalid cluster dimensions or spacing')
   const membership = new Map<string, string[]>(), seen = new Set<string>()
   nodes.forEach((node, i) => {
@@ -37,7 +39,7 @@ export function clusterLayout<N extends GraphNode>(nodes: readonly N[], groupBy:
     id, members: members.sort(order), center: { x: 0, y: 0, z: 0 },
     radius: spacing * (volume ? Math.cbrt(members.length) : Math.sqrt(members.length)) * 0.72,
   })).sort((a, b) => b.radius - a.radius || order(a.id, b.id))
-  const targetWidth = Math.sqrt(groups.reduce((area, g) => area + (2 * g.radius + gap) ** 2, 0))
+  const targetWidth = Math.sqrt(aspectRatio * groups.reduce((area, g) => area + (2 * g.radius + gap) ** 2, 0))
   let top = 0, start = 0, width = 0, height = 0
   function finishRow(end: number) {
     for (let i = start; i < end; i++) {

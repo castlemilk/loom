@@ -24,6 +24,8 @@ message GNode {
   map<string, double> metrics = 13;
   optional string summary = 14;
   optional string content = 15;
+  optional string marker_color = 16;
+  optional string marker_shape = 17;
 }
 
 message GLink {

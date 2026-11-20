@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createDrilldown, drilldownGroup } from '../src/drilldown.js'
+import { createGraphIndex } from '../src/explore.js'
+import { clusterLayout } from '../src/clusters.js'
 import { compileTaxonomies, scopeTaxonomies } from '../src/taxonomy.js'
 import type { GraphEvents, GraphFrame, GraphNode, LoomGraph } from '../src/types.js'
 import { Camera } from '../src/camera.js'
@@ -14,6 +16,46 @@ const data = { nodes, links: [link('a', 'b'), link('a', 'b'), link('b', 'a'), li
   link('a', 'd', 'cross'), link('c', '__proto__')] }
 const group = { taxonomy: 'section', id: 'lab', members: ['a', 'b', 'c', 'a', 'absent'] }
 const ids = (visible: readonly GraphNode[]) => visible.map((n) => n.id)
+
+test('the exploration index ranks names, folds accents and searches metadata within the requested scope', () => {
+  const nodes = [
+    { id: 'school', label: 'Bauhaus', summary: 'László studied at this school' },
+    { id: 'l-2', label: 'László II', section: 'Designers' },
+    { id: 'l-1', label: 'László', section: 'Designers' },
+    { id: '__proto__', label: 'About László' },
+  ]
+  const index = createGraphIndex({ nodes, links: [] })
+  assert.deepEqual(ids(index.search('laszlo')), ['l-1', 'l-2', '__proto__', 'school'])
+  assert.deepEqual(ids(index.search('DESIGNERS laszlo', { within: new Set(['school','l-2']) })), ['l-2'])
+  assert.equal(index.search('L_1', { limit: 1 })[0], nodes[2])
+  assert.deepEqual(index.search(' '), [])
+  assert.deepEqual(index.search('László', { limit: 0 }), [])
+  assert.throws(() => index.search('x', { limit: -1 }), RangeError)
+})
+
+test('incoming and outgoing indexes retain parallel links, self loops, and cross-group direction', () => {
+  const index = createGraphIndex(data)
+  const out = index.neighbors('b', 'outgoing')
+  assert.deepEqual(out.map((row) => row.node.id), ['a','b','c'])
+  const incoming = index.neighbors('b', 'incoming')
+  assert.deepEqual(incoming.map((row) => row.links.length), [2,1])
+  assert.equal(incoming[0].links[0], data.links[0])
+  assert.deepEqual(index.boundary(['a', 'a', 'd']).map(({node, incoming, outgoing}) => [node.id, incoming, outgoing]), [['b',1,2]])
+  assert.deepEqual(index.boundary(ids(nodes)), [])
+  assert.throws(() => index.boundary(['missing']), /Unknown node/)
+  assert.throws(() => index.neighbors('a', 'both' as never), RangeError)
+  assert.throws(() => createGraphIndex({nodes, links:[link('a','x')]}), /Unknown node/)
+  assert.throws(() => createGraphIndex({nodes:[...nodes,nodes[0]], links:[]}), /Duplicate/)
+})
+
+test('wider cluster layouts pack more groups in one row while preserving membership', () => {
+  const by = (node: GraphNode) => node.id
+  const square = clusterLayout(nodes, by), wide = clusterLayout(nodes, by, { aspectRatio: 3 })
+  const rows = (g: typeof wide) => new Set(g.groups.map((item) => item.center.y)).size
+  assert.ok(rows(wide) < rows(square))
+  assert.deepEqual(square.groups.map(g => g.members), wide.groups.map(g => g.members))
+  assert.throws(() => clusterLayout(nodes, by, { aspectRatio: 0 }), RangeError)
+})
 test('contour caches invalidate on cumulative position or radius changes only in affected memberships', () => {
   const p = Float32Array.from([10, 20, 3, 1, 30, 40, 4, 2, 45, 65, 5, 2])
   const first = cacheOutline(cloudOutline, [0,1], 8), second = cacheOutline(cloudOutline, [1,2], 8)
@@ -80,6 +122,28 @@ test('nested node drilldowns follow directional hops, preserve parallel edges, m
   assert.deepEqual(ids(snapshot().data.nodes), ['c'])
   assert.deepEqual(snapshot().data.links, [])
   assert.deepEqual(data, checked)
+})
+
+test('following a reference crosses isolated scopes and restores the prior selection and camera on Back', () => {
+  const nav = createDrilldown(data)
+  const view = { x: 49, y: 32, z: 0, yaw: 0.1, pitch: 0, zoom: 2.3 }
+  nav.openGroup(group, 'isolate')
+  nav.inspect('c')
+  nav.bind({ ...fakeGraph(nav.getSnapshot().data.nodes), getViewport: () => view })
+  assert.throws(() => nav.openNeighborhood('d'), /outside/)
+  assert.throws(() => nav.followNode('missing'), /outside/)
+  nav.followNode('d', { direction: 'incoming' })
+  assert.deepEqual(ids(nav.getSnapshot().data.nodes), ['a', 'd'])
+  assert.equal(nav.getSnapshot().selected, 'd')
+  assert.deepEqual(nav.getTrail().map(frame => frame.selected), [null, 'c', 'd'])
+  assert.equal(nav.followNode('d', {direction: 'incoming'}), false)
+  assert.equal(nav.getSnapshot().path.length, 3)
+  nav.back()
+  let restored
+  nav.bind({ ...fakeGraph(nav.getSnapshot().data.nodes), setViewport: (v) => { restored = v } })
+  assert.deepEqual(restored, view)
+  assert.equal(nav.getSnapshot().selected, 'c')
+  assert.deepEqual(ids(nav.getSnapshot().groupMembers), ['a', 'b', 'c'])
 })
 
 test('bound expansion uses the same renderer, spaces coincident members, and retains context, pins and explicit releases', () => {

@@ -99,3 +99,16 @@ export function authorCatalogue(data: GraphData<Paper, Citation>) {
 
 export const addPaper = (doc: ReturnType<typeof createEditor>, paper: Paper) =>
   doc.transact([{ op: 'node.add', value: paper }])
+
+import { createGraphIndex } from 'loom-core/explore'
+import { sketchbook, drawingStyleSchema, type DrawingStyle } from 'loom-core/wires'
+
+export function explorePapers(canvas: HTMLCanvasElement, data: GraphData<Paper, Citation>, id: string) {
+  const index = createGraphIndex(data), nav = createDrilldown(data)
+  nav.followNode(id)
+  const drawingStyle: DrawingStyle = { fill: 'hachure', roughness: 1, hatchSpacing: 6 }
+  const graph = createWireGraph(canvas, { ...data, theme: sketchbook, drawingStyle })
+  graph.setDrawingStyle({ fill: 'cross-hatch' })
+  return { year: index.search(id)[0]?.year, reviewed: index.neighbors(id, 'outgoing')[0]?.links[0].reviewed,
+    boundary: index.boundary([id]), style: graph.getDrawingStyle(), schema: drawingStyleSchema }
+}

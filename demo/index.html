@@ -16,6 +16,7 @@
       <label class="dataset"
         >Graph<select id="dataset">
           <option value="sample">Knowledge console · excerpt</option>
+          <optgroup id="atlas-options" label="Wikipedia atlases"></optgroup>
           <option value="full">Knowledge console · full</option>
           <option value="stress">Generated stress graph</option>
           <optgroup id="node-counts" label="Generated node counts"></optgroup>
@@ -85,6 +86,7 @@
             <label for="theme">Theme</label
             ><select id="theme">
               <option value="console">Knowledge console</option>
+              <option value="sketchbook">Sketchbook</option>
               <option value="ink">Ink</option>
               <option value="parchment">Parchment</option>
               <option value="blueprint">Blueprint</option>
@@ -100,6 +102,12 @@
           </div>
           <details>
             <summary>Style controls</summary>
+            <div class="field"><label for="drawing-fill">Marker fill style</label><select id="drawing-fill">
+              <option value="solid">Solid</option><option value="hachure">Hachure</option><option value="cross-hatch">Cross-hatch</option>
+            </select></div>
+            <div class="field"><label for="linework">Linework</label><select id="linework">
+              <option value="0">Precise</option><option value="1">Loose</option><option value="2">Sketchy</option>
+            </select></div>
             <div class="field">
               <label for="kind">Node kind</label
               ><select id="kind"></select>
@@ -145,8 +153,12 @@
         </section>
         <section class="selection">
           <h2>Selection</h2>
+          <div class="field" id="article-field" hidden><label for="atlas-article">Article</label><select id="atlas-article"></select></div>
           <p id="selection" aria-live="polite">Select a node to inspect its links.</p>
           <p id="selection-meta"></p>
+          <div id="atlas-detail" hidden><p id="article-summary"></p><a id="wiki-source" target="_blank" rel="noreferrer">Read on Wikipedia ↗</a>
+            <p>Outgoing links</p><div id="article-links"></div></div>
+          <p id="atlas-credit" hidden>English Wikipedia contributors · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a></p>
           <div class="selection-tools" id="selection-tools" hidden>
             <button id="focus">Focus node</button><button id="pin">Pin node</button>
           </div>

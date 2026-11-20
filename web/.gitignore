@@ -5,3 +5,6 @@ public/graphs/
 public/layout-worker.js
 public/editor.schema.json
 public/wire-effects.schema.json
+public/drawing-style.schema.json
+public/examples/bauhaus.json
+public/examples/outer-solar-system.json

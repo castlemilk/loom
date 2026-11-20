@@ -55,7 +55,7 @@ export function appearance(data: GraphData, degree: Uint32Array, theme: Theme) {
     radii = new Float32Array(data.nodes.length)
   const palette = new Map<string, { color: number[]; shape: number; radius?: number; hub: boolean }>()
   for (let i = 0; i < data.nodes.length; i++) {
-    const kind = data.nodes[i].kind ?? ''
+    const node = data.nodes[i], kind = node.kind ?? ''
     let mark = palette.get(kind)
     if (!mark) {
       const hub = ['concept', 'tag', 'category', ''].includes(kind)
@@ -69,11 +69,12 @@ export function appearance(data: GraphData, degree: Uint32Array, theme: Theme) {
       }
       palette.set(kind, mark)
     }
-    const custom = nodes?.resolve?.(data.nodes[i], degree[i])
-    const shape = custom?.shape
+    const custom = nodes?.resolve?.(node, degree[i])
+    const shape = node.markerShape ?? custom?.shape
+    const color = node.markerColor ?? custom?.color
     if (shape !== undefined && !Object.hasOwn(shapes, shape)) throw new RangeError('Invalid node shape')
     if (custom?.radius !== undefined) range(custom.radius, 0, 1e6, 'node radius')
-    style.set(custom?.color !== undefined ? rgb(custom.color) : mark.color, i * 4)
+    style.set(color !== undefined ? rgb(color) : mark.color, i * 4)
     style[i * 4 + 3] = shape === undefined ? mark.shape : shapes[shape]
     radii[i] =
       scale *
