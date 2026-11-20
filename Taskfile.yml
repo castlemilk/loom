@@ -60,10 +60,11 @@ tasks:
       - npm run test:browser
 
   check:all:
-    desc: Check the SDK, then build and test Studio on desktop and mobile
+    desc: Check the SDK, desktop and mobile Studio, exports and the local development server
     cmds:
       - task: check
       - task: studio:test
+      - task: studio:test:dev
 
   bench:
     desc: Run the renderer hardware benchmark

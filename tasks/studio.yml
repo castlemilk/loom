@@ -17,6 +17,10 @@ tasks:
       - task: build
       - npm run test:site
 
+  test:dev:
+    desc: Start the live-reload server and test the interactive SDK docs in Chromium
+    cmds: [npm run test:dev]
+
   standalone:
     desc: Build the single-file graph demo in artifacts/loom-studio.html
     cmds: [npm run demo:build]

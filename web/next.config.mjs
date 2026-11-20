@@ -7,6 +7,7 @@ const basePath = process.env.PAGES_BASE_PATH ?? '/loom'
 
 const withMDX = createMDX({ options: { rehypePlugins: [rehypeSlug, docsOutline] } })
 export default withMDX({
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'mdx'],
   output: 'export',
   outputFileTracingRoot: fileURLToPath(new URL('../', import.meta.url)),
   basePath,

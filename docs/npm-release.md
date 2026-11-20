@@ -38,7 +38,7 @@ Use `BUMP=minor` or `BUMP=major` for larger changes. Stable versions publish und
 
 | Command | Result |
 | --- | --- |
-| `task check:all` | Checks the SDK and exercises Studio and the exported starter projects in Chromium. |
+| `task check:all` | Checks the SDK, the live-reload docs, desktop and mobile Studio, and both exported starter projects in Chromium. |
 | `task release:check` | Builds a local archive in `artifacts/npm-local/`, checks a clean install and runs npm's publish dry run for an unpublished version. |
 | `task release:status` | Shows availability on npm for the current version and recent release runs. |
 | `task release:verify` | Compares the published checksum to the GitHub archive for this commit and installs the public package. |

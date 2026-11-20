@@ -114,6 +114,7 @@
     "site:build": "npm --prefix web run build",
     "package:site": "npm pack --pack-destination web/out",
     "test:site": "node scripts/test-site.mjs",
+    "test:dev": "playwright test --config tests/dev.config.mjs",
     "prepack": "npm run build && npm run size"
   },
   "devDependencies": {
