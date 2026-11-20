@@ -315,13 +315,13 @@ input, textarea { caret-color: var(--accent); }
 .edit-preview code { color: #793917; }
 .incident-list > button { width: 100%; min-height: 32px; text-align: left; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: transparent; }
 .incident-list > button span { min-width: 0; overflow-wrap: anywhere; }
-@media (min-width: 1360px) {
-  header:has(.editor-dock) { display: grid; grid-template-columns: max-content max-content minmax(0,1fr) max-content;
-    column-gap: clamp(10px, 1.4vw, 24px); }
+@media (min-width: 1500px) {
+  header:has(.editor-dock) { display: grid; grid-template-columns: max-content max-content minmax(220px,1fr) max-content;
+    column-gap: clamp(10px, 1vw, 20px); }
   header:has(.editor-dock) .dataset { width: 100%; max-width: 330px; min-width: 0; justify-self: end; }
   header:has(.editor-dock) .dataset select { flex: 1; min-width: 0; width: 0; text-overflow: ellipsis; }
 }
-@media (min-width: 701px) and (max-width: 1359px) {
+@media (min-width: 701px) and (max-width: 1499px) {
   header:has(.editor-dock) { display: grid; grid-template-columns: minmax(0,1fr) auto; padding-block: 6px; row-gap: 5px; }
   .editor-dock { grid-row: 2; justify-self: start; margin: 0; }
   header:has(.editor-dock) .dataset { grid-area: 1 / 2; min-width: 0; width: min(32vw, 320px); justify-self: end; }
@@ -333,7 +333,7 @@ input, textarea { caret-color: var(--accent); }
   .editor-dock button { min-height: 36px; flex: 0 0 32px; padding-inline: 3px; }
   .editor-dock button:has(span) { flex: 1 1 auto; }
   .editor-dock svg { flex-shrink: 0; }
-  header:has(.editor-dock) .dataset { grid-area: 1 / 2; }
+  header:has(.editor-dock) .dataset { grid-area: 1 / 2; width: min(46vw, 260px); min-width: 0; }
   header:has(.editor-dock) .node-sizing { grid-area: 3 / 1 / 4 / -1; }
   #document-composer { scroll-margin-top: 78px; }
 }

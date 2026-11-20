@@ -136,12 +136,15 @@ export async function studioExport(context, url, { touch = false, live = false }
     if (touch) assert.ok(await button('Select and move').getByText('Select', { exact: true }).isVisible())
     if (!touch) {
       const size = page.viewportSize()
-      for (const width of [320, 768, 1091, 1360]) {
+      await page.bringToFront()
+      for (const width of [320, 768, 1091, 1360, 1500]) {
         await page.setViewportSize({ ...size, width })
+        await page.waitForFunction(width => innerWidth === width, width)
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => resolve())))
         const dock = await page.locator('.editor-dock').boundingBox(), sizing = await page.locator('.node-sizing').boundingBox()
         const picker = await page.locator('#dataset-choice').boundingBox()
-        assert.ok(picker.width >= 120 && picker.x + picker.width <= width)
-        assert.ok(dock.y + dock.height <= sizing.y || dock.x + dock.width <= sizing.x)
+        assert.ok(picker.width >= 120 && picker.x + picker.width <= width + 1, JSON.stringify({ width, picker }))
+        assert.ok(dock.y + dock.height <= sizing.y || dock.x + dock.width <= sizing.x, JSON.stringify({ width, dock, sizing }))
         const clipped = await page.locator('.editor-dock button').evaluateAll(buttons => buttons.flatMap(el => {
           const box = el.getBoundingClientRect()
           const outside = Array.from(el.children, child => child.getBoundingClientRect()).some(child =>

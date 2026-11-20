@@ -49,9 +49,13 @@ export async function studioLoad(page, url) {
   assert.equal(await byId('cloud-depth-value').textContent(), '0%')
   await byId('cloud-depth').press('End')
   assert.equal(await byId('cloud-depth-value').textContent(), '300%')
+  // Hit a visible marker in the new depth projection, between camera updates.
+  await graph.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  await byId('pause').click()
   const hit = await graph.evaluate((el) => {
     const box = el.getBoundingClientRect()
     for (let y = 40; y < box.height - 65; y += 7) for (let x = 15; x < box.width - 15; x += 7) {
+      if (document.elementFromPoint(x + box.x, y + box.y) !== el) continue
       el.dispatchEvent(new PointerEvent('pointermove', { clientX: x + box.x, clientY: y + box.y }))
       if (el.hasAttribute('data-node')) return [x + box.x, y + box.y]
     }
@@ -61,6 +65,7 @@ export async function studioLoad(page, url) {
   await page.locator('.selection-content').waitFor()
   assert.match(await page.locator('.selection-content').textContent(), /catalogue/)
   await page.waitForFunction(() => document.querySelector('.selection-image')?.naturalWidth > 0)
+  await byId('pause').click()
 
   await byId('workload-nodes').fill('8')
   await page.getByRole('button', { name: 'Append batch' }).click()
