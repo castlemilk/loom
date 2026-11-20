@@ -1,4 +1,6 @@
 import type { GraphData, GraphLink, GraphNode } from './types.js'
+import { placeAtlasTopics, type AtlasLayout, type PlacedTopic } from './atlas-layout.js'
+export { atlasLayouts, type AtlasLayout } from './atlas-layout.js'
 
 export type AtlasLoading = 'on-demand' | 'full'
 export interface AtlasTopic {
@@ -64,6 +66,7 @@ export function atlasConnections(manifest: AtlasManifest, topic: number) {
 }
 export interface AtlasSnapshot {
   mode: AtlasLoading
+  layout: AtlasLayout
   expanded: readonly number[]
   loaded: readonly number[]
   pending: readonly number[]
@@ -117,10 +120,11 @@ function overviewLinks(manifest: AtlasManifest): AtlasLink[] {
 
 /** Coordinates depend only on the published topic centre and the article's slot within it. */
 function makeScene(
-  topics: readonly AtlasTopic[],
+  topics: readonly PlacedTopic[],
   overview: AtlasLink[],
   blocks: Map<number, AtlasBlock>,
   open: Set<number>,
+  layout: AtlasLayout,
 ): AtlasScene {
   const nodes: AtlasNode[] = topics.map((t) => ({
     id: 'topic:' + t.id,
@@ -130,6 +134,7 @@ function makeScene(
     markerColor: t.color,
     x: t.x,
     y: t.y,
+    z: t.z,
     pinned: true,
   }))
   const links: AtlasLink[] = [...overview],
@@ -141,6 +146,8 @@ function makeScene(
       const slot = id - t.first,
         angle = slot * 2.3999632297,
         radius = 18 + 53 * Math.sqrt((slot + 0.5) / t.count)
+      const latitude = layout === 'cloud' ? 2 * (((slot + 0.5) * 0.7548776662) % 1) - 1 : 0
+      const planar = radius * Math.sqrt(1 - latitude * latitude)
       visible.set(id, t.id)
       nodes.push({
         id: 'article:' + id,
@@ -151,8 +158,9 @@ function makeScene(
         degree,
         kind: 'article',
         markerColor: t.color,
-        x: t.x + radius * Math.cos(angle),
-        y: t.y + radius * Math.sin(angle),
+        x: t.x + planar * Math.cos(angle),
+        y: t.y + planar * Math.sin(angle),
+        z: layout === 'cloud' ? (t.z ?? 0) + radius * latitude : undefined,
         pinned: true,
       })
     }
@@ -174,7 +182,12 @@ function makeScene(
 }
 
 /** A transport-independent, observable atlas. Multiple topics can be open at once. */
-export function createAtlas(manifest: AtlasManifest, readers: AtlasReaders, loading: AtlasLoading = 'on-demand') {
+export function createAtlas(
+  manifest: AtlasManifest,
+  readers: AtlasReaders,
+  loading: AtlasLoading = 'on-demand',
+  initialLayout: AtlasLayout = 'published',
+) {
   const topics = new Map(manifest.topics.map((t) => [t.id, t]))
   if (topics.size !== manifest.topics.length) throw new RangeError('Duplicate atlas topic')
   const overview = overviewLinks(manifest),
@@ -186,11 +199,14 @@ export function createAtlas(manifest: AtlasManifest, readers: AtlasReaders, load
     mode = loading,
     generation = 0,
     reader: AtlasReader | undefined
-  let scene = makeScene(manifest.topics, overview, blocks, open),
+  let layout = initialLayout,
+    anchors = placeAtlasTopics(manifest.topics, overview, layout),
+    scene = makeScene(anchors, overview, blocks, open, layout),
     error: string | null = null,
     closed = false
   const state = (): AtlasSnapshot => ({
     mode,
+    layout,
     expanded: [...open],
     loaded: [...fetched],
     pending: [...pending.keys()],
@@ -200,7 +216,7 @@ export function createAtlas(manifest: AtlasManifest, readers: AtlasReaders, load
   })
   let snapshot = state()
   function publish(redraw = false) {
-    if (redraw) scene = makeScene(manifest.topics, overview, blocks, open)
+    if (redraw) scene = makeScene(anchors, overview, blocks, open, layout)
     snapshot = state()
     for (const listener of listeners) listener()
   }
@@ -281,6 +297,14 @@ export function createAtlas(manifest: AtlasManifest, readers: AtlasReaders, load
       }
     },
     setLoading,
+    /** Reposition the overview and visible blocks without opening topics or fetching data. */
+    setLayout(next: AtlasLayout) {
+      if (closed) throw new Error('Atlas is closed')
+      if (next === layout) return
+      anchors = placeAtlasTopics(manifest.topics, overview, next)
+      layout = next
+      publish(true)
+    },
     setExpanded,
     retry: load,
     toggle(id: number) {

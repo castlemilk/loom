@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { createHash } from 'node:crypto'
-import { atlasConnections, createAtlas, type AtlasBlock, type AtlasManifest, type AtlasReader } from '../src/atlas.js'
+import { atlasConnections, atlasLayouts, createAtlas, type AtlasBlock, type AtlasManifest, type AtlasReader } from '../src/atlas.js'
+import { advanceSpring, resolveSpring, type ArticleSpring } from '../src/atlas-spring.js'
 import { cardNeighborhood } from '../src/cards.js'
 
 test('card neighborhoods bound distinct neighbors while keeping reciprocal, parallel and self links', () => {
@@ -65,6 +66,68 @@ function deferredReader() {
   }
   return { reader, calls, isClosed: () => closed }
 }
+
+test('layout changes preserve the overview, selection of open topics and pending reads', async () => {
+  const io = deferredReader()
+  const atlas = createAtlas(manifest, { 'on-demand': () => io.reader, full: () => io.reader })
+  const hubs = () => atlas.getSnapshot().scene.nodes.filter((n) => n.article === undefined)
+  const original = hubs()
+  for (const layout of atlasLayouts) {
+    atlas.setLayout(layout)
+    assert.equal(atlas.getSnapshot().layout, layout)
+    assert.deepEqual(hubs().map((n) => n.id), original.map((n) => n.id))
+    if (layout !== 'published') assert.notDeepEqual(hubs().map((n) => [n.x, n.y, n.z ?? 0]), original.map((n) => [n.x, n.y, n.z ?? 0]))
+  }
+  assert.equal(io.calls.length, 0)
+  const loading = atlas.setExpanded([0, 1])
+  await Promise.resolve()
+  atlas.setLayout('orbit')
+  const orbit = hubs()
+  io.calls[0].resolve(blocks)
+  await loading
+  assert.deepEqual(hubs(), orbit)
+  const orbitScene = atlas.getSnapshot().scene
+  atlas.setLayout('cloud')
+  assert.ok(atlas.getSnapshot().scene.nodes.some((n) => n.article !== undefined && (n.z ?? 0) !== 0))
+  assert.deepEqual(atlas.getSnapshot().scene.links, orbitScene.links)
+  assert.deepEqual(atlas.getSnapshot().expanded, [0, 1])
+  atlas.setLayout('orbit')
+  assert.deepEqual(atlas.getSnapshot().scene, orbitScene)
+  const current = atlas.getSnapshot()
+  assert.throws(() => atlas.setLayout('unknown' as never), RangeError)
+  assert.equal(atlas.getSnapshot(), current)
+  atlas.setLayout('published')
+  assert.deepEqual(hubs(), original)
+  assert.equal(io.calls.length, 1)
+  atlas.close()
+})
+
+test('strength sets the trail and damping sets rebound at any frame rate', () => {
+  const initial = (): ArticleSpring => ({
+    x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, frequency: 20, target: { x: 60, y: -20, z: 10 },
+  })
+  const weak = initial(), strong = initial()
+  advanceSpring(weak, resolveSpring({ strength: 0.25 }), 0.1)
+  advanceSpring(strong, resolveSpring({ strength: 4 }), 0.1)
+  assert.ok(weak.x < 20 && strong.x > 50)
+  for (const damping of [0.2, 0.65, 0.999999, 1]) {
+    const spring = initial(), single = initial(), settings = resolveSpring({ damping })
+    let peak = 0
+    for (let i = 0; i < 90; i++) {
+      advanceSpring(spring, settings, 1 / 120)
+      peak = Math.max(peak, spring.x)
+    }
+    advanceSpring(single, settings, 0.75)
+    for (const axis of ['x', 'y', 'z', 'vx', 'vy', 'vz'] as const) assert.ok(Math.abs(spring[axis] - single[axis]) < 1e-8)
+    if (damping === 0.2) assert.ok(peak > 85)
+    if (damping === 1) assert.ok(peak <= 60)
+    assert.ok(advanceSpring(spring, settings, 10))
+  }
+  assert.deepEqual(resolveSpring({ strength: 2 }, { strength: 1, damping: 0.5 }), { strength: 2, damping: 0.5 })
+  for (const patch of [{ strength: NaN }, { strength: 0 }, { damping: Infinity }, { damping: 1.1 }]) {
+    assert.throws(() => resolveSpring(patch), RangeError)
+  }
+})
 
 test('atlas caches concurrent topic reads, keeps unopened topics in place and shows only real hyperlinks', async () => {
   const io = deferredReader(),

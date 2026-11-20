@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { atlasConnections, createAtlas, createFullAtlasReader } from '../../../../dist/atlas.js'
+import { atlasConnections, atlasLayouts, createAtlas, createFullAtlasReader } from '../../../../dist/atlas.js'
 import { createSQLiteAtlasReader } from '../../../../dist/atlas-sqlite.js'
 import { TopicMap } from './topic-map'
+import { LayoutMenu, SpringTuning, layoutHints, springFromURL } from './map-controls'
 import { ConnectionInspector } from './connections'
 import { cardNeighborhood } from '../../../../dist/cards.js'
 import manifest from '../../../public/examples/wikispeedia/manifest.json'
@@ -100,6 +101,7 @@ export default function Wikispeedia() {
         full: () => createFullAtlasReader(base + manifest.full),
       },
       mode,
+      atlasLayouts.includes(p.get('layout')) ? p.get('layout') : 'published',
     )
     const requested = (p.get('topic') ?? '').split(',')
     void controller.setExpanded(
@@ -135,6 +137,7 @@ function Explorer({ atlas }) {
   const snap = useSyncExternalStore(atlas.subscribe, atlas.getSnapshot, atlas.getSnapshot)
   const api = useRef(null)
   const [carry, setCarry] = useState(true),
+    [spring, setSpring] = useState(springFromURL),
     [memberMotion, setMemberMotion] = useState(() =>
       new URL(location.href).searchParams.get('motion') === 'rigid' ? 'rigid' : 'spring',
     ),
@@ -242,9 +245,21 @@ function Explorer({ atlas }) {
           {cards ? (
             <button onClick={() => setCardMode(false)}>← Topic map</button>
           ) : (
-            <button type="button" aria-pressed={!!pair} onClick={explorePair}>
-              Explore connections
-            </button>
+            <div className="wiki-board-actions">
+              <LayoutMenu
+                value={snap.layout}
+                onChange={(layout) => {
+                  atlas.setLayout(layout)
+                  const url = new URL(location.href)
+                  if (layout === 'published') url.searchParams.delete('layout')
+                  else url.searchParams.set('layout', layout)
+                  history.replaceState(history.state, '', url)
+                }}
+              />
+              <button type="button" aria-pressed={!!pair} onClick={explorePair}>
+                Explore connections
+              </button>
+            </div>
           )}
         </div>
         <div className="atlas-viewport">
@@ -255,6 +270,7 @@ function Explorer({ atlas }) {
             keep={keep}
             carry={carry}
             memberMotion={memberMotion}
+            spring={spring}
             pair={pair}
             edge={edge}
             theme={theme}
@@ -314,6 +330,34 @@ function Explorer({ atlas }) {
             }}
           />
         )}
+        <section className="wiki-motion" aria-label="Topic movement" hidden={!!cards}>
+          <ModeSwitch
+            label="Article motion"
+            value={memberMotion}
+            disabled={!carry}
+            choices={[
+              ['spring', 'Spring'],
+              ['rigid', 'Rigid'],
+            ]}
+            onChange={(mode) => {
+              setMemberMotion(mode)
+              const url = new URL(location.href)
+              url.searchParams.set('motion', mode)
+              history.replaceState(history.state, '', url)
+            }}
+          />
+          <SpringTuning spring={spring} change={setSpring} enabled={carry && memberMotion === 'spring'} />
+          <label className="atlas-check">
+            <input type="checkbox" checked={carry} onChange={(e) => setCarry(e.target.checked)} />
+            Move articles with their topic
+          </label>
+          <div className="wiki-position-tools">
+            <p>{layoutHints[snap.layout]} Drag a topic dot or name to move it. Arrow keys move a focused topic.</p>
+            <button type="button" onClick={() => api.current?.resetPositions()}>
+              Reset positions
+            </button>
+          </div>
+        </section>
         <ModeSwitch
           label="Graph loading"
           value={snap.mode}
@@ -369,39 +413,6 @@ function Explorer({ atlas }) {
           <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
           Keep camera in place
         </label>
-        <label className="atlas-check">
-          <input type="checkbox" checked={carry} onChange={(e) => setCarry(e.target.checked)} />
-          Move articles with their topic
-        </label>
-        <div className="wiki-motion">
-          <ModeSwitch
-            label="Article motion"
-            value={memberMotion}
-            disabled={!carry}
-            choices={[
-              ['spring', 'Spring'],
-              ['rigid', 'Rigid'],
-            ]}
-            onChange={(mode) => {
-              setMemberMotion(mode)
-              const url = new URL(location.href)
-              url.searchParams.set('motion', mode)
-              history.replaceState(history.state, '', url)
-            }}
-          />
-          {carry && memberMotion === 'spring' && (
-            <p className="wiki-reduced-motion">Reduced motion is on. Articles move together.</p>
-          )}
-        </div>
-        <div className="wiki-position-tools">
-          <p>
-            Drag a topic dot or name. Arrow keys move a focused topic. Select a line between topics to inspect its
-            links.
-          </p>
-          <button type="button" onClick={() => api.current?.resetPositions()}>
-            Reset positions
-          </button>
-        </div>
         {activeTopic && snap.expanded.includes(active) && (
           <section className="atlas-topic-detail">
             <div className="atlas-subhead">

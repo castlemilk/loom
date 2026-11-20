@@ -112,6 +112,25 @@ export async function atlasGravity(manifest, blocks) {
   await raf()
   await raf()
   checkScene([0, 0], [0, 0])
+  atlas.setLayout('cloud')
+  const cloudHub = map.getPosition('topic:' + topic.id)
+  const member = articles[0].id, baseZ = map.getPosition(member).z
+  map.setSpring({ strength: 0.25, damping: 0.2 })
+  let rejected = false
+  try { map.setSpring({ strength: 3, damping: -1 }) } catch (e) { rejected = e instanceof RangeError }
+  check(rejected && map.getSpring().strength === 0.25 && map.getSpring().damping === 0.2, 'Invalid patches are atomic')
+  map.moveTopic(topic.id, { x: cloudHub.x, y: cloudHub.y, z: cloudHub.z + 60 })
+  await until(() => map.getPosition(member).z > baseZ + 1, 'Articles trail a depth movement')
+  const inFlight = map.getPosition(member).z
+  map.setSpring({ strength: 4, damping: 1 })
+  check(map.getPosition(member).z === inFlight, 'Live tuning preserves in-flight positions')
+  await until(() => Math.abs(map.getPosition(member).z - baseZ - 60) < 0.001, 'Retuned depth spring did not settle')
+  const cloud = map.getPositions()
+  check(Math.abs(cloud.members[topic.id].z - 60) < 0.001 && !Object.keys(cloud.articles).length, 'Depth edits stay sparse')
+  atlas.setLayout('lanes')
+  atlas.setLayout('cloud')
+  check(Math.abs(map.getPosition(member).z - baseZ - 60) < 0.001, 'Changing layouts preserves manual group offsets')
+  map.resetPositions()
   free(c, map)
   atlas.close()
   return { movedArticles: topic.count, stationaryArticles: blocks.find(b => b.topic !== topic.id).articles.length }

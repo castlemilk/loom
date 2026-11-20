@@ -13,6 +13,7 @@ import { studioWires } from '../tests/studio-wires.mjs'
 import { studioAtlases } from '../tests/studio-atlases.mjs'
 import { studioProgressive } from '../tests/studio-progressive.mjs'
 import { studioConnections, studioTopicLayout, studioTopicMotion } from '../tests/studio-topic-layout.mjs'
+import { studioAtlasControls } from '../tests/studio-atlas-controls.mjs'
 
 const liveURL = process.argv[2]
 const base = (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
@@ -42,12 +43,14 @@ try {
   const mobileTopicLayout = await studioTopicLayout(mobile, home, true)
   const spring = await studioTopicMotion(context, home)
   const mobileSpring = await studioTopicMotion(mobile, home, true)
+  const tuning = await studioAtlasControls(context, home)
+  const mobileTuning = await studioAtlasControls(mobile, home, true)
   const connections = await studioConnections(context, home)
   const mobileConnections = await studioConnections(mobile, home, true)
   await studioPicker(context, home, false)
   await studioPicker(mobile, home, true)
   await mobile.close()
-  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires, desktopAtlases, mobileAtlases, progressive, mobileProgressive, topicLayout, mobileTopicLayout, spring, mobileSpring, connections, mobileConnections })
+  console.log({ desktopMenu, mobileMenu, desktopEdits, mobileEdits, wires, desktopAtlases, mobileAtlases, progressive, mobileProgressive, topicLayout, mobileTopicLayout, spring, mobileSpring, tuning, mobileTuning, connections, mobileConnections })
   const guide = await fieldGuide(context, home)
   const drillPage = await context.newPage()
   drillPage.setDefaultTimeout(20000)

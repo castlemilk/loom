@@ -38,6 +38,59 @@ function connectionAt({ x, y }, frame, scene, indices) {
   return closest
 }
 
+// At oblique angles several topic dots can project close together. Try the four sides of each
+// dot and reserve the open topics' captions first. Measurements only change with the viewport.
+function arrangeLabels(frame, labels, sizes) {
+  if (sizes.width !== frame.width) {
+    sizes.width = frame.width
+    sizes.byId.clear()
+  }
+  const result = new Map(),
+    occupied = [],
+    visible = []
+  manifest.topics.forEach((topic, i) => {
+    const label = labels.get(topic.id),
+      k = i * 4
+    const x = frame.points[k],
+      y = frame.points[k + 1],
+      r = frame.points[k + 2] + 3
+    if (!label || x < 0 || x > frame.width || y < 0 || y > frame.height) return
+    if (!sizes.byId.has(topic.id) && label.offsetWidth)
+      sizes.byId.set(topic.id, [label.offsetWidth, label.offsetHeight])
+    const [w, h] = sizes.byId.get(topic.id) ?? [80, 30]
+    occupied.push([x - r, y - r, x + r, y + r])
+    visible.push({ id: topic.id, x, y, r, w, h, open: label.getAttribute('aria-pressed') === 'true' })
+  })
+  visible.sort((a, b) => Number(b.open) - Number(a.open))
+  for (const { id, x, y, r, w, h } of visible) {
+    let best,
+      least = Infinity
+    for (const [cx, top] of [
+      [x, y + r],
+      [x, y - r - h],
+      [x + r + w / 2, y - h / 2],
+      [x - r - w / 2, y - h / 2],
+    ]) {
+      const left = Math.max(0, Math.min(frame.width - w, cx - w / 2)),
+        y0 = Math.max(0, Math.min(frame.height - h, top))
+      const right = left + w,
+        bottom = y0 + h
+      let overlap = 0
+      for (const [l, t, rr, b] of occupied)
+        overlap +=
+          Math.max(0, Math.min(rr, right) - Math.max(l, left)) * Math.max(0, Math.min(b, bottom) - Math.max(t, y0))
+      if (overlap < least) {
+        least = overlap
+        best = [left, y0, right, bottom]
+        if (!overlap) break
+      }
+    }
+    occupied.push(best)
+    result.set(id, [(best[0] + best[2]) / 2, best[1]])
+  }
+  return result
+}
+
 export function TopicMap({
   atlas,
   snap,
@@ -47,6 +100,7 @@ export function TopicMap({
   keep,
   carry,
   memberMotion,
+  spring,
   selected,
   hidden,
   theme,
@@ -60,12 +114,13 @@ export function TopicMap({
     pickConnection = useRef(onConnection)
   const drawing = useRef({}),
     cached = useRef({}),
+    labelSizes = useRef({ width: 0, byId: new Map() }),
     drag = useRef(null),
     suppress = useRef(false)
   const [error, setError] = useState('')
   pick.current = onPick
   pickConnection.current = onConnection
-  drawing.current = { selected, edge }
+  drawing.current = { selected, edge, layout: snap.layout }
   const displayTheme = useMemo(
     () =>
       pair
@@ -91,6 +146,8 @@ export function TopicMap({
   const paint = useCallback((frame, scene) => {
     if (cached.current.scene !== scene)
       cached.current = { scene, indices: new Map(scene.nodes.map((n, i) => [n.id, i])) }
+    const positions =
+      drawing.current.layout === 'published' ? null : arrangeLabels(frame, labels.current, labelSizes.current)
     for (const [i, t] of manifest.topics.entries()) {
       const label = labels.current.get(t.id)
       if (!label) continue
@@ -98,8 +155,9 @@ export function TopicMap({
         y = frame.points[i * 4 + 1],
         r = frame.points[i * 4 + 2],
         margin = frame.width < 550 ? 42 : 67
-      label.style.left = Math.min(frame.width - margin, Math.max(margin, x)) + 'px'
-      label.style.top = y + r + 3 + 'px'
+      const pos = positions?.get(t.id)
+      label.style.left = (pos?.[0] ?? Math.min(frame.width - margin, Math.max(margin, x))) + 'px'
+      label.style.top = (pos?.[1] ?? y + r + 3) + 'px'
       label.hidden = x < 0 || y < 0 || x > frame.width || y > frame.height
       const ring = highlight.current?.querySelector('[data-topic-ring="' + t.id + '"]')
       if (ring) {
@@ -167,6 +225,7 @@ export function TopicMap({
         keepView: keep,
         moveMembers: carry,
         memberMotion,
+        spring,
         positions: storedPositions(),
         onPositionsChange: (positions) => {
           pending = positions
@@ -200,6 +259,9 @@ export function TopicMap({
     api.current?.setMemberMotion(memberMotion)
   }, [keep, carry, memberMotion, api])
   useEffect(() => {
+    api.current?.setSpring(spring)
+  }, [spring, api])
+  useEffect(() => {
     api.current?.setTheme(displayTheme)
   }, [displayTheme, api])
   useLayoutEffect(() => {
@@ -211,14 +273,11 @@ export function TopicMap({
   }, [edge, selected, snap.scene, api, paint])
   function grab(event, id) {
     if (event.button !== 0 || !event.isPrimary || !api.current) return
-    const position = api.current.getPosition('topic:' + id)
     drag.current = {
       pointer: event.pointerId,
       id,
       x: event.clientX,
       y: event.clientY,
-      position,
-      zoom: api.current.getViewport().zoom,
     }
     suppress.current = false
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -230,21 +289,26 @@ export function TopicMap({
       dy = event.clientY - d.y
     if (!suppress.current && Math.hypot(dx, dy) < 4) return
     suppress.current = true
-    api.current?.moveTopic(d.id, { x: d.position.x + dx / d.zoom, y: d.position.y + dy / d.zoom })
+    api.current?.moveTopicByScreen(d.id, dx, dy)
+    d.x = event.clientX
+    d.y = event.clientY
   }
   function keyMove(event, id) {
     const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key]
     if (!delta || !api.current) return
     event.preventDefault()
-    const p = api.current.getPosition('topic:' + id),
-      step = (event.shiftKey ? 32 : 12) / api.current.getViewport().zoom
-    api.current.moveTopic(id, { x: p.x + delta[0] * step, y: p.y + delta[1] * step })
+    const step = event.shiftKey ? 32 : 12
+    api.current.moveTopicByScreen(id, delta[0] * step, delta[1] * step)
   }
   return (
     <div className="atlas-map-surface" style={{ visibility: hidden ? 'hidden' : undefined }} aria-hidden={hidden}>
       <canvas
         ref={canvas}
-        aria-label="Wikipedia topic map. Drag a topic to move it. Arrow keys on the background pan the map."
+        aria-label={
+          'Wikipedia topic map. Drag a topic to move it. Arrow keys on the background ' +
+          (snap.layout === 'cloud' ? 'rotate' : 'pan') +
+          ' the map.'
+        }
       />
       <svg ref={highlight} className="atlas-crossing-overlay" aria-hidden="true">
         {snap.expanded.map((id) => (

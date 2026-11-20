@@ -1,7 +1,7 @@
 import type { Model } from '../model.js'
 
 /** A selected or highest-degree centre, two neighbourhood rings, then the remaining nodes. */
-export function orbitTargets(model: Model, selected: number, gap = 80) {
+export function orbitTargets(model: Pick<Model, 'n' | 'endpoints' | 'positions' | 'byId'>, selected: number, gap = 80) {
   const { n, endpoints, positions, byId } = model
   const targets = new Float32Array(n * 3)
   if (!n) return targets

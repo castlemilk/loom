@@ -44,7 +44,11 @@ Stable link IDs determine the order of parallel paths across input reordering an
 
 Open a topic to reveal its articles. Opening another adds the hyperlinks between them and keeps existing nodes and the camera in place. Pick an article to read it on Wikipedia or open a labeled card view of its visible neighbors. Links to the studio preserve the open topics and loading mode. [Try the topic map](https://castlemilk.github.io/loom/studio/wikispeedia/) · [Start in Mathematics](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=mathematics)
 
-Drag the Music dot or its name. In **Article motion → Spring**, nearby articles catch up first and the outer articles settle into their positions after release. **Rigid** moves all 96 in step with Music. The surrounding topics keep their positions. You can move a closed topic before its first data read or arrange individual articles. Arrow keys move a focused topic and Shift takes a larger step. Turn off **Move articles with their topic** to move its dot alone. The studio saves the resting layout in this browser, and **Reset positions** restores the published layout. Reduced motion uses immediate movement. [Try Spring](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&motion=spring) · [Compare Rigid](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&motion=rigid)
+Use **Layout** above the map to choose the original **Topic grid**, **Drift** with link-based spacing, **Lanes** by topic size, **Orbit** with rings of connected topics, or a rotatable **3D Cloud**. Switching layouts preserves open topics, the selected article, and hand-placed offsets. It uses the topic overview and cached articles. [Try Music in Orbit](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&layout=orbit)
+
+Drag the Music dot or its name. Under **Article motion → Spring**, lower **Spring strength** for a longer trail or raise it for a tighter follow. Lower **Damping** lets articles swing past their resting positions. At 100%, a resting article approaches a fixed target directly. **Reset tuning** restores 1× strength and 100% damping. The URL includes both slider values and the layout. [Try a loose spring](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&strength=0.5&damping=0.45) · [Try a tight spring](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&strength=3&damping=1)
+
+**Rigid** moves all 96 articles in step with Music. You can move a closed topic before its first data read or arrange individual articles. Arrow keys move a focused topic and Shift takes a larger step. Turn off **Move articles with their topic** to move its dot alone. The studio saves resting offsets in this browser. **Reset positions** restores the selected layout's arrangement. Reduced motion uses immediate movement. [Compare Rigid](https://castlemilk.github.io/loom/studio/wikispeedia/?topic=music&motion=rigid)
 
 Select a line between topics or choose **Explore connections** to inspect the underlying articles. Mathematics and Computing share 52 hyperlinks, with 23 pointing from Mathematics to Computing and 29 in the reverse direction. Search the pair list, inspect a link's original section and anchor, then choose **Show link on map** to frame both endpoints. Evidence loads only for the topic pair being inspected. [Explore Mathematics and Computing](https://castlemilk.github.io/loom/studio/wikispeedia/?connections=mathematics,computing)
 
@@ -70,8 +74,11 @@ const atlas = createAtlas(manifest, {
   full: () => createFullAtlasReader(new URL(manifest.full, base)),
 })
 const map = mountAtlasMap(canvas, atlas, { theme: parchment, keepView: true, moveMembers: true, memberMotion: 'spring',
+  spring: { strength: 0.5, damping: 0.45 },
   onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) },
 })
+atlas.setLayout('orbit') // works before or after expanding topics
+map.setSpring({ damping: 0.8 }) // keeps the current strength and velocity
 map.moveTopic(1, { x: -140, y: -175 }) // Music and its articles, even before loading
 // map.setMemberMotion('rigid') switches a running map back to the library default.
 await atlas.setExpanded([8, 12]) // Mathematics and Computing in this edition
@@ -83,6 +90,8 @@ await atlas.setLoading('full')
 map.destroy()
 atlas.close()
 ```
+
+`loom-core/atlas` exports `atlasLayouts` and the `AtlasLayout` type. Read the active layout from `atlas.getSnapshot().layout`. `loom-core/atlas-map` exports `atlasSpringControls` with the ranges, defaults and steps for each slider. Strength ranges from 0.25 to 4 and damping from 0.2 to 1. Both default to 1. `map.getSpring()` returns the current values.
 
 Host the two files from `loom-core/atlas-runtime/` together under `runtimeURL` on the page’s origin. The server must return byte ranges from the uncompressed SQLite file. Pass its published `databaseBytes` so the reader knows its actual size even when a CDN compresses ordinary GET or HEAD responses. A custom `AtlasReader` can supply the same topic blocks from another source. Its article IDs occupy each manifest topic’s contiguous range starting at `first`. Each block owns its articles’ outgoing edges, including links into other topics. [SQLite HTTP reader](https://github.com/phiresky/sql.js-httpvfs)
 
