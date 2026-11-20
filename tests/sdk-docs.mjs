@@ -6,6 +6,19 @@ const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url
 const chapters = ['Your first graph', 'Layouts and styling', 'Search and drilldowns', 'Stream a Wikipedia atlas',
   'Edit a graph document', 'API reference', 'SDK roadmap']
 
+async function typeBeforeScriptsLoad(page, docsURL) {
+  let resume
+  const pending = new Promise(resolve => { resume = resolve })
+  const scripts = /\/_next\/static\/chunks\/.*\.js/
+  await page.route(scripts, async route => { await pending; await route.continue() })
+  try {
+    await page.goto(new URL('api/', docsURL).href, { waitUntil: 'commit' })
+    await page.getByRole('searchbox', { name: 'Find an API' }).fill('setLayoutSpeed')
+  } finally { resume() }
+  await page.getByText('1 module matched', { exact: true }).waitFor()
+  await page.unroute(scripts)
+}
+
 export async function sdkDocs(context, home, mobile = false) {
   const page = await context.newPage()
   const errors = []
@@ -64,6 +77,7 @@ export async function sdkDocs(context, home, mobile = false) {
       assert.ok(fit, 'Page should fit its viewport: ' + chapter.title)
       assert.ok(anchors.length > 0 && anchors.every(([, tag]) => tag === 'H2'), 'Chapter headings should be linkable: ' + chapter.title)
     }
+    if (!mobile) await typeBeforeScriptsLoad(page, url)
     assert.deepEqual(errors, [])
     return { chapters: links.length, publicModules: names.length, layouts: 3 }
   } finally {

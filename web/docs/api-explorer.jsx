@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { chapterURL } from './catalog'
 
 const modules = {
@@ -35,13 +35,21 @@ function groups(index, query) {
   })
 }
 export function ApiExplorer({ index }) {
+  const input = useRef(null)
   const [query, setQuery] = useState('')
+  // The static page accepts input before React attaches its change handler.
+  useEffect(() => { setQuery(input.current.value) }, [])
+  function clear() {
+    input.current.value = ''
+    setQuery('')
+    input.current.focus()
+  }
   const matches = groups(index, query), filtering = !!query.trim()
   return <div className="docs-api">
     <label htmlFor="docs-symbol">Find an API</label>
-    <input id="docs-symbol" type="search" placeholder="Module, function, type or method" value={query} onChange={e => setQuery(e.target.value)} />
+    <input id="docs-symbol" ref={input} type="search" placeholder="Module, function, type or method" onChange={e => setQuery(e.target.value)} />
     <p role="status">{matches.length} {matches.length === 1 ? 'module' : 'modules'}{filtering ? ' matched' : ' in loom-core ' + index.version}</p>
-    {!matches.length && <button type="button" onClick={() => setQuery('')}>Clear search</button>}
+    {!matches.length && <button type="button" onClick={clear}>Clear search</button>}
     {matches.map(mod => <details key={mod.name + (filtering ? ':search' : '')} open={filtering || undefined} className="docs-module">
       <summary><code>{mod.name}</code><span>{mod.description}</span></summary>
       <div className="docs-symbols">
