@@ -25,6 +25,15 @@ tasks:
     desc: Build the single-file graph demo in artifacts/loom-studio.html
     cmds: [npm run demo:build]
 
+  showcase:
+    desc: Record the landing page walkthroughs (requires Chrome and ffmpeg)
+    cmds:
+      - npx --yes skills install --frozen-lockfile --agent codex -y
+      - npm --prefix .agents/skills/stageshow ci
+      - npm run build
+      - node scripts/build-mcp.mjs
+      - node scripts/render-showcase.mjs
+
   data:articles:
     desc: Rebuild the curated article graphs from their pinned Wikipedia revisions
     cmds: [python3 scripts/index-wikipedia.py]

@@ -45,7 +45,7 @@ export function ModelPlate({ nodes, links }) {
     <div className="plate-viewport">
       <img className="plate-photo" src={artURL('wire-study-1280.webp')}
         srcSet={artURL('wire-study-640.webp') + ' 640w, ' + artURL('wire-study-1280.webp') + ' 1280w'}
-        sizes="(max-width: 740px) 94vw, (max-width: 1320px) 54vw, 710px" width="1280" height="853" fetchPriority="high"
+        sizes="(max-width: 740px) 94vw, (max-width: 1320px) 54vw, 710px" width="1280" height="853" loading="lazy"
         hidden={ready} alt="An open network of copper and nickel rods joins ivory, charcoal and terracotta beads on a dark workbench." />
       {running && <canvas ref={canvas} tabIndex={0} aria-label="Wire model. Drag a joint to pull its links. Drag the background or use arrow keys to orbit. Plus and minus zoom. Escape returns to the still."
         aria-describedby="plate-status" onKeyDown={(event) => {

@@ -1,0 +1,82 @@
+body { margin: 0; background: #1d3028; }
+#scene { width: min(100%, 704px); margin-inline: auto; }
+@media (max-width: 539px) { #scene { width: min(100%, 358px); } }
+.loom-film {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  .ss-stage { overflow: hidden; --ss-accent: #854d33; --ss-radius-window: 0px; --ss-font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .film-window { position: absolute; inset: 0; width: 100%; height: 100%; box-shadow: none; }
+  :is(.ss-window__bar, .handheld-bar) { background: #eee9dc; color: #32392f; }
+  .ss-window__title { color: inherit; font-size: 14px; }
+  .handheld { display:flex; flex-direction:column; }
+  .handheld-bar { height:38px; flex:none; display:flex; align-items:center; justify-content:space-between; gap:12px; padding-inline:14px; border-bottom:1px solid #b9bcaf; font-size:15px; }
+  .film-readout { color: #566052; font: 12px/1.4 ui-monospace, monospace; }
+  :is(.ss-window__body, .film-body) { position: relative; flex: 1; }
+  .ss-stage[data-layout=compact] .film-readout { font-size: 11px; }
+}
+.studio-film {
+  :is(.ss-window__body, .film-body) { background: radial-gradient(circle, #cec8b6 .7px, transparent .9px) 0 0 / 16px 16px, #faf6e9; }
+  .tour-map { position: absolute; inset: 0; }
+  .tour-map canvas { display: block; }
+  .music-hub { position: absolute; transform: translate(-50%, -50%); padding: 4px 14px 6px; border: 1px solid #805075;
+    border-radius: 9px; background: #f3e5ef; color: #4b2944; font: 22px/1.2 Georgia, serif; box-shadow: 0 2px 5px #5e465313; }
+  .article-hit { position: absolute; transform: translate(-50%, -50%); width: 15px; height: 15px; }
+  .map-receipt { position: absolute; right: 18px; bottom: 16px; min-width: 145px; color:#252e28; background:#fffdf5; box-shadow: 0 4px 14px #3541311a, 0 0 0 1px #c4c5b9; }
+  .receipt-label { font-size: 12px; color: #596254; }
+  .receipt-value { font: 23px/1.15 Georgia, serif; }
+  .receipt-selection { display: flex; align-items: center; gap: 6px; font-size: 12px; padding-top: 3px; opacity: 0; transition: opacity .38s; }
+  .receipt-selection[data-show=true] { opacity: 1; }
+  .receipt-selection i { width: 6px; height: 6px; border-radius: 50%; background: #895a83; }
+  .ss-stage[data-layout=compact] .map-receipt { right: 12px; bottom: 10px; min-width: 112px; }
+  .ss-stage[data-layout=compact] .receipt-value { font-size: 18px; }
+}
+.sdk-film {
+  :is(.ss-window__bar, .handheld-bar) { color:#f2eedf; background:#29362e; border-color:#536153; }
+  .film-readout { color:#ccd4bd; }
+  :is(.ss-window__body, .film-body) { display:grid; grid-template-rows: 1fr auto; color:#f3efdf; background:#f2f0e5; }
+  .sdk-code { background:#19271e; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 13px; padding: 16px 26px; }
+  .ss-code { color:#edeedf; background:transparent; font: 16px/1.7 ui-monospace, monospace; width: 100%; }
+  .ss-code__key { color:#b4cca7; } .ss-code__str { color:#f0bb8b; } .ss-code__fn { color:#d3dcae; } .ss-code__num { color:#a2ad9e; }
+  .ss-button { color:#203025; background:#e1e8cf; border-color:transparent; --ss-icon:#2a402c; }
+  .query-output { color:#29332c; }
+  .output-bar { display:flex; align-items:center; justify-content:space-between; padding:12px 13px; border-block:1px solid #b6bdae; font-size:13px; font-weight:600; }
+  .output-bar span:last-child { font:12px/1.4 ui-monospace,monospace; color:#49574a; }
+  .result-rows { height:120px; --ss-radius-lg:0px; }
+  .ss-row { --ss-text:#273329; --ss-text-strong:#273329; --ss-text-faint:#536052; --ss-row-title:14px; --ss-row-meta:12px; }
+  .ss-row[data-selected] { background:#d3ddca; }
+  .ss-stage[data-layout=compact] .sdk-code { padding:13px 15px; gap:9px; }
+  .ss-stage[data-layout=compact] .ss-code { font-size:13px; }
+  .ss-stage[data-layout=compact] .output-bar { padding:11px 12px; }
+}
+.mcp-film {
+  :is(.ss-window__body, .film-body) { background:#e6eadf; color:#20291f; padding:18px 25px; }
+  .mcp-question { display:flex; gap:14px; align-items:center; justify-content:flex-end; margin-bottom:12px; }
+  .mcp-question > .ss-text { font-size:15px; }
+  .ss-button { --ss-accent:#314a38; --ss-accent-text:#fffaf0; background:#314a38; color:#fffaf0; }
+  .answer-sheet { background:#fffcf3; border:1px solid #bdc3b4; padding:20px 24px; }
+  .mcp-sheets { display:grid; }
+  .mcp-sheets > div { grid-area:1 / 1; align-self:start; transition:opacity .16s ease-out; }
+  .mcp-sheets > [data-show=true] { transition-delay:.17s; }
+  @media (prefers-reduced-motion: reduce) { .mcp-sheets > div { transition:none; } }
+  .request-sheet { padding:20px 24px; border:1px solid #bdc3b4; background:#f5f3e7; }
+  .request-field { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-top:13px; padding-block:5px; border-bottom:1px solid #c6cbbb; }
+  .request-field span { font-size:14px; color:#4b5948; }
+  .request-field strong { font:31px/1.15 Georgia,serif; }
+  .ss-stage[data-layout=compact] .request-sheet { padding:15px; }
+  .ss-stage[data-layout=compact] .request-field { margin-top:7px; padding-block:3px; }
+  .ss-stage[data-layout=compact] .request-field strong { font-size:25px; }
+  .tool-name, .evidence-source { display:flex; align-items:center; gap:8px; }
+  .tool-name { font:12px/1.4 ui-monospace, monospace; color:#42533f; }
+  .tool-name img { width:21px; height:21px; border-radius:3px; }
+  .answer-pair { font:48px/1.1 Georgia,serif; letter-spacing:-.055em; margin:12px 0 9px; }
+  .answer-pair span { color:#99532f; font-size:.75em; }
+  .answer-passage { max-width:52ch; min-height:2.8em; font:17px/1.45 Georgia,serif; }
+  .evidence-source { border-top:1px solid #c6cbbb; padding-top:10px; margin-top:13px; font-size:12px; color:#485740; transition:opacity .45s; }
+  [data-show=false] { opacity:0; }
+  .ss-stage[data-layout=compact] :is(.ss-window__body, .film-body) { padding:12px; }
+  .ss-stage[data-layout=compact] .mcp-question { gap:9px; }
+  .ss-stage[data-layout=compact] .mcp-question > .ss-text { font-size:13px; }
+  .ss-stage[data-layout=compact] .answer-sheet { padding:13px 15px; }
+  .ss-stage[data-layout=compact] .answer-pair { font-size:33px; margin:8px 0 6px; }
+  .ss-stage[data-layout=compact] .answer-passage { font-size:14px; }
+  .ss-stage[data-layout=compact] .evidence-source { margin-top:9px; padding-top:9px; font-size:11px; }
+}

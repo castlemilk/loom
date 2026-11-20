@@ -39,20 +39,19 @@ export default function FieldGuide() {
       <section className="guide-hero-surface" aria-labelledby="guide-title"><div className="guide-width guide-hero">
         <div className="guide-intro">
           <h1 id="guide-title">Interactive graphs<br />in <em>TypeScript.</em></h1>
-          <p>Draw a network in Graph Studio, embed it in your app, or let an assistant follow its connections back to the source.</p>
+          <p>Draw a graph in Studio, query it in TypeScript, or ask an assistant how two articles connect.</p>
           <div className="guide-actions">
             <a className="guide-primary" href={docsURL}>Build your first graph <span aria-hidden="true">→</span></a>
             <a className="guide-text-link" href={studioURL}>Open graph studio <span aria-hidden="true">↗</span></a>
           </div>
-          <nav className="hero-guides" aria-label="SDK shortcuts">
-            <a href={docsURL + 'editing/#export-a-graph-to-your-app'}>Export to code</a>
-            <a href={docsURL + 'atlas/'}>Stream clusters with SQLite</a>
-            <a href={apiURL}>API reference</a>
-          </nav>
         </div>
-        <ModelPlate nodes={model.nodes.length} links={model.links.length} />
+        <ComponentShowcase passage={wikiEvidence.links[music.edge][3]} source="https://dlab.epfl.ch/wikispeedia/wpcd/wp/m/Music.htm" />
+        <nav className="hero-guides" aria-label="SDK shortcuts">
+          <a href={docsURL + 'editing/#export-a-graph-to-your-app'}>Export to code</a>
+          <a href={docsURL + 'atlas/'}>Stream clusters with SQLite</a>
+          <a href={apiURL}>API reference</a>
+        </nav>
       </div></section>
-      <ComponentShowcase passage={wikiEvidence.links[music.edge][3]} />
       <section className="guide-examples" id="examples" aria-labelledby="examples-title">
         <div className="guide-width featured-studies">
           <h2 id="examples-title">Explore the graphs</h2>
@@ -104,13 +103,14 @@ export default function FieldGuide() {
               <a href={docsURL + 'ai-tooling/'}>Build an AI graph tool</a>
               <a href={docsURL + 'performance/'}>Measure graph performance</a>
               <a href={homeURL + sdk.filename} download>Download package <span aria-hidden="true">↓</span></a></div>
+            <div className="code-specimen"><div className="code-caption"><span>Mount the wire model</span><a href={modelURL} download>wire-model.json <span aria-hidden="true">↓</span></a></div>
+              <pre tabIndex={0} aria-label="TypeScript example"><code><b>import</b> {'{ createGraph }'} <b>from</b> <i>'loom-core'</i>{'\n'}
+                <b>import</b> model <b>from</b> <i>'./wire-model.json'</i>{'\n\n'}
+                <b>const</b> canvas = document.querySelector(<i>'canvas'</i>)!{'\n'}
+                createGraph(canvas, {'{'} ...model, mode: <i>'cloud'</i> {'}'})</code></pre>
+            </div>
           </div>
-          <div className="code-specimen"><div className="code-caption"><span>Mount the wire model</span><a href={modelURL} download>wire-model.json <span aria-hidden="true">↓</span></a></div>
-            <pre tabIndex={0} aria-label="TypeScript example"><code><b>import</b> {'{ createGraph }'} <b>from</b> <i>'loom-core'</i>{'\n'}
-              <b>import</b> model <b>from</b> <i>'./wire-model.json'</i>{'\n\n'}
-              <b>const</b> canvas = document.querySelector(<i>'canvas'</i>)!{'\n'}
-              createGraph(canvas, {'{'} ...model, mode: <i>'cloud'</i> {'}'})</code></pre>
-          </div>
+          <ModelPlate nodes={model.nodes.length} links={model.links.length} />
         </div>
       </section>
     </main>

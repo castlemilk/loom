@@ -4,11 +4,39 @@ import { fileURLToPath } from 'node:url'
 
 const shots = new URL('../artifacts/studio/', import.meta.url)
 
+async function dataSavingPlayback(context, home) {
+  const page = await context.newPage()
+  try {
+    await page.addInitScript(() => {
+      const connection = Object.assign(new EventTarget(), { saveData: true })
+      Object.defineProperty(navigator, 'connection', { configurable: true, value: connection })
+    })
+    let requests = 0
+    await page.route('**/showcase/*.mp4', route => ++requests === 1 ? route.abort('failed') : route.continue())
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto(home)
+    await page.getByRole('tab', { name: 'Graph MCP' }).click()
+    const panel = page.getByRole('tabpanel')
+    await panel.locator('img').evaluate(img => img.decode())
+    assert.equal(requests, 0)
+    assert.equal(await panel.locator('video').getAttribute('src'), null)
+    await panel.getByRole('button', { name: 'Play Graph MCP walkthrough' }).click()
+    await panel.getByRole('button', { name: 'Retry Graph MCP walkthrough' }).waitFor()
+    assert.equal(await panel.locator('video').getAttribute('data-visible'), 'false')
+    assert.ok(await panel.getByRole('link', { name: 'Explore Graph MCP' }).isVisible())
+    await panel.getByRole('button', { name: 'Retry Graph MCP walkthrough' }).click()
+    await panel.getByRole('button', { name: 'Pause Graph MCP walkthrough' }).waitFor()
+  } finally { await page.close() }
+}
+
 export async function graphMcpJourney(context, home, { touch = false, live = false } = {}) {
   const page = await context.newPage()
   const device = touch ? 'mobile' : 'desktop'
   const activate = element => touch ? element.tap() : element.click()
-  const failures = []
+  const failures = [], clips = []
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.endsWith('.mp4')) clips.push(new URL(request.url()).pathname)
+  })
   page.on('pageerror', e => failures.push(e.message))
   async function fits() {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), page.url() + ' exceeds viewport')
@@ -29,18 +57,62 @@ export async function graphMcpJourney(context, home, { touch = false, live = fal
     const connector = page.getByRole('tab', { name: /Graph MCP/ })
     const panel = page.getByRole('tabpanel')
     assert.equal(await studio.getAttribute('aria-selected'), 'true')
-    assert.ok(await panel.getByRole('link', { name: /Open the Bauhaus graph/ }).isVisible())
+    const movie = panel.locator('video')
+    const play = panel.getByRole('button', { name: 'Play Graph Studio walkthrough' })
+    const pause = panel.getByRole('button', { name: 'Pause Graph Studio walkthrough' })
+    const layout = touch ? 'compact' : 'wide'
+    assert.ok(await play.isVisible())
+    assert.ok(await panel.locator('img').evaluate((img, suffix) => img.currentSrc.endsWith(suffix), 'studio-' + layout + '.webp'))
+    assert.deepEqual(clips, [], 'Reduced motion should show the poster without fetching films')
+    await activate(play)
+    await pause.waitFor()
+    await page.waitForFunction(() => document.querySelector('#components video').currentTime > .1)
+    assert.ok(await movie.evaluate((v, suffix) => v.muted && v.playsInline && v.currentSrc.endsWith(suffix), 'studio-' + layout + '.mp4'))
+    await activate(pause)
+    const frozen = await movie.evaluate(v => v.currentTime)
+    await page.locator('.guide-footer').scrollIntoViewIfNeeded()
+    await movie.scrollIntoViewIfNeeded()
+    assert.equal(await movie.evaluate(v => v.currentTime), frozen)
+    await activate(play)
+    await pause.waitFor()
+    await page.locator('.guide-footer').scrollIntoViewIfNeeded()
+    await page.waitForFunction(() => document.querySelector('#components video').paused)
+    await movie.scrollIntoViewIfNeeded()
+    await pause.waitFor()
+    await movie.evaluate(v => { v.playbackRate = 8 })
+    const replay = panel.getByRole('button', { name: 'Replay Graph Studio walkthrough' })
+    await replay.waitFor()
+    await activate(replay)
+    await pause.waitFor()
+    assert.ok(await movie.evaluate(v => v.currentTime < v.duration))
+    assert.ok(clips.every(path => path.endsWith('studio-' + layout + '.mp4')), 'Only the visible chapter should be fetched')
+    await activate(panel.getByRole('link', { name: 'Open Music in Studio' }))
+    await page.getByRole('searchbox', { name: 'Find in Music' }).fill('Jazz')
+    await page.getByRole('group', { name: 'Articles in topic' }).getByRole('button', { name: 'Jazz', exact: true }).waitFor()
+    await page.goBack()
+    await studio.waitFor()
     if (touch) await activate(sdk)
     else {
       await studio.focus()
-      await studio.press('ArrowDown')
+      await studio.press('ArrowRight')
       assert.ok(await sdk.evaluate(el => el === document.activeElement))
     }
-    assert.match(await panel.textContent(), /createGraphIndex/)
+    await activate(panel.locator('summary'))
+    assert.match(await panel.locator('pre').innerText(), /createGraphIndex/)
+    const sdkLink = await panel.getByRole('link', { name: 'Read the SDK example' }).getAttribute('href')
+    const guide = await context.request.get(new URL(sdkLink, home).href)
+    assert.ok((await guide.text()).includes('id="inspect-a-connection"'))
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await panel.getByRole('button', { name: 'Pause TypeScript SDK walkthrough' }).waitFor()
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.waitForFunction(() => !document.querySelector('#components video').hasAttribute('src'))
     if (touch) await activate(connector)
     else await sdk.press('End')
     assert.equal(await connector.getAttribute('aria-selected'), 'true')
     assert.match(await panel.locator('blockquote').textContent(), /audible sounds/)
+    await activate(panel.locator('summary'))
+    assert.ok(await panel.getByRole('link', { name: /2007 Schools Wikipedia source/ }).isVisible())
+    await activate(panel.locator('summary'))
     await fits()
     await capture('component-showcase', page.locator('#components'))
     await activate(panel.getByRole('link', { name: 'Explore Graph MCP' }))
@@ -99,6 +171,7 @@ export async function graphMcpJourney(context, home, { touch = false, live = fal
     assert.ok((await context.request.head(new URL(download, home).href)).ok())
     await fits()
     assert.deepEqual(failures, [])
+    if (!touch) await dataSavingPlayback(context, home)
     return { device, visited: target.label, archive: packageURL.pathname.split('/').at(-1) }
   } finally { await page.close() }
 }
