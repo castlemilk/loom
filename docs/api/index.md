@@ -171,6 +171,42 @@ value sketchbook
 value wireEffectsSchema
 ```
 
+### loom-core/scene
+
+```text
+type GraphScene
+type SceneCaptureOptions
+captureScene<D extends GraphData>(data: D, options?: SceneCaptureOptions<D['nodes'][number], D['links'][number]>): GraphScene<D['nodes'][number], D['links'][number]> & { data: D; }
+mountScene<N extends GraphNode, E extends GraphLink>(canvas: HTMLCanvasElement, scene: GraphScene<N, E>, options?: Pick<GraphOptions, 'workerURL' | 'sim' | 'reducedMotion'>): WireGraph<N, E>
+  .destroy(): void
+  .fit(immediate?: boolean): void
+  .focus(id: string): void
+  .getDrawingStyle(): Readonly<DrawingStyle>
+  .getFrame(): GraphFrame
+  .getPosition(id: string): { x: number; y: number; z: number; pinned: boolean; }
+  .getViewport(): GraphViewport
+  .getWireEffects(): Readonly<WireEffects>
+  .invalidate(): void
+  .on<K extends keyof GraphEvents>(type: K, listener: (value: GraphEvents[K]) => void): () => void
+  .onFrame(listener: (frame: GraphFrame) => void): () => void
+  .onTiming(probe: FrameProbe): () => void
+  .pause(): void
+  .pin(id: string, position?: { x: number; y: number; z?: number; }): void
+  .reset(): void
+  .resize(): void
+  .resume(): void
+  .screenToWorld(x: number, y: number, depth?: number): { x: number; y: number; z: number; }
+  .select(id: string | null): void
+  .setDrawingStyle(patch: Partial<DrawingStyle>): void
+  .setLayout(options: LayoutOptions<N>): void
+  .setMode(mode: Mode): void
+  .setTheme(theme: Theme<N, E>): void
+  .setViewport(viewport: GraphViewport): void
+  .setWireEffects(patch: Partial<WireEffects>): void
+  .stats(): GraphStats
+  .unpin(id: string): void
+```
+
 ### loom-core/console
 
 ```text

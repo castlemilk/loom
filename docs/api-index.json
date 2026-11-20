@@ -879,6 +879,203 @@
       ]
     },
     {
+      "name": "loom-core/scene",
+      "declaration": "dist/scene.d.ts",
+      "exports": [
+        {
+          "name": "GraphScene",
+          "kind": "type",
+          "summary": "A portable graph and its canvas appearance. Node and link records retain their application fields.",
+          "declaration": "interface GraphScene<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> {\n    version: 1;\n    data: GraphData<N, E>;\n    mode?: Mode;\n    layout?: Omit<LayoutOptions, 'laneBy' | 'anchor'>;\n    theme?: SceneTheme;\n    drawingStyle?: Partial<DrawingStyle>;\n    wireEffects?: Partial<WireEffects>;\n    lanes?: Table<string>;\n    anchors?: Table<Anchor>;\n    nodeStyles?: Table<NodeStyle>;\n    /** Keys are link indices so parallel and anonymous edges retain their individual styling. */\n    linkStyles?: Table<WireStyle>;\n    /** Each resolved image URL is stored once, even when many nodes share a data URL. */\n    artwork?: {\n        urls: readonly string[];\n        byNode: Table<number>;\n    };\n    positions?: Table<Position>;\n    viewport?: GraphViewport;\n    selected?: string;\n}"
+        },
+        {
+          "name": "SceneCaptureOptions",
+          "kind": "type",
+          "declaration": "interface SceneCaptureOptions<N extends GraphNode = GraphNode, E extends GraphLink = GraphLink> extends Pick<GraphOptions<N, E>, 'layout' | 'theme' | 'art' | 'mode'> {\n    drawingStyle?: Partial<DrawingStyle>;\n    wireEffects?: Partial<WireEffects>;\n    /** Capture live coordinates, pin states and the camera from the graph showing these records. */\n    graph?: Pick<LoomGraph, 'getPosition' | 'getViewport'>;\n    selected?: string | null;\n}"
+        },
+        {
+          "name": "captureScene",
+          "kind": "function",
+          "summary": "Sample layout and appearance callbacks once, so a JSON consumer never needs the author's code.",
+          "signatures": [
+            "captureScene<D extends GraphData>(data: D, options?: SceneCaptureOptions<D['nodes'][number], D['links'][number]>): GraphScene<D['nodes'][number], D['links'][number]> & { data: D; }"
+          ]
+        },
+        {
+          "name": "mountScene",
+          "kind": "function",
+          "summary": "Render a saved scene in a sized canvas. The caller owns the returned graph and calls destroy() on unmount.",
+          "signatures": [
+            "mountScene<N extends GraphNode, E extends GraphLink>(canvas: HTMLCanvasElement, scene: GraphScene<N, E>, options?: Pick<GraphOptions, 'workerURL' | 'sim' | 'reducedMotion'>): WireGraph<N, E>"
+          ],
+          "methods": [
+            {
+              "name": "destroy",
+              "signatures": [
+                "destroy(): void"
+              ]
+            },
+            {
+              "name": "fit",
+              "signatures": [
+                "fit(immediate?: boolean): void"
+              ]
+            },
+            {
+              "name": "focus",
+              "signatures": [
+                "focus(id: string): void"
+              ]
+            },
+            {
+              "name": "getDrawingStyle",
+              "signatures": [
+                "getDrawingStyle(): Readonly<DrawingStyle>"
+              ]
+            },
+            {
+              "name": "getFrame",
+              "signatures": [
+                "getFrame(): GraphFrame"
+              ]
+            },
+            {
+              "name": "getPosition",
+              "signatures": [
+                "getPosition(id: string): { x: number; y: number; z: number; pinned: boolean; }"
+              ]
+            },
+            {
+              "name": "getViewport",
+              "signatures": [
+                "getViewport(): GraphViewport"
+              ]
+            },
+            {
+              "name": "getWireEffects",
+              "signatures": [
+                "getWireEffects(): Readonly<WireEffects>"
+              ]
+            },
+            {
+              "name": "invalidate",
+              "signatures": [
+                "invalidate(): void"
+              ]
+            },
+            {
+              "name": "on",
+              "signatures": [
+                "on<K extends keyof GraphEvents>(type: K, listener: (value: GraphEvents[K]) => void): () => void"
+              ]
+            },
+            {
+              "name": "onFrame",
+              "signatures": [
+                "onFrame(listener: (frame: GraphFrame) => void): () => void"
+              ]
+            },
+            {
+              "name": "onTiming",
+              "signatures": [
+                "onTiming(probe: FrameProbe): () => void"
+              ]
+            },
+            {
+              "name": "pause",
+              "signatures": [
+                "pause(): void"
+              ]
+            },
+            {
+              "name": "pin",
+              "signatures": [
+                "pin(id: string, position?: { x: number; y: number; z?: number; }): void"
+              ]
+            },
+            {
+              "name": "reset",
+              "signatures": [
+                "reset(): void"
+              ]
+            },
+            {
+              "name": "resize",
+              "signatures": [
+                "resize(): void"
+              ]
+            },
+            {
+              "name": "resume",
+              "signatures": [
+                "resume(): void"
+              ]
+            },
+            {
+              "name": "screenToWorld",
+              "signatures": [
+                "screenToWorld(x: number, y: number, depth?: number): { x: number; y: number; z: number; }"
+              ]
+            },
+            {
+              "name": "select",
+              "signatures": [
+                "select(id: string | null): void"
+              ]
+            },
+            {
+              "name": "setDrawingStyle",
+              "signatures": [
+                "setDrawingStyle(patch: Partial<DrawingStyle>): void"
+              ]
+            },
+            {
+              "name": "setLayout",
+              "signatures": [
+                "setLayout(options: LayoutOptions<N>): void"
+              ]
+            },
+            {
+              "name": "setMode",
+              "signatures": [
+                "setMode(mode: Mode): void"
+              ]
+            },
+            {
+              "name": "setTheme",
+              "signatures": [
+                "setTheme(theme: Theme<N, E>): void"
+              ]
+            },
+            {
+              "name": "setViewport",
+              "signatures": [
+                "setViewport(viewport: GraphViewport): void"
+              ]
+            },
+            {
+              "name": "setWireEffects",
+              "signatures": [
+                "setWireEffects(patch: Partial<WireEffects>): void"
+              ]
+            },
+            {
+              "name": "stats",
+              "signatures": [
+                "stats(): GraphStats"
+              ]
+            },
+            {
+              "name": "unpin",
+              "signatures": [
+                "unpin(id: string): void"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "loom-core/console",
       "declaration": "dist/console.d.ts",
       "exports": [
