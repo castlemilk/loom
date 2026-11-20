@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'playwright/test'
 
 const port = process.env.LOOM_DEV_TEST_PORT || '4289'
-const baseURL = 'http://127.0.0.1:' + port + (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
+const baseURL = 'http://localhost:' + port + (process.env.PAGES_BASE_PATH ?? '/loom') + '/'
 
 export default defineConfig({
   testMatch: 'studio-dev.spec.mjs',
@@ -10,7 +10,11 @@ export default defineConfig({
   reporter: 'list',
   timeout: 60_000,
   expect: { timeout: 15_000 },
-  use: { baseURL, channel: process.env.LOOM_BROWSER_CHANNEL },
+  use: {
+    baseURL,
+    channel: process.env.LOOM_BROWSER_CHANNEL,
+    launchOptions: { args: ['--enable-unsafe-swiftshader'] },
+  },
   webServer: {
     command: 'npm run site:dev',
     cwd: fileURLToPath(new URL('../', import.meta.url)),
