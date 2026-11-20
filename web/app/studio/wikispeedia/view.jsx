@@ -74,6 +74,7 @@ export default function Wikispeedia() {
         'on-demand': () =>
           createSQLiteAtlasReader({
             database: base + manifest.database,
+            databaseBytes: manifest.databaseBytes,
             worker: runtime + 'sqlite.worker.js',
             wasm: runtime + 'sql-wasm.wasm',
             pageSize: manifest.pageSize,

@@ -10,6 +10,8 @@ interface SqlWorker {
 }
 export interface AtlasSQLiteOptions {
   database: string | URL
+  /** Uncompressed database size. Supply this when the host may compress HEAD responses. */
+  databaseBytes?: number
   worker: string | URL
   wasm: string | URL
   pageSize: number
@@ -17,6 +19,13 @@ export interface AtlasSQLiteOptions {
 
 /** Range-read the atlas schema in a dedicated SQLite/WASM worker. No worker or WASM is loaded until read(). */
 export function createSQLiteAtlasReader(options: AtlasSQLiteOptions): AtlasReader {
+  if (
+    options.databaseBytes !== undefined &&
+    (!Number.isSafeInteger(options.databaseBytes) ||
+      options.databaseBytes <= 0 ||
+      options.databaseBytes % options.pageSize !== 0)
+  )
+    throw new RangeError('Atlas database length must be a positive whole number of SQLite pages')
   let worker: Worker | undefined, ready: Promise<Database> | undefined
   let remote: SqlWorker | undefined,
     closed = false
@@ -53,11 +62,27 @@ export function createSQLiteAtlasReader(options: AtlasSQLiteOptions): AtlasReade
     )
     remote = wrap<SqlWorker>(worker) as SqlWorker
     const absolute = (url: string | URL) => new URL(url, location.href).href
+    const database = new URL(absolute(options.database))
+    // httpvfs accepts a known length in its chunked configuration. Treat the file
+    // as one server chunk. Its virtual chunk number goes in the URL fragment so
+    // every ranged GET uses the original path and query, including signed URLs.
+    database.hash = ''
+    const config =
+      options.databaseBytes === undefined
+        ? { serverMode: 'full', url: database.href, requestChunkSize: options.pageSize }
+        : {
+            serverMode: 'chunked',
+            urlPrefix: database.href + '#part=',
+            suffixLength: 1,
+            serverChunkSize: options.databaseBytes,
+            databaseLengthBytes: options.databaseBytes,
+            requestChunkSize: options.pageSize,
+          }
     ready = remote.SplitFileHttpDatabase(absolute(options.wasm), [
       {
         from: 'inline',
         virtualFilename: 'graph.sqlite',
-        config: { serverMode: 'full', requestChunkSize: options.pageSize, url: absolute(options.database) },
+        config,
       },
     ])
     return ready

@@ -40,7 +40,15 @@ export async function studioProgressive(context, home, touch = false) {
   context.on('response', record)
   const click = (target) => (touch ? target.tap() : target.click())
   const button = (name) => page.getByRole('button', { name, exact: true })
-  const loaded = (n) => page.locator('[data-loaded="' + n + '"]').waitFor()
+  const loaded = async (n) => {
+    const error = page.locator('.atlas-side [role="alert"]')
+    await page
+      .locator('[data-loaded="' + n + '"]')
+      .or(error)
+      .first()
+      .waitFor()
+    if (await error.isVisible()) throw new Error('Atlas reader: ' + (await error.innerText()))
+  }
   const visible = (n) => page.locator('[data-visible-articles="' + n + '"]').waitFor()
   const reads = () => page.locator('[data-read-bytes]').evaluate((el) => Number(el.dataset.readBytes))
   let mathBytes, fullBytes

@@ -58,7 +58,7 @@ const base = new URL('./examples/wikispeedia/', siteURL)
 const manifest = await (await fetch(new URL('manifest.json', base))).json()
 const atlas = createAtlas(manifest, {
   'on-demand': () => createSQLiteAtlasReader({
-    database: new URL(manifest.database, base), pageSize: manifest.pageSize,
+    database: new URL(manifest.database, base), databaseBytes: manifest.databaseBytes, pageSize: manifest.pageSize,
     worker: new URL('sqlite.worker.js', runtimeURL), wasm: new URL('sql-wasm.wasm', runtimeURL),
   }),
   full: () => createFullAtlasReader(new URL(manifest.full, base)),
@@ -73,7 +73,7 @@ map.destroy()
 atlas.close()
 ```
 
-Host the two files from `loom-core/atlas-runtime/` together under `runtimeURL` on the page’s origin. Serve the SQLite file with byte-range support and identity encoding. A custom `AtlasReader` can supply the same topic blocks from another source. Its article IDs occupy each manifest topic’s contiguous range starting at `first`. Each block owns its articles’ outgoing edges, including links into other topics. [SQLite HTTP reader](https://github.com/phiresky/sql.js-httpvfs)
+Host the two files from `loom-core/atlas-runtime/` together under `runtimeURL` on the page’s origin. The server must return byte ranges from the uncompressed SQLite file. Pass its published `databaseBytes` so the reader knows its actual size even when a CDN compresses ordinary GET or HEAD responses. A custom `AtlasReader` can supply the same topic blocks from another source. Its article IDs occupy each manifest topic’s contiguous range starting at `first`. Each block owns its articles’ outgoing edges, including links into other topics. [SQLite HTTP reader](https://github.com/phiresky/sql.js-httpvfs)
 
 ### Relationship cards
 

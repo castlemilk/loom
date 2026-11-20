@@ -1,8 +1,10 @@
 import { createReadStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
+import { gzip } from 'node:zlib'
 
 const root = fileURLToPath(new URL('../web/out/', import.meta.url))
 const types = {
@@ -20,6 +22,8 @@ const types = {
 
 // Serve the exported site with the same single-range GETs used by the SQLite worker on Pages.
 export async function serveExport(base = '/loom/', port = 0) {
+  const compressed = new Map()
+  const encode = promisify(gzip)
   const server = createServer(async (req, res) => {
     try {
       const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname)
@@ -42,6 +46,22 @@ export async function serveExport(base = '/loom/', port = 0) {
         'Accept-Ranges': 'bytes',
         'Content-Length': size,
         'Content-Type': types[extname(file)] || 'application/octet-stream',
+      }
+      // Pages negotiates a compressed representation on ordinary HEAD/GET, but
+      // browsers request identity encoding for SQLite byte ranges.
+      if (extname(file) === '.sqlite') {
+        headers.Vary = 'Accept-Encoding'
+        if (!req.headers.range && /\bgzip\b/.test(req.headers['accept-encoding'] ?? '')) {
+          if (!compressed.has(file))
+            compressed.set(
+              file,
+              readFile(file).then((bytes) => encode(bytes)),
+            )
+          const encoded = await compressed.get(file)
+          res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip', 'Content-Length': encoded.length })
+          res.end(req.method === 'HEAD' ? undefined : encoded)
+          return
+        }
       }
       let slice
       if (req.headers.range) {
