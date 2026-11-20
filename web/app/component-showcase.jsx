@@ -13,7 +13,7 @@ const parts = [
     alt: 'The get_connection tool returns the passage where Music links to Sound and identifies the archived source.' },
 ]
 
-// Match the two-column hero on tablets as well as the single-column phone layout.
+// Match the two-column walkthrough section as well as the single-column phone layout.
 const compactMedia = '(max-width: 600px), (min-width: 901px) and (max-width: 1100px)'
 const mediaURL = (id, layout, extension) => homeURL + 'showcase/' + id + '-' + layout + '.' + extension
 const sdkExample = `const index = createGraphIndex(graph)
@@ -115,7 +115,7 @@ function TourPlayer({ part, passage, source }) {
   return <>
     <div className="tour-viewport">
       <picture><source media={compactMedia} srcSet={mediaURL(part.id, 'compact', 'webp')} />
-        <img src={mediaURL(part.id, 'wide', 'webp')} alt={part.alt} width="704" height="392" fetchPriority={part.id === 'studio' ? 'high' : 'auto'} /></picture>
+        <img src={mediaURL(part.id, 'wide', 'webp')} alt={part.alt} width="704" height="392" loading="lazy" /></picture>
       <video ref={video} muted playsInline preload="none" aria-hidden="true" data-visible={showFrame}
         onPlaying={() => { setStatus('playing'); setShowFrame(true) }} onPause={event => {
           if (event.currentTarget.currentSrc && !event.currentTarget.ended && !event.currentTarget.error) setStatus('paused')

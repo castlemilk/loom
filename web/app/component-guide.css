@@ -20,20 +20,13 @@
   border: 1px solid var(--ink); border-radius: 3px; font-weight: 650; font-size: 14px; }
 .mast-launch:hover { background: var(--ink); color: var(--paper); }
 .guide-mast { background: var(--paper); }
-.guide-hero-surface, .mcp-intro { background: var(--pine); color: var(--on-pine); }
-.guide-hero-surface .guide-hero { padding-block: clamp(35px, 4.7vw, 75px); row-gap: 0; grid-template-columns: minmax(0,.81fr) minmax(0,1.19fr); }
-.guide-hero-surface .landing-tour { grid-column: 2; grid-row: 1 / 3; }
-.guide-hero-surface .guide-intro { align-self: end; }
-.guide-hero-surface .hero-guides { align-self: start; }
-.guide-hero-surface .guide-intro h1 { font-size: clamp(61px,7vw,108px); line-height: .92; }
-.guide-hero-surface .guide-intro em, .mcp-intro em { color: var(--copper-light); }
-.guide-hero-surface .guide-intro p, .mcp-intro p { color: var(--on-pine-muted); }
-.guide-hero-surface .guide-primary, .mcp-intro .guide-primary { background: var(--on-pine); color: var(--pine-deep) !important; }
-.guide-hero-surface .guide-primary:hover, .mcp-intro .guide-primary:hover { background: #f1d9bf; }
-.guide-hero-surface .hero-guides { border-top: 1px solid #526456; padding-top: 13px; margin-top: clamp(20px, 2vw, 32px); width: fit-content; }
-.guide-hero-surface .hero-guides a { color: var(--on-pine-muted); text-decoration-color: #829681; }
-.guide-hero-surface .guide-text-link:hover, .mcp-intro .guide-text-link:hover { color: var(--copper-light); }
-.guide-hero-surface :is(a,button,canvas):focus-visible, .mcp-intro a:focus-visible { outline-color: var(--copper-light); }
+.mcp-intro { background: var(--pine); color: var(--on-pine); }
+.mcp-intro em { color: var(--copper-light); }
+.mcp-intro p { color: var(--on-pine-muted); }
+.mcp-intro .guide-primary { background: var(--on-pine); color: var(--pine-deep) !important; }
+.mcp-intro .guide-primary:hover { background: #f1d9bf; }
+.mcp-intro .guide-text-link:hover { color: var(--copper-light); }
+.mcp-intro a:focus-visible { outline-color: var(--copper-light); }
 .mcp-section { padding-block: var(--section-space); }
 .mcp-section h2, .mcp-install-grid h2 { max-width: 18ch; }
 .mcp-config figcaption { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -95,8 +88,7 @@
   .guide-mast .guide-nav { grid-column: 1/-1; grid-row: 2; justify-content: space-between; gap: 5px; border-top: var(--guide-rule); }
   .guide-mast .guide-nav a { font-size: 13px; }
   .field-guide .mast-launch { grid-row: 1; grid-column: 2; min-height: 36px; margin-bottom: 5px; }
-  .guide-hero-surface .guide-hero, .mcp-install-grid { grid-template-columns: minmax(0,1fr); }
-  .guide-hero-surface .guide-intro h1 { font-size: clamp(56px,10.5vw,75px); }
+  .mcp-install-grid { grid-template-columns: minmax(0,1fr); }
   .section-heading { display: grid; gap: 7px; }
   .mcp-intro-inner { grid-template-columns: minmax(0,1fr) 64px; align-items: start; gap: 14px; }
   .mcp-mark-plate { margin-top: 32px !important; }
@@ -114,15 +106,4 @@
   .mcp-intro-inner { display: block; position: relative; }
   .mcp-mark-plate { position: absolute; top: 24px; right: 0; width: 44px; margin: 0 !important; }
   .mcp-reference dl > div { grid-template-columns: 1fr; gap: 4px; }
-}
-
-@media (max-width: 900px) {
-  .guide-hero-surface .guide-hero { grid-template-columns: minmax(0, 1fr); gap: 22px; padding-block: 28px; }
-  .guide-hero-surface .landing-tour { grid-area: auto; }
-  .guide-hero-surface .hero-guides { margin-top: 0; padding-top: 0; border: 0; }
-}
-@media (max-width: 600px) {
-  .guide-hero-surface .guide-actions { gap: 0 12px; margin-top: 14px; }
-  .guide-hero-surface .guide-actions :is(.guide-primary,.guide-text-link) { font-size: 13px; }
-  .guide-hero-surface .guide-primary { gap: 8px; padding-inline: 11px; }
 }

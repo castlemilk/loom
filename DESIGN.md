@@ -23,7 +23,9 @@ The wire-study still uses two WebP widths, 640 and 1280 pixels, in a 3:2 frame. 
 
 ## Components and navigation
 
-The landing page shows one Wikispeedia graph through three components. In the Studio walkthrough, opening Music reveals its articles and selecting Jazz inspects it. The SDK runs a neighbor query on Music and scrolls to Sound in the Science topic. Graph MCP traces the link from Music to Sound to its archived passage. Each chapter has a text version and a link into the corresponding product. On phones the scenes recompose around the action. The wire model sits beside the code that mounts it in “Build with Loom.” The [walkthrough rehearsal](web/showcase/REHEARSAL.md) records the source, playback checks and regeneration command.
+The landing page opens on an optical bench. A glass prism stands for the archived Light article. Three incoming articles and three outgoing articles form nine paths across topics. The selected path lights up, and each of its two links opens the passage that contains the original hyperlink. The website build uses the SDK index and Graph MCP evidence reader to extract just those six links. The image is an original generated illustration. Keep the actual targets and labels in HTML so keyboard and touch readers can trace the same path.
+
+Below the bench, the Studio walkthrough opens Music and inspects Jazz. The SDK runs a neighbor query on Music and scrolls to Sound in the Science topic. Graph MCP traces the link from Music to Sound to its archived passage. Each chapter has a text version and a link into the corresponding product. On phones the scenes recompose around the action. The wire model sits beside the code that mounts it in “Build with Loom.” The [walkthrough rehearsal](web/showcase/REHEARSAL.md) records the source, playback checks and regeneration command.
 
 The shared masthead keeps the Loom mark at the left, reading and component links in the middle, and the Studio action at the right. On phones the action stays beside the wordmark and the four links occupy their own row. Keyboard focus and the current location remain visible. The component selector supports arrow keys, Home and End.
 

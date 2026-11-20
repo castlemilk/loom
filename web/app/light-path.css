@@ -1,0 +1,125 @@
+.light-study {
+  --bench: #142125;
+  --light-ink: #f5f3e8;
+  --light-muted: #bbc9c5;
+  --light-rule: #495a5a;
+  --path-type: clamp(72px, 7.5vw, 119px);
+  background: var(--bench);
+  color: var(--light-ink);
+}
+.light-spread {
+  display: grid;
+  grid-template-columns: minmax(0, .71fr) minmax(0, 1.29fr);
+  grid-template-areas: "intro map" "actions reader";
+  gap: 20px clamp(30px, 4.3vw, 76px);
+  align-items: end;
+  padding-block: clamp(36px, 4.8vw, 80px) clamp(36px, 4.2vw, 70px);
+}
+.light-intro { grid-area: intro; align-self: center; }
+.light-product, .map-directions {
+  font: 500 12px/1.4 var(--measure);
+  letter-spacing: .035em;
+  color: var(--light-muted);
+}
+.light-product { display: block; margin-bottom: clamp(20px, 2.2vw, 35px); }
+.light-title { display: block; }
+.light-name, .light-destination {
+  display: block;
+  font-size: var(--path-type);
+  letter-spacing: -.048em;
+  line-height: calc(var(--path-type) * .92);
+}
+.light-name[data-long=true], .light-destination[data-long=true] { font-size: clamp(58px, 6vw, 96px); }
+.light-destination em { color: #ffb18e; }
+.light-intro > p { margin-top: clamp(18px, 2vw, 30px); max-width: 36ch; color: var(--light-muted); font-size: clamp(16px, 1.27vw, 19px); }
+.light-intro strong { color: var(--light-ink); font-weight: 600; }
+.light-study .light-actions { grid-area: actions; align-self: start; margin-top: 0; gap: 3px 19px; }
+.light-actions .guide-primary { background: var(--light-ink); color: var(--bench) !important; }
+.light-actions .guide-primary:hover { background: #ffe0c9; }
+.light-study :is(a, button):focus-visible { outline-color: #ffd8a5; }
+.light-study .guide-text-link:hover, .light-study .passage-source a:hover { color: #ffbc99; }
+.light-map { grid-area: map; width: 100%; align-self: stretch; display: flex; flex-direction: column; }
+.map-directions { display: flex; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--light-rule); }
+.optical-bench { position: relative; flex: 1; min-height: clamp(235px, 21vw, 350px); }
+.optical-bench svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.ray-line { fill: none; stroke: #71847f; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.path-ray[data-lit=true] .ray-line { stroke: var(--ray); stroke-width: 2; }
+.ray-hit { fill: none; stroke: transparent; stroke-width: 20; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer; }
+.path-ray:hover .ray-line { stroke: var(--ray); }
+.path-article {
+  position: absolute;
+  transform: translate(-50%, -6px);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 7px;
+  min-width: 44px;
+  min-height: 44px;
+  padding-inline: 2px;
+  color: var(--light-muted) !important;
+  font: 400 clamp(18px, 1.75vw, 29px)/1.05 var(--guide-serif), Georgia, serif;
+}
+.article-pin { display: block; flex: none; width: 12px; height: 12px; border: 1.5px solid #a7b7b0; border-radius: 50%; background: var(--bench); }
+.path-article[data-upper=true] { transform: translate(-50%, calc(-100% + 6px)); flex-direction: column-reverse; }
+.path-article[aria-current] { color: var(--light-ink) !important; }
+.path-article[aria-current] .article-pin { border: 3px solid var(--bench); background: var(--ray); outline: 1.5px solid var(--ray); }
+.path-article:hover span:last-child, .light-hub:hover span { text-decoration: underline; text-underline-offset: 4px; }
+.light-hub { position: absolute; width: 31%; max-width: 258px; transform: translate(-50%, -50%); }
+.light-hub img { display: block; width: 100%; height: auto; }
+.light-hub span { position: absolute; top: 92%; left: 44%; transform: translateX(-50%); font: italic 400 clamp(32px, 3.05vw, 50px)/1 var(--guide-serif), Georgia, serif; }
+.light-reader { grid-area: reader; align-self: start; min-width: 0; border-top: 1px solid var(--light-rule); }
+.passage-steps { display: flex; flex-wrap: wrap; column-gap: 22px; }
+.passage-steps a { display: inline-flex; align-items: center; min-height: 44px; font: 550 13px/1.4 system-ui, sans-serif; color: var(--light-muted); }
+.passage-steps :is([aria-current], a:hover) { color: var(--light-ink); text-decoration: underline; text-underline-offset: 5px; }
+.light-evidence blockquote {
+  margin: 0;
+  max-width: 62ch;
+  font: 400 clamp(21px, 1.8vw, 28px)/1.22 var(--guide-serif), Georgia, serif;
+}
+.light-evidence mark { background: transparent; color: #ffbc99; }
+.passage-source { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0 16px; margin-top: 7px; }
+.passage-source a { display: inline-flex; align-items: center; gap: 5px; min-height: 38px; font-size: 12px; color: var(--light-muted); text-underline-offset: 4px; }
+.passage-source a:last-child { color: var(--light-ink); text-decoration: underline; }
+.guide-tour-section { background: var(--paper); }
+.tour-spread { display: grid; grid-template-columns: minmax(0, .81fr) minmax(0, 1.19fr); align-items: center; gap: clamp(30px, 4.4vw, 72px); padding-block: var(--section-space); }
+.tour-intro h2 { max-width: 11ch; }
+.tour-intro h2 em { color: var(--copper); }
+.tour-intro > p { margin-top: 17px; max-width: 38ch; color: var(--muted); }
+.tour-intro .hero-guides { max-width: 39ch; padding-top: 9px; border-top: var(--guide-rule); }
+@media (max-width: 900px) {
+  .light-study { --path-type: clamp(54px, 7.6vw, 70px); }
+  .light-spread { grid-template-columns: minmax(0, .77fr) minmax(0, 1.23fr); gap: 16px 28px; }
+  .light-name[data-long=true], .light-destination[data-long=true] { font-size: clamp(43px, 6.1vw, 57px); }
+  .tour-spread { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+}
+@media (max-width: 700px) {
+  .light-study { --path-type: clamp(44px, 10.6vw, 69px); }
+  .light-spread { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "map" "reader" "actions"; gap: 15px; padding-block: 24px 28px; }
+  .light-product { font-size: 11px; margin-bottom: 10px; }
+  .light-title { display: flex; align-items: baseline; gap: .15em; height: 1.12em; font-size: var(--path-type); }
+  .light-name, .light-destination { white-space: nowrap; line-height: 1.12; }
+  .light-title:has([data-long=true]) > span { font-size: clamp(32px, 9vw, 56px); }
+  .light-intro > p { margin-top: 10px; font-size: 15px; max-width: 47ch; }
+  .map-directions { font-size: 11px; padding-block: 4px 8px; }
+  .optical-bench { min-height: clamp(190px, 48vw, 250px); }
+  .path-article { font-size: clamp(17px, 4.5vw, 23px); }
+  .light-hub { width: 31%; }
+  .light-hub span { font-size: clamp(29px, 6vw, 38px); }
+  .passage-source { gap: 0 12px; }
+  .passage-source a { min-height: 36px; }
+  .light-study .light-actions { gap: 0 14px; }
+  .light-actions :is(.guide-primary, .guide-text-link) { font-size: 13px; }
+  .light-actions .guide-primary { gap: 8px; padding-inline: 11px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ray-line, .article-pin { transition: stroke .18s, background-color .18s; }
+}
+@media (forced-colors: active) {
+  .path-ray > path { display: none; }
+  .ray-line { stroke: GrayText; }
+  .path-ray[data-lit=true] .ray-line { stroke: LinkText; }
+  .ray-hit { forced-color-adjust: none; }
+  .path-article[aria-current] .article-pin { background: Highlight; outline-color: Highlight; }
+  .path-article[aria-current] span:last-child { text-decoration: underline; }
+}

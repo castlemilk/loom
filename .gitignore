@@ -3,5 +3,6 @@ dist/
 .test-build/
 artifacts/
 .agents/skills/stageshow/
+.agents/skills/antialgorithm/
 generated_images/
 .DS_Store

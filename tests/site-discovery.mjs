@@ -9,6 +9,11 @@ export async function searchPages(browser, home) {
   try {
     await page.goto(home)
     await page.getByRole('heading', { level: 1, name: /Interactive graphs.*TypeScript/ }).waitFor()
+    const bench = page.getByRole('group', { name: 'Wikipedia paths through Light' })
+    assert.equal(await bench.getByRole('link').count(), 7)
+    assert.match(await page.locator('#light-path blockquote').innerText(), /rainbows/)
+    const archivedEdge = bench.getByRole('link', { name: 'Trace Saffron to Light' })
+    assert.equal(new URL(await archivedEdge.getAttribute('href'), base).searchParams.get('edge'), '4502:2557')
     const library = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent())
     assert.equal(library['@type'], 'SoftwareSourceCode')
     assert.equal(library.codeRepository, 'https://github.com/castlemilk/loom')

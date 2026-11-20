@@ -5,6 +5,8 @@ import model from '../public/examples/wire-model.json'
 import { ModelPlate } from './model-plate'
 import { GuideFrame } from './guide-frame'
 import { ComponentShowcase } from './component-showcase'
+import { LightPath } from './light-path'
+import lightStudy from '../.generated/light-study.json'
 import wikiEvidence from '../public/examples/wikispeedia/evidence/1-9.json'
 import atlases from '../../demo/atlases/catalog.json'
 import sdk from '../.generated/sdk-package.json'
@@ -36,21 +38,18 @@ export default function FieldGuide() {
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(library).replace(/</g, '\\u003c') }} />
     <GuideFrame>
     <main id="guide-main">
-      <section className="guide-hero-surface" aria-labelledby="guide-title"><div className="guide-width guide-hero">
-        <div className="guide-intro">
-          <h1 id="guide-title">Interactive graphs<br />in <em>TypeScript.</em></h1>
-          <p>Draw a graph in Studio, query it in TypeScript, or ask an assistant how two articles connect.</p>
-          <div className="guide-actions">
-            <a className="guide-primary" href={docsURL}>Build your first graph <span aria-hidden="true">→</span></a>
-            <a className="guide-text-link" href={studioURL}>Open graph studio <span aria-hidden="true">↗</span></a>
-          </div>
+      <LightPath study={lightStudy} />
+      <section className="guide-tour-section" aria-labelledby="tour-title"><div className="guide-width tour-spread">
+        <div className="tour-intro">
+          <h2 id="tour-title">Inside the <em>Music</em> cluster.</h2>
+          <p>Open Music in Studio to find Jazz. Query its neighbors in TypeScript, then ask Graph MCP for the sentence where Music links to Sound.</p>
+          <nav className="hero-guides" aria-label="SDK shortcuts">
+            <a href={docsURL + 'editing/#export-a-graph-to-your-app'}>Export to code</a>
+            <a href={docsURL + 'atlas/'}>Stream clusters with SQLite</a>
+            <a href={apiURL}>API reference</a>
+          </nav>
         </div>
         <ComponentShowcase passage={wikiEvidence.links[music.edge][3]} source="https://dlab.epfl.ch/wikispeedia/wpcd/wp/m/Music.htm" />
-        <nav className="hero-guides" aria-label="SDK shortcuts">
-          <a href={docsURL + 'editing/#export-a-graph-to-your-app'}>Export to code</a>
-          <a href={docsURL + 'atlas/'}>Stream clusters with SQLite</a>
-          <a href={apiURL}>API reference</a>
-        </nav>
       </div></section>
       <section className="guide-examples" id="examples" aria-labelledby="examples-title">
         <div className="guide-width featured-studies">

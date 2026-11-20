@@ -25,11 +25,7 @@ body:has(.field-guide) { margin: 0; height: auto; display: block; }
 .guide-footer > div { display: flex; gap: 22px; }
 .guide-mast nav a, .guide-footer > div a { display: inline-flex; align-items: center; gap: 5px; min-height: 42px; font-size: 14px; font-weight: 550; }
 .guide-mast nav a:hover, .guide-mast nav [aria-current="page"], .guide-footer > div a:hover { color: var(--copper); text-decoration: underline; text-underline-offset: 4px; }
-.guide-hero { display: grid; grid-template-columns: minmax(0, .81fr) minmax(0, 1.19fr); gap: clamp(26px, 4.4vw, 72px); align-items: center; padding-block: clamp(40px, 4.8vw, 76px); }
-.guide-intro h1 { font-size: clamp(54px, 6.15vw, 94px); letter-spacing: -.044em; line-height: .97; }
-.guide-intro h1 em { color: var(--copper); }
-.guide-intro p, .index-intro p, .library-grid > div:first-child p { max-width: 38ch; color: var(--muted); line-height: 1.58; }
-.guide-intro p { margin-top: 25px; font-size: clamp(16px, 1.32vw, 19px); }
+.index-intro p, .library-grid > div:first-child p { max-width: 38ch; color: var(--muted); line-height: 1.58; }
 .guide-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 22px; margin-top: 24px; }
 a.guide-text-link, .study-links a { display: inline-flex; align-items: center; gap: 7px; min-height: 42px;
   font-size: 14px; font-weight: 550; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
@@ -165,10 +161,7 @@ a.guide-text-link, .study-links a { display: inline-flex; align-items: center; g
   .guide-brand img { width: 28px; height: 28px; }
   .guide-mast nav { gap: clamp(10px,3vw,20px); }
   .guide-mast nav a { font-size: 12px; }
-  .guide-hero, .guide-index, .library-grid { grid-template-columns: minmax(0, 1fr); }
-  .guide-hero { gap: 26px; padding-block: 35px 34px; }
-  .guide-intro h1 { font-size: clamp(50px, 10.7vw, 78px); }
-  .guide-intro p { margin-top: 17px; font-size: 16px; max-width: 43ch; }
+  .guide-index, .library-grid { grid-template-columns: minmax(0, 1fr); }
   .guide-actions { margin-top: 18px; }
   .featured-pair { grid-template-columns: minmax(0, 1fr); gap: 27px; margin-top: 22px; }
   .guide-index, .library-grid { gap: 25px; padding-block: 36px 40px; }

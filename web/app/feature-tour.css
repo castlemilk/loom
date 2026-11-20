@@ -47,9 +47,6 @@
 .tour-transcript pre { margin: 9px 0 0; max-width: 100%; overflow-x: auto; font: 12px/1.65 var(--measure); color: var(--on-pine); }
 .tour-transcript blockquote { margin: 9px 0 2px; color: var(--on-pine); font-family: Georgia,serif; font-size: 16px; }
 .field-guide .landing-tour :is(summary,[role=tabpanel]):focus-visible { outline-color: var(--copper-light); outline-offset: 2px; }
-@media (max-width: 900px) {
-  .guide-hero-surface .guide-intro h1 { font-size: clamp(54px, 9vw, 76px); }
-}
 @media (max-width: 600px), (min-width: 901px) and (max-width: 1100px) {
   .tour-viewport { aspect-ratio: 358 / 320; }
 }
