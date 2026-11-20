@@ -1,9 +1,6 @@
-.guide-identity { display:flex;align-items:center;gap:15px; }
-.docs-product { padding-left:15px;border-left:1px solid var(--rule);font-size:14px;font-weight:600; }
-.guide-mast .docs-studio { min-height:36px;padding:4px 14px;border-radius:4px;background:var(--ink);color:var(--paper); }
 .docs-shell { display:grid;grid-template-columns:clamp(170px,15vw,212px) minmax(0,1fr);gap:clamp(24px,4vw,68px);align-items:start;padding-block:44px 60px; }
 .docs-shell :is(input,button,summary) { font:inherit; }
-.docs-sidebar { position:sticky;top:24px;border-inline-end:1px solid var(--rule);padding:3px 20px 16px 0; }
+.docs-sidebar { position:sticky;top:calc(var(--mast-offset) + 14px);border-inline-end:1px solid var(--rule);padding:3px 20px 16px 0; }
 .docs-sidebar nav>div+div,.docs-mobile-index nav>div+div { margin-top:25px; }
 .docs-sidebar nav p,.docs-mobile-index nav p,.docs-outline>p,.docs-title>p {
   font:600 11px/1.45 var(--measure);letter-spacing:.07em;text-transform:uppercase;
@@ -26,7 +23,7 @@
 .docs-page-actions a { text-decoration:underline;text-underline-offset:3px; }
 .docs-reading { display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,16%);gap:clamp(22px,3.2vw,50px);align-items:start; }
 .docs-prose { grid-column:1;grid-row:1;min-width:0;max-width:85ch; }
-.docs-outline { grid-column:2;grid-row:1;position:sticky;top:24px;padding:10px 0 0;border-top:1px solid var(--rule); }
+.docs-outline { grid-column:2;grid-row:1;position:sticky;top:calc(var(--mast-offset) + 14px);padding:10px 0 0;border-top:1px solid var(--rule); }
 .docs-outline a { display:block;padding:5px 0;color:var(--muted);font-size:13px;line-height:1.4; }
 .docs-prose :is(p,li) { font-size:15px;line-height:1.65; }
 .docs-prose p+p,.docs-prose p+ul,.docs-prose p+ol { margin-top:12px; }
@@ -112,15 +109,4 @@
   .docs-title>div { font-size:16px; }
   .docs-code pre { padding:12px; }
   .docs-code pre code { font-size:12px; }
-  .docs-product { font-size:12px;padding-left:10px; }
-  .guide-identity { gap:10px; }
-  .guide-mast .docs-studio { min-height:32px;padding-inline:9px; }
-}
-@media(max-width:400px) {
-  .guide-identity:has(.docs-product) { gap:6px; }
-  .docs-product { padding-inline-start:6px;white-space:nowrap; }
-  .guide-mast nav[aria-label=Loom] { gap:5px;white-space:nowrap; }
-}
-@media(max-width:360px) {
-  .guide-mast nav[aria-label=Loom] a:first-child { display:none; }
 }

@@ -23,10 +23,10 @@ export async function fieldGuide(context, home) {
   }
   async function capture(name) {
     await page.evaluate(() => document.fonts.ready.then(() => true))
-    for (const image of await page.locator('img').all()) {
-      await image.scrollIntoViewIfNeeded()
-      const element = await image.elementHandle()
+    for (const element of await page.locator('img').elementHandles()) {
       try {
+        if (!await element.isVisible() || await element.evaluate(img => Boolean(img.closest('details:not([open])')))) continue
+        await element.scrollIntoViewIfNeeded()
         // A viewport change can replace the responsive candidate during decode.
         await page.waitForFunction(async (img) => {
           if (!img.complete || !img.naturalWidth) return false
@@ -34,7 +34,7 @@ export async function fieldGuide(context, home) {
           try { await img.decode(); return img.currentSrc === source } catch { return false }
         }, element, { timeout: 10000 })
       } catch (cause) {
-        const source = await image.evaluate((img) => img.currentSrc || img.src)
+        const source = await element.evaluate((img) => img.currentSrc || img.src)
         throw new Error('Could not decode ' + source + ' for ' + name, { cause })
       } finally {
         await element.dispose()

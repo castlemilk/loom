@@ -14,17 +14,14 @@ body:has(.field-guide) { margin: 0; height: auto; display: block; }
 .field-guide a { color: inherit; text-decoration: none; }
 .field-guide :is(a, button, canvas, pre):focus-visible { outline: 3px solid #bf5b30; outline-offset: 4px; }
 .guide-width { width: min(1360px, calc(100% - 2 * var(--gutter))); margin-inline: auto; }
-.guide-skip { position: absolute; top: 5px; left: 8px; z-index: 3; padding: 9px 14px; background: var(--paper); transform: translateY(-150%); }
+.guide-skip { position: absolute; top: 5px; left: 8px; z-index: 21; padding: 9px 14px; background: var(--paper); transform: translateY(-150%); }
 .guide-skip:focus { transform: none; }
-.guide-mast { border-bottom: 1px solid var(--rule); }
-.mast-inner, .guide-mast nav, .guide-brand, .guide-footer { display: flex; align-items: center; }
-.mast-inner { min-height: 74px; justify-content: space-between; gap: 20px; }
+.guide-brand, .guide-footer { display: flex; align-items: center; }
 .guide-brand { width: fit-content; gap: 9px; font-size: 31px; line-height: 1; font-weight: 730; letter-spacing: -.055em; }
 .guide-brand img { display: block; flex: none; }
-.guide-mast nav { gap: clamp(16px, 3vw, 40px); }
 .guide-footer > div { display: flex; gap: 22px; }
-.guide-mast nav a, .guide-footer > div a { display: inline-flex; align-items: center; gap: 5px; min-height: 42px; font-size: 14px; font-weight: 550; }
-.guide-mast nav a:hover, .guide-mast nav [aria-current="page"], .guide-footer > div a:hover { color: var(--copper); text-decoration: underline; text-underline-offset: 4px; }
+.guide-footer > div a { display: inline-flex; align-items: center; gap: 5px; min-height: 42px; font-size: 14px; font-weight: 550; }
+.guide-footer > div a:hover { color: var(--copper); text-decoration: underline; text-underline-offset: 4px; }
 .index-intro p, .library-grid > div:first-child p { max-width: 38ch; color: var(--muted); line-height: 1.58; }
 .guide-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 22px; margin-top: 24px; }
 a.guide-text-link, .study-links a { display: inline-flex; align-items: center; gap: 7px; min-height: 42px;
@@ -156,11 +153,8 @@ a.guide-text-link, .study-links a { display: inline-flex; align-items: center; g
   .drawing-sheet li:nth-child(3) { border-inline-start: 0; }
   .drawing-sheet li:nth-child(n+3) { border-top: 1px solid var(--rule); }
   .guide-width { width: calc(100% - 2 * var(--gutter)); }
-  .mast-inner { min-height: 60px; gap: 10px; }
   .guide-brand { font-size: 26px; gap: 6px; }
   .guide-brand img { width: 28px; height: 28px; }
-  .guide-mast nav { gap: clamp(10px,3vw,20px); }
-  .guide-mast nav a { font-size: 12px; }
   .guide-index, .library-grid { grid-template-columns: minmax(0, 1fr); }
   .guide-actions { margin-top: 18px; }
   .featured-pair { grid-template-columns: minmax(0, 1fr); gap: 27px; margin-top: 22px; }
@@ -181,8 +175,6 @@ a.guide-text-link, .study-links a { display: inline-flex; align-items: center; g
 }
 @media (max-width: 360px) {
   .field-guide { --gutter: 16px; }
-  .mast-inner { flex-wrap: wrap; gap: 0 10px; }
-  .guide-mast nav { flex-wrap: wrap; gap: 0 10px; }
 }
 @media (forced-colors: active) {
   .guide-primary, .model-plate button { border: 1px solid ButtonText; }
