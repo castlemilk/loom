@@ -1,6 +1,6 @@
 import { build } from 'esbuild'
 import { spawnSync } from 'node:child_process'
-const suites = ['core','drilldown','editor','wires','atlas','wikipedia-images']
+const suites = ['core','drilldown','editor','wires','scene','atlas','wikipedia-images']
 await build({
   entryPoints: suites.map(name => 'tests/' + name + '.test.ts'),
   outdir: '.test-build',

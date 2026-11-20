@@ -5,6 +5,7 @@ import { mountGraphPicker } from '../../demo/graph-picker'
 import '../../demo/graph-picker.css'
 
 const groups = [
+  ['Create a graph', [['blank', 'Blank canvas', '?example=blank']]],
   [
     'Wikipedia atlases',
     [

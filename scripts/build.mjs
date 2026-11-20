@@ -63,6 +63,7 @@ await Promise.all(core.outputFiles.map(async (file) => {
   await writeFile(file.path, result.code)
 }))
 await build({ ...options, entryPoints: ['src/console.ts', 'src/wires.ts','src/atlas-map.ts'], external: ['./index.js'] })
+await build({ ...options, entryPoints: ['src/scene.ts'], external: ['./wires.js'] })
 await build({ ...options, entryPoints: ['src/taxonomy.ts'] })
 await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts', 'src/explore.ts', 'src/atlas.ts', 'src/atlas-sqlite.ts', 'src/wikipedia-images.ts', 'src/cards.ts'] })
 await mkdir('dist/atlas-runtime', { recursive:true })

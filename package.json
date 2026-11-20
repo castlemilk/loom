@@ -30,6 +30,10 @@
       "types": "./dist/wires.d.ts",
       "import": "./dist/wires.js"
     },
+    "./scene": {
+      "types": "./dist/scene.d.ts",
+      "import": "./dist/scene.js"
+    },
     "./console": {
       "types": "./dist/console.d.ts",
       "import": "./dist/console.js"

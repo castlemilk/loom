@@ -59,8 +59,11 @@ export async function studioAtlases(context, home, touch = false) {
     await current('Bauhaus')
     await click(trail.getByRole('button', {name:'Overview', exact:true}))
     if (!touch) {
-      await label.waitFor()
-      assert.ok(Math.abs(await label.evaluate(el => parseFloat(el.style.left)) - pannedX) < 2, 'Overview should reopen at its saved pan')
+      // The label element mounts before the renderer projects its first restored frame.
+      await page.waitForFunction(x => {
+        const label = document.querySelector('[data-bubble-label="Designers"]')
+        return label && Math.abs(parseFloat(label.style.left) - x) < 2
+      }, pannedX)
       await click(page.getByRole('button', {name:'Fit view', exact:true}))
     }
     await click(tab('Style'))

@@ -33,5 +33,11 @@ export function useDocument(input, dataset, name, setDataset) {
     }
     return receipt
   }
-  return { editor, apply, drafts, draft, state, data: state?.data ?? input }
+  function createBlank(name) {
+    const key = 'draft-' + ++count.current
+    const document = createEditor({ title: name, nodes: [], links: [] })
+    setDrafts(all => [...all, { key, origin: 'blank', name, editor: document }])
+    return key
+  }
+  return { editor, apply, createBlank, drafts, draft, state, data: state?.data ?? input }
 }

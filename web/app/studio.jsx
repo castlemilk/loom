@@ -18,6 +18,8 @@ import { Check, Color, InspectorSection, Range, Select } from './fields'
 import { useDocument } from './editor-document'
 import { DocumentComposer, EditorToolbar, MarkerProperties, NodeProperties } from './editor-tools'
 import { defaultWireEffects } from '../../dist/wires.js'
+import { captureScene } from '../../dist/scene.js'
+import { ExportDialog, NewGraphDialog } from './graph-export'
 import { WireControls } from './wire-controls'
 import { WirePreview } from './wire-preview'
 import { DrawingControls } from './drawing-controls'
@@ -47,6 +49,13 @@ const StudioCardDialog = dynamic(() => import('./studio-card-dialog'), { ssr:fal
 const percent = (value) => value + '%'
 const times = (value) => value + '×'
 
+function setExampleURL(example) {
+  const url = new URL(location.href)
+  for (const param of ['example', 'article', 'group', 'bubbles']) url.searchParams.delete(param)
+  if (example) url.searchParams.set('example', example)
+  history.replaceState(history.state, '', url)
+}
+
 export default function Studio({ sample }) {
   const [client] = useState(() => new QueryClient())
   return <QueryClientProvider client={client}><Workbench sample={sample} /></QueryClientProvider>
@@ -63,6 +72,8 @@ function Workbench({ sample }) {
   const [wireEnds, setWireEnds] = useState(null)
   const [wireEffects, setWireEffects] = useState(defaultWireEffects)
   const [cardRoot, setCardRoot] = useState(null)
+  const [newGraphOpen, setNewGraphOpen] = useState(false)
+  const [exported, setExported] = useState(null)
   const [editNotice, setEditNotice] = useState('')
   const pendingView = useRef(null)
   const retainedScene = useRef(null)
@@ -319,18 +330,44 @@ function Workbench({ sample }) {
   }
   const requestedGroup = useRef(null)
   const requestedArticle = useRef(null)
+  function startGraph(name) {
+    switchDataset(model.createBlank(name))
+    setMode('drift')
+    setPacked(false)
+    setSettings(old => ({ ...old, blend: 0, guides: false }))
+    grouping.setActive('kind')
+    setEncoding(initialEncoding)
+    setWireEffects(defaultWireEffects)
+    setStyle(preset('sketchbook'))
+    setNavigation(navigationDefaults)
+    setNewGraphOpen(false)
+    setExampleURL('blank')
+  }
+  function openExport() {
+    try {
+      const assetBase = location.origin + homeURL.slice(0, -1)
+      const scene = captureScene(data, {
+        mode: effective.mode, layout: effective.layout, theme, drawingStyle: style.drawing, wireEffects,
+        graph: view.graph.current ?? undefined, selected: snapshot.selected,
+        art: { urlFor: node => imageURL(data, node, assetBase) },
+      })
+      setExported({ scene, full: source, name: model.draft?.name ?? datasetLabel })
+    } catch (error) { setEditNotice(error.message) }
+  }
   function selectDataset(value) {
+    if (value === 'blank') { startGraph('Untitled graph'); return }
     if (value === 'wikispeedia' || value === 'cards') { location.assign(studioURL + value + '/'); return }
     pickGraph(value)
-    const url = new URL(location.href)
-    for (const param of ['example','article','group','bubbles']) url.searchParams.delete(param)
     const example = getAtlas(value) ? value : { sections: 'clusters', model: 'wire-model', full: 'full', stress: 'stress' }[value]
-    if (example) url.searchParams.set('example', example)
-    history.replaceState(history.state, '', url)
+    setExampleURL(example)
   }
+  const routeRead = useRef(false)
   useEffect(() => {
+    if (routeRead.current) return
+    routeRead.current = true
     const params = new URLSearchParams(location.search)
     const example = params.get('example')
+    if (example === 'blank') startGraph('Untitled graph')
     if (example === 'full' || example === 'stress') pickGraph(example)
     if (getAtlas(example)) {
       pickGraph(example)
@@ -392,7 +429,8 @@ function Workbench({ sample }) {
       <div className="identity"><a className="wordmark studio-home" href={homeURL} aria-label="Loom field guide"><img src={artURL('loom-mark.svg')} width="20" height="18" alt="" />Loom</a>
         <span className="slash" aria-hidden="true">/</span><h1>Graph studio</h1></div>
       <EditorToolbar tool={tool} choose={chooseTool} select={() => { chooseTool(null); view.canvas.current?.focus() }}
-        state={model.state} history={editHistory} ready={!remoteURL || !!remote.data}/>
+        state={model.state} history={editHistory} ready={!remoteURL || !!remote.data}
+        onNew={() => setNewGraphOpen(true)} onExport={openExport}/>
       <GraphPicker value={dataset} onChange={selectDataset}>
         {custom && <option value="custom">{custom.name}</option>}
         {!!model.drafts.length && <optgroup label="Edited graphs">{model.drafts.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}</optgroup>}
@@ -431,6 +469,10 @@ function Workbench({ sample }) {
             ends={wireEnds} route={style.route} accent={theme.accent} background={theme.bg}/>}
           <div ref={view.layer} className="graph-annotations" style={{ '--loom-overlay-bg': theme.bezel, '--loom-overlay-ink': theme.ink }} />
         </div>
+        {origin === 'blank' && !source.nodes.length && !tool && <div className="blank-graph">
+          <h2>{model.draft.name}</h2>
+          <button type="button" onClick={() => chooseTool('node')}>Add your first node</button>
+        </div>}
         <div id="legend" className="legend" role="group" aria-label={grouping.active.label} hidden={effective.mode === 'lanes' || singleGroupView} style={{ '--map-ink': theme.ink, '--map-bg': theme.bg }}>
           {grouping.groups.length > 0 && <span className="legend-title">{grouping.active.label}</span>}
           {grouping.groups.slice(0, 12).map((term) => {
@@ -572,5 +614,7 @@ function Workbench({ sample }) {
         'Drag a node to pull its neighbors. Enter activates the selection.'}</span>
       <a className="underline underline-offset-2" href={docsURL}>SDK docs</a>
     </footer>
+    {newGraphOpen && <NewGraphDialog create={startGraph} close={() => setNewGraphOpen(false)}/>}
+    {exported && <ExportDialog snapshot={exported} close={() => setExported(null)}/>}
   </>
 }

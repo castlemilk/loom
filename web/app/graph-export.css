@@ -1,0 +1,69 @@
+.editor-dock .export-trigger,
+.document-dialog .export-primary {
+  background: #354336;
+  color: #fffef7;
+  border-color: #354336;
+  font-weight: 600;
+}
+.editor-dock .export-trigger:not(:disabled):hover,
+.document-dialog .export-primary:not(:disabled):hover { background: #243226; }
+.editor-dock .export-trigger { margin-inline-start: 4px; padding-inline: 11px; }
+.blank-graph {
+  position: absolute; top: 48%; left: 50%; transform: translate(-50%, -50%);
+  width: min(85%, 390px); text-align: center; color: var(--map-ink);
+}
+.blank-graph h2 { margin: 0 0 14px; font: 400 clamp(24px, 4vw, 39px)/1.12 Georgia, serif; overflow-wrap: anywhere; }
+.blank-graph button { padding: 7px 14px; color: var(--map-ink); background: var(--map-bg); border: 1px solid currentColor; border-radius: 6px; }
+.document-dialog {
+  position: fixed; inset: 0; margin: auto; width: min(520px, calc(100% - 28px));
+  max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain;
+  padding: clamp(17px, 3vw, 26px); border: 1px solid #b9bcad; border-radius: 12px;
+  box-shadow: 0 18px 70px #16221932; background: var(--control-surface); color: var(--text);
+}
+.document-dialog::backdrop { background: #1a211b69; }
+.document-dialog.compact { max-width: 380px; }
+.document-dialog-bar, .export-options, .export-code figcaption, .export-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.document-dialog-bar h2 { margin: 0; font: 400 30px/1.1 Georgia, serif; letter-spacing: -.04em; }
+.document-dialog-bar button { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; background: transparent; border-radius: 50%; }
+.document-dialog :is(button, a, input, select, pre):focus-visible { outline: 2px solid #934326; outline-offset: 2px; }
+.export-summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 12px; margin: 12px 0 20px; }
+.export-summary strong { font-weight: 600; overflow-wrap: anywhere; }
+.export-summary span, .export-files span { color: var(--muted); font-size: 12px; }
+.export-summary span { font: 11px/1.4 var(--mono); }
+.export-tabs { display: flex; gap: 3px; padding: 3px; border-radius: 7px; border: 1px solid var(--rule); background: #eeeee5; }
+.export-tabs button { flex: 1; min-height: 34px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #51594d; font-weight: 550; }
+.export-tabs button[aria-pressed="true"] { background: #fffef7; border-color: #c5c9ba; color: var(--text); }
+.export-options { flex-wrap: wrap; margin: 15px 0; }
+.export-options label { display: inline-flex; align-items: center; gap: 7px; color: #454d42; font-size: 12px; }
+.export-options input { accent-color: #40523e; width: 15px; height: 15px; }
+.export-options select, .project-label input { background: #fffef9; border: 1px solid var(--rule); border-radius: 4px; padding: 5px 8px; }
+.export-files { padding: 0; list-style: none; margin: 0 0 15px; }
+.export-files li { display: grid; grid-template-columns: 105px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.document-dialog :is(code,pre) { font-family: var(--mono); }
+.export-files code { font-size: 12px; }
+.export-code { margin: 0 0 12px; border: 1px solid var(--rule); border-radius: 6px; background: #eeefe7; overflow: hidden; }
+.export-code figcaption { padding: 4px 9px 4px 12px; border-bottom: 1px solid var(--rule); font-size: 12px; font-weight: 600; }
+.export-code .docs-copy { display: inline-flex; position: static; align-items: center; gap: 4px; min-height: 26px; min-width: auto; padding: 2px 6px; background: transparent; }
+.export-code pre { margin: 0; padding: 10px 12px; max-height: 175px; overflow: auto; font-size: 11px; line-height: 1.6; }
+.export-instruction, .export-scope { margin: 0 0 12px; color: #4b5448; font-size: 13px; line-height: 1.5; }
+.document-dialog .export-primary { width: 100%; min-height: 38px; border-radius: 5px; }
+.document-dialog button:disabled { opacity: .5; }
+.export-foot { flex-wrap: wrap; border-top: 1px solid var(--rule); margin-top: 16px; padding-top: 10px; }
+.export-foot :is(button,a) { padding: 3px 0; color: #743a24; background: transparent; border: 0; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.export-notice { display: block; color: #3a533d; font-size: 12px; }
+.export-notice:not(:empty) { margin-top: 10px; }
+.project-label { display: grid; gap: 5px; margin: 18px 0; }
+.project-label input { width: 100%; min-height: 36px; }
+.export-name { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; font-size: 12px; color: #454d42; }
+.export-name input { flex: 1; min-width: 0; border: 1px solid var(--rule); border-radius: 4px; padding: 5px 8px; background: #fffef9; color: var(--text); }
+:where(.editor-dock) .mobile-tool-label { display: none; }
+@media (min-width: 701px) and (max-width: 920px) {
+  .editor-dock button:not(.export-trigger) span { display: none; }
+}
+@media (max-width: 480px) {
+  header .editor-dock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(43px, 1.2fr) repeat(3, minmax(0, 1fr)) minmax(39px, 1.1fr); gap: 1px; }
+  header .editor-dock button { flex-direction: column; gap: 2px; height: 43px; min-width: 0; padding: 0; margin: 0; }
+  header .editor-dock .export-trigger { padding-inline: 0; margin-inline-start: 0; }
+  header .editor-dock button span { display: block; font-size: 10px; line-height: 1.15; }
+  header .editor-dock .tool-divider { display: none; }
+}

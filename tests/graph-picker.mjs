@@ -83,6 +83,8 @@ export async function studioPicker(context, home, touch) {
     await chooseGraph(page, 'bauhaus', touch)
     await page.locator('[data-atlas=bauhaus]').waitFor()
     assert.equal(await page.locator('#dataset').inputValue(), 'bauhaus')
+    await chooseGraph(page, 'blank', touch)
+    await page.getByRole('button', { name: 'Add your first node' }).waitFor()
   } finally {
     await page.close()
   }

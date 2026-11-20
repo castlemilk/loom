@@ -46,7 +46,9 @@ For an AI integration, start with the worked graph edit and its revision checks.
 
 ## Edit a graph
 
-In the [graph studio](https://castlemilk.github.io/loom/studio/), pick **Node** to create a record, optionally clicking the canvas to position it. **Connect** takes two node selections or IDs. Selecting a node exposes its properties and incident connections. The active tool, relationship endpoints, settings values and history buttons show the current state. **JSON** previews and applies the same commands the controls use. Download an edited graph there to keep it across sessions.
+Start with a blank canvas or edit a demo. Choose **Node** to create a record and **Connect** to link two nodes. Click a node to edit its properties and connections. **JSON** previews and applies the same commands as the controls. [Open a blank canvas](https://castlemilk.github.io/loom/studio/?example=blank)
+
+Choose **Export** to download a runnable JavaScript or TypeScript project, or copy the mount code and download `scene.json` for your own app. The scene carries the visible graph, its layout and drawing style, with optional positions and camera. **Download full graph data** saves the entire document for editing again. [Use a studio export in your app](https://castlemilk.github.io/loom/docs/editing/#export-a-graph-to-your-app)
 
 For integrations, import `createEditor` from `loom-core/editor`. Discover commands with `describe()`, query nodes or links, preview a revision-guarded batch and read back the result. The [authoring API guide](docs/editor-api.md) covers examples, six operations, undo, checkpoints, viewport coordinates, hosting and extension points. The [transaction schema](https://castlemilk.github.io/loom/editor.schema.json) is machine-readable.
 

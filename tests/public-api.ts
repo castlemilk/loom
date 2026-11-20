@@ -10,12 +10,21 @@ import { createSQLiteAtlasReader, type AtlasSQLiteOptions } from 'loom-core/atla
 import { atlasLayoutSpeed, atlasSpringControls, mountAtlasMap, type AtlasPositions, type AtlasMemberMotion, type AtlasSpringSettings } from 'loom-core/atlas-map'
 import { createWikipediaImages } from 'loom-core/wikipedia-images'
 import { createCardGraph } from 'loom-core/cards'
+import { captureScene, mountScene, type GraphScene } from 'loom-core/scene'
 
 interface Paper extends GraphNode {
   disciplines: readonly string[]
   year: number
 }
 interface Citation extends GraphLink { reviewed: boolean }
+export function mountCitationScene(canvas: HTMLCanvasElement, data: GraphData<Paper, Citation> & { title: string }) {
+  const scene = captureScene(data, {
+    layout: { laneBy: node => node.disciplines[0] },
+    theme: { ...ink, wires: { resolve: edge => ({ width: edge.reviewed ? 2 : 1 }) } },
+  })
+  const saved: GraphScene<Paper, Citation> = scene
+  return { title: scene.data.title, graph: mountScene(canvas, saved) }
+}
 export function mountStreamingAtlas(canvas: HTMLCanvasElement, manifest: AtlasManifest, sqlite: AtlasSQLiteOptions, baseline: URL, positions?: AtlasPositions, memberMotion: AtlasMemberMotion = 'spring') {
   const atlas = createAtlas(manifest, { 'on-demand': () => createSQLiteAtlasReader(sqlite), full: () => createFullAtlasReader(baseline) })
   const spring: AtlasSpringSettings = { strength: atlasSpringControls.strength.default, damping: 0.65 }

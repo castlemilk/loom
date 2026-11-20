@@ -4,8 +4,11 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { docsURL, homeURL } from '../site'
 import { InspectorSection, InspectorSummary } from './fields'
 import { shapes } from './appearance'
+import { downloadFile } from './download-file'
 
 const paths = {
+  new: 'M5 3h9l5 5v13H5zM14 3v6h5M9 14h6m-3-3v6',
+  export: 'M12 15V3m-4.5 4.5L12 3l4.5 4.5M5 13v7h14v-7',
   select: 'M5 3.5 20 13l-7 .8-3.1 6.4L5 3.5Z',
   node: 'M12 3v18M3 12h18',
   link: 'm9 15 6-6m-5-2 2-2a5 5 0 0 1 7 7l-2 2m-3 3-2 2a5 5 0 0 1-7-7l2-2',
@@ -19,10 +22,10 @@ function Icon({ name }) {
 }
 const editable = (target) => target instanceof Element && !!target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
 
-export function EditorToolbar({ tool, choose, select, state, history, ready }) {
+export function EditorToolbar({ tool, choose, select, state, history, ready, onNew, onExport }) {
   useEffect(() => {
     function keyboard(event) {
-      if (event.defaultPrevented || editable(event.target) || event.altKey || event.repeat) return
+      if (event.defaultPrevented || editable(event.target) || event.target.closest?.('dialog[open]') || event.altKey || event.repeat) return
       const key = event.key.toLowerCase()
       if (!(event.ctrlKey || event.metaKey)) {
         if (!ready || !event.target.closest?.('#graph, .editor-dock')) return
@@ -40,7 +43,8 @@ export function EditorToolbar({ tool, choose, select, state, history, ready }) {
     return () => document.removeEventListener('keydown', keyboard)
   }, [history, state, choose, select, tool, ready])
   return <div className="editor-dock" role="group" aria-label="Document tools">
-    <button type="button" id="tool-select" aria-label="Select and move" aria-pressed={!tool} title="Select and move (V)" onClick={select}><Icon name="select"/></button>
+    <button type="button" aria-label="New graph" title="New graph" aria-haspopup="dialog" onClick={onNew}><Icon name="new" /><span>New</span></button>
+    <button type="button" id="tool-select" aria-label="Select and move" aria-pressed={!tool} title="Select and move (V)" onClick={select}><Icon name="select"/><span className="mobile-tool-label">Select</span></button>
     {Object.entries({ node: ['Add node','Node'], link: ['Connect nodes','Connect'], json: ['JSON commands','JSON'] }).map(([id, [label, short]]) =>
       <button type="button" key={id} id={'tool-' + id} aria-label={label} title={label + ({ node:' (N)', link:' (C)', json:'' }[id])} aria-expanded={tool === id}
         aria-controls={tool === id ? 'document-composer' : undefined} disabled={!ready} onClick={() => choose(tool === id ? null : id)}>
@@ -48,7 +52,9 @@ export function EditorToolbar({ tool, choose, select, state, history, ready }) {
     <i className="tool-divider" aria-hidden="true" />
     {['undo','redo'].map((id) => <button key={id} type="button" aria-label={id === 'undo' ? 'Undo document edit' : 'Redo document edit'}
       title={id === 'undo' ? 'Undo document edit (Ctrl/⌘ Z)' : 'Redo document edit (Ctrl/⌘ Shift Z)'}
-      disabled={!(id === 'undo' ? state?.canUndo : state?.canRedo)} onClick={() => history(id)}><Icon name={id}/></button>)}
+      disabled={!(id === 'undo' ? state?.canUndo : state?.canRedo)} onClick={() => history(id)}><Icon name={id}/><span className="mobile-tool-label">{id === 'undo' ? 'Undo' : 'Redo'}</span></button>)}
+    <button type="button" className="export-trigger" aria-label="Export graph" aria-haspopup="dialog" disabled={!ready} onClick={onExport}>
+      <Icon name="export" /><span>Export</span></button>
   </div>
 }
 
@@ -148,12 +154,7 @@ function JsonForm({ model, run }) {
 }
 
 export function downloadGraph(data) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = 'loom-graph.json'
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  downloadFile('loom-graph.json', JSON.stringify(data), 'application/json')
 }
 
 export function DocumentComposer({ tool, model, selectedId, graph, link, run, close, point, clearPoint, onEndpoints }) {

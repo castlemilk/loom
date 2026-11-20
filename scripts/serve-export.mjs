@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { gzip } from 'node:zlib'
 
-const root = fileURLToPath(new URL('../web/out/', import.meta.url))
+const siteRoot = fileURLToPath(new URL('../web/out/', import.meta.url))
 const types = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -24,7 +24,7 @@ const types = {
 }
 
 // Serve the exported site with the same single-range GETs used by the SQLite worker on Pages.
-export async function serveExport(base = '/loom/', port = 0) {
+export async function serveExport(base = '/loom/', port = 0, root = siteRoot) {
   const compressed = new Map()
   const encode = promisify(gzip)
   const server = createServer(async (req, res) => {

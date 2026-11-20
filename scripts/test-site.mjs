@@ -11,6 +11,7 @@ import { sdkDocs } from '../tests/sdk-docs.mjs'
 import { exampleJourney, searchPages } from '../tests/site-discovery.mjs'
 import { studioMenu } from '../tests/studio-menu.mjs'
 import { studioAuthoring } from '../tests/studio-authoring.mjs'
+import { studioExport } from '../tests/studio-export.mjs'
 import { studioWires } from '../tests/studio-wires.mjs'
 import { studioAtlases } from '../tests/studio-atlases.mjs'
 import { studioProgressive } from '../tests/studio-progressive.mjs'
@@ -44,6 +45,7 @@ try {
   const mobileMenu = await studioMenu(mobile, url, true)
   const desktopEdits = await studioAuthoring(context, url)
   const mobileEdits = await studioAuthoring(mobile, url, true)
+  console.log(await studioExport(context, url, { live: !!liveURL }), await studioExport(mobile, url, { touch: true, live: !!liveURL }))
   const wires = await studioWires(context, url)
   const desktopAtlases = await studioAtlases(context, home)
   const mobileAtlases = await studioAtlases(mobile, home, true)

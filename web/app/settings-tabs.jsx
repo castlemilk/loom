@@ -49,7 +49,7 @@ export function SettingsTabs({ children }) {
   useEffect(() => {
     function shortcut(event) {
       if (event.key !== '/' || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey ||
-        event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return
+        event.target.closest?.('input, textarea, select, dialog[open], [contenteditable="true"]')) return
       event.preventDefault()
       findInGraph()
     }

@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import createMDX from '@next/mdx'
+import sdk from '../package.json' with { type: 'json' }
 import rehypeSlug from 'rehype-slug'
 import { docsOutline } from './docs/outline.mjs'
 
@@ -11,7 +12,7 @@ export default withMDX({
   outputFileTracingRoot: fileURLToPath(new URL('../', import.meta.url)),
   basePath,
   trailingSlash: true,
-  env: { NEXT_PUBLIC_BASE_PATH: basePath },
+  env: { NEXT_PUBLIC_BASE_PATH: basePath, NEXT_PUBLIC_LOOM_REVISION: process.env.GITHUB_SHA ?? '', NEXT_PUBLIC_LOOM_VERSION: sdk.version },
   images: { unoptimized: true },
   devIndicators: false,
 })
