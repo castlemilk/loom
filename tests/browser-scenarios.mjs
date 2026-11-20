@@ -127,6 +127,7 @@ export async function atlasGravity(manifest, blocks) {
   check(map.getPosition(member).z === inFlight, 'Live tuning preserves in-flight positions')
   await until(() => Math.abs(map.getPosition(member).z - baseZ - 60) < 0.001, 'Retuned depth spring did not settle')
   await until(() => Math.abs(map.getViewport().z - map.getPosition(member).z) < .001, 'Focus lost a settling article')
+  check(map.getFollowedNode() === member, 'Focusing an article retains its camera anchor')
   const cloud = map.getPositions()
   check(Math.abs(cloud.members[topic.id].z - 60) < 0.001 && !Object.keys(cloud.articles).length, 'Depth edits stay sparse')
   atlas.setLayout('lanes')
@@ -135,6 +136,10 @@ export async function atlasGravity(manifest, blocks) {
   atlas.setLayout('published')
   const authored = JSON.stringify(map.getPositions())
   map.setAnimateLayouts(true)
+  map.setLayoutSpeed(0.5)
+  let invalidSpeed = false
+  try { map.setLayoutSpeed(NaN) } catch (error) { invalidSpeed = error instanceof RangeError }
+  check(invalidSpeed && map.getLayoutSpeed() === 0.5, 'An invalid rate must preserve the current speed')
   const hubId = 'topic:' + topic.id
   const offset = manifest.topics.indexOf(topic) * 4, grid = map.getPosition(hubId)
   const rendered = () => [...map.getFrame().points.slice(offset, offset + 2)]
@@ -145,6 +150,8 @@ export async function atlasGravity(manifest, blocks) {
   atlas.setLayout('cloud')
   check(rendered().every((v, i) => Math.abs(v - beforeRedirect[i]) < .1), 'Rapid retargeting jumps on screen')
   await atlas.setExpanded([])
+  check(map.getFollowedNode() === null, 'Closing the followed article releases the camera')
+  map.setLayoutSpeed(1)
   await atlas.setExpanded([topic.id])
   check(map.isAnimatingLayout(), 'Arriving articles must join the current motion')
   await until(() => !map.isAnimatingLayout(), 'The interrupted layout did not settle')

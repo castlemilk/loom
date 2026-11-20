@@ -1,5 +1,5 @@
 import type { GraphData, GraphLink, GraphNode } from './types.js'
-import { placeAtlasTopics, type AtlasLayout, type PlacedTopic } from './atlas-layout.js'
+import { articleAngle, articleOrbits, placeAtlasTopics, type AtlasLayout, type PlacedTopic } from './atlas-layout.js'
 export { atlasLayouts, type AtlasLayout } from './atlas-layout.js'
 
 export type AtlasLoading = 'on-demand' | 'full'
@@ -118,7 +118,7 @@ function overviewLinks(manifest: AtlasManifest): AtlasLink[] {
   }))
 }
 
-/** Coordinates depend only on the published topic centre and the article's slot within it. */
+/** Article coordinates depend only on their own topic block and the chosen layout. */
 function makeScene(
   topics: readonly PlacedTopic[],
   overview: AtlasLink[],
@@ -141,10 +141,12 @@ function makeScene(
   for (const t of topics) {
     const block = open.has(t.id) && blocks.get(t.id)
     if (!block) continue
+    const orbits = layout === 'orbit' ? articleOrbits(block.articles, t.first) : undefined
     for (const [id, title, degree] of block.articles) {
       const slot = id - t.first,
-        angle = slot * 2.3999632297,
-        radius = 18 + 53 * Math.sqrt((slot + 0.5) / t.count)
+        orbit = orbits?.get(id),
+        angle = orbit?.angle ?? articleAngle(slot),
+        radius = orbit?.radius ?? 18 + 53 * Math.sqrt((slot + 0.5) / t.count)
       const latitude = layout === 'cloud' ? 2 * (((slot + 0.5) * 0.7548776662) % 1) - 1 : 0
       const planar = radius * Math.sqrt(1 - latitude * latitude)
       nodes.push({

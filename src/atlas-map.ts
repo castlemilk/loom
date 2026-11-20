@@ -1,9 +1,10 @@
 import { createGraph } from './index.js'
 import type { Atlas, AtlasLayout, AtlasLink, AtlasNode, AtlasScene } from './atlas.js'
 import { advanceSpring, resolveSpring, type ArticleSpring, type AtlasSpringSettings } from './atlas-spring.js'
-import { AtlasLayoutTransition, travelProgress, travelView, type AtlasPoint } from './atlas-transition.js'
+import { atlasLayoutSpeed, AtlasLayoutTransition, travelProgress, travelView, validateSpeed, type AtlasPoint } from './atlas-transition.js'
 import type { GraphEvents, GraphFrame, GraphViewport, LoomGraph, Theme } from './types.js'
 export { atlasSpringControls, type AtlasSpringSettings } from './atlas-spring.js'
+export { atlasLayoutSpeed } from './atlas-transition.js'
 
 interface Point {
   x: number
@@ -22,6 +23,10 @@ export interface AtlasMapOptions {
   keepView?: boolean
   /** Ease visible nodes and the camera between layouts. Defaults to false. */
   animateLayouts?: boolean
+  /** Playback rate for layout changes. 1 takes 700 ms. Can be adjusted mid-transition. */
+  layoutSpeed?: number
+  /** The node the camera follows across layouts, or null when manual navigation takes over. */
+  onFollowChange?: (id: string | null) => void
   /** Translate article positions with their topic, including articles that load later. Defaults to true. */
   moveMembers?: boolean
   /** How carried articles approach their new positions. Defaults to rigid. Springs respect reduced motion. */
@@ -63,6 +68,7 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
   let selected: string | null = null,
     keepView = options.keepView ?? true,
     animateLayouts = options.animateLayouts ?? false,
+    speed = validateSpeed(options.layoutSpeed ?? atlasLayoutSpeed.default),
     moveMembers = options.moveMembers ?? true,
     memberMotion = options.memberMotion ?? 'rigid',
     springSettings = resolveSpring(options.spring)
@@ -79,6 +85,7 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
   let lastSpringFrame = 0
   let transition: AtlasLayoutTransition | undefined
   let fittedScene: AtlasScene | undefined
+  let followed: string | null = null
   let focusTravel: { id: string; start: number; from: GraphViewport; to: GraphViewport } | undefined,
     pendingFocus: string | null = null
   let lastCloudAngle: { yaw: number; pitch: number } | undefined
@@ -219,7 +226,7 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
   }
   function stepMotion() {
     if (transition) {
-      const t = travelProgress(transition.start, 700)
+      const t = transition.progress()
       if (t === 1) finishLayout()
       else transition.paint(graph, t)
     }
@@ -229,14 +236,21 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
       if (t === 1) focusTravel = undefined
     }
   }
+  function setFollow(id: string | null) {
+    if (followed === id) return
+    followed = id
+    options.onFollowChange?.(id)
+  }
   function stopNavigation() {
     pendingFocus = null
     focusTravel = undefined
+    setFollow(null)
     finishLayout()
   }
   function focus(id: string) {
     const node = byId.get(id)
     if (!node) throw new RangeError('Unknown atlas node: ' + id)
+    setFollow(id)
     if (transition) {
       pendingFocus = id
       return
@@ -322,11 +336,12 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
         members.get(node.topic)!.push(node)
       }
     }
+    if (followed && !byId.has(followed)) setFollow(null)
   }
-  function changeLayout(next: AtlasScene, nextLayout: AtlasLayout) {
-    commitPositions()
+  function layoutOrigin() {
     const animated = animateLayouts && !motionPreference.matches
     const from = graph.getViewport(), oldMode = graph.getFrame().mode
+    const zoom = focusTravel?.to.zoom ?? transition?.destination.zoom ?? from.zoom
     if (layout === 'cloud' && !transition) lastCloudAngle = { yaw: from.yaw, pitch: from.pitch }
     const origins = new Map<string, AtlasPoint>()
     if (animated) for (const node of scene.nodes) {
@@ -336,18 +351,23 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
     }
     transition = undefined
     focusTravel = undefined
-    pendingFocus = null
     springs.clear()
-    layout = nextLayout
-    indexScene(next)
+    return { animated, from, oldMode, origins, zoom }
+  }
+  function startLayout({ animated, from, oldMode, origins, zoom }: ReturnType<typeof layoutOrigin>) {
     const mode = modeForLayout()
     graph.setMode(mode)
     for (const node of scene.nodes) graph.pin(node.id, placed(node))
-    graph.setViewport({ ...from, ...lastCloudAngle })
-    graph.fit(true)
+    const camera = { ...from, ...lastCloudAngle }
+    const anchor = followed ? byId.get(followed) : undefined
+    if (anchor) graph.setViewport({ ...camera, ...placed(anchor), zoom })
+    else {
+      graph.setViewport(camera)
+      graph.fit(true)
+    }
+    fittedScene = animated && !anchor ? scene : undefined
     if (animated) {
-      fittedScene = scene
-      transition = new AtlasLayoutTransition(origins, from, oldMode, graph.getViewport(), mode)
+      transition = new AtlasLayoutTransition(origins, from, oldMode, graph.getViewport(), mode, speed)
       transition.bind(scene, placed)
       graph.setMode(transition.mode)
       transition.paint(graph, 0)
@@ -357,25 +377,24 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
     const next = atlas.getSnapshot()
     if (next.scene === scene) return
     const newLayout = graph && layout !== next.layout
-    if (newLayout && scene.links === next.scene.links) {
-      changeLayout(next.scene, next.layout)
+    if (graph) commitPositions()
+    // If the followed article disappears in flight, ease back to the surviving overview.
+    const anchor = followed ? byId.get(followed) : undefined
+    const lostAnchor = transition && anchor?.article !== undefined && !next.expanded.includes(anchor.topic)
+    const origin = newLayout || lostAnchor ? layoutOrigin() : undefined
+    if (origin && scene.links === next.scene.links) {
+      layout = next.layout
+      indexScene(next.scene)
+      startLayout(origin)
       return
     }
     const previous = !newLayout && graph?.getViewport()
     if (graph) {
-      commitPositions()
       events?.abort()
       graph.destroy()
     }
     // Subscribers can expand a topic while reacting to a layout notification.
     // A simultaneous topology replacement needs new buffers for the arriving IDs.
-    if (newLayout) {
-      transition = undefined
-      fittedScene = undefined
-      pendingFocus = null
-      focusTravel = undefined
-      springs.clear()
-    }
     layout = next.layout
     indexScene(next.scene)
     for (const id of springs.keys()) if (!byId.has(id)) springs.delete(id)
@@ -396,12 +415,13 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
       lastCloudAngle = { yaw, pitch }
     }
     if (previous) graph.setViewport(previous)
-    if (transition) {
+    if (origin) startLayout(origin)
+    else if (transition) {
       transition.bind(scene, placed)
       stepMotion()
     }
     const added = next.expanded.find((id) => !open.includes(id))
-    if (!keepView && added !== undefined && !transition) {
+    if (!keepView && added !== undefined && !transition && !followed) {
       const center = graph.getPosition('topic:' + added),
         camera = graph.getViewport()
       graph.setViewport({ ...camera, x: center.x, y: center.y, z: center.z, zoom: Math.max(1.5, camera.zoom) })
@@ -469,6 +489,7 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
   return {
     fit() { stopNavigation(); graph.fit() },
     focus,
+    getFollowedNode: () => followed,
     /** Route an external topic label through the same gestures as its canvas dot. */
     pick: pickNode,
     open: openNode,
@@ -476,6 +497,11 @@ export function mountAtlasMap(canvas: HTMLCanvasElement, atlas: Atlas, options: 
     setAnimateLayouts(value: boolean) {
       animateLayouts = value
       if (!value) finishLayout()
+    },
+    getLayoutSpeed: () => speed,
+    setLayoutSpeed(value: number) {
+      speed = validateSpeed(value)
+      transition?.setSpeed(speed)
     },
     getPosition: (id: string) => graph.getPosition(id),
     getFrame: () => graph.getFrame(),

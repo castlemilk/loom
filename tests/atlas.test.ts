@@ -7,6 +7,31 @@ import { atlasConnections, atlasLayouts, createAtlas, type AtlasBlock, type Atla
 import { advanceSpring, resolveSpring, type ArticleSpring } from '../src/atlas-spring.js'
 import { AtlasLayoutTransition, travelView, type AtlasPoint } from '../src/atlas-transition.js'
 import { cardNeighborhood } from '../src/cards.js'
+import { articleOrbits } from '../src/atlas-layout.js'
+
+test('Orbit articles have stable, equally spaced rings with the most linked articles closest', () => {
+  const rows: AtlasBlock['articles'] = Array.from({ length: 96 }, (_, i) => [37 + i, String(i), i])
+  const rings = articleOrbits(rows, 37)
+  assert.deepEqual(rings, articleOrbits([...rows].reverse(), 37))
+  assert.ok(rings.get(132)!.radius < rings.get(37)!.radius)
+  assert.equal(new Set([...rings.values()].map(p => p.radius)).size, 4)
+  assert.equal(new Set([...rings.values()].map(p => p.radius + '/' + p.angle)).size, 96)
+})
+
+test('retiming a moving layout preserves progress and uses the new rate for the remaining distance', t => {
+  let now = 500
+  t.mock.method(performance, 'now', () => now)
+  const view = { x: 0, y: 0, z: 0, zoom: 1, yaw: 0, pitch: 0 }
+  const travel = new AtlasLayoutTransition(new Map(), view, 'drift', view, 'drift', .25)
+  now += 1400
+  assert.equal(travel.progress(), .5)
+  travel.setSpeed(2)
+  assert.equal(travel.progress(), .5)
+  now += 174
+  assert.ok(travel.progress() < 1)
+  now += 1
+  assert.equal(travel.progress(), 1)
+})
 
 test('card neighborhoods bound distinct neighbors while keeping reciprocal, parallel and self links', () => {
   const nodes = ['a', 'b', 'c'].map((id) => ({ id }))

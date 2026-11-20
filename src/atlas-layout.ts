@@ -1,4 +1,4 @@
-import type { AtlasLink, AtlasTopic } from './atlas.js'
+import type { AtlasBlock, AtlasLink, AtlasTopic } from './atlas.js'
 import { defaultForces, makeTargets } from './constraints.js'
 import { cloudTargets } from './sim/cloud.js'
 import { Layout } from './sim/layout.js'
@@ -7,6 +7,25 @@ import { orbitTargets } from './sim/orbit.js'
 export const atlasLayouts = ['published', 'drift', 'lanes', 'orbit', 'cloud'] as const
 export type AtlasLayout = (typeof atlasLayouts)[number]
 export type PlacedTopic = AtlasTopic & { z?: number }
+
+export const articleAngle = (slot: number) => slot * 2.3999632297
+/** The most connected articles occupy the inner rings. Keep their original angular order on each ring. */
+export function articleOrbits(articles: AtlasBlock['articles'], first: number) {
+  const turn = 2 * Math.PI
+  const ranked = articles.map(([id, , degree]) => ({ id, degree, angle: articleAngle(id - first) % turn }))
+    .sort((a, b) => b.degree - a.degree || a.id - b.id)
+  const rings = Math.max(1, Math.min(10, Math.round(Math.sqrt(articles.length / 6))))
+  const result = new Map<number, { radius: number; angle: number }>()
+  let start = 0
+  for (let ring = 1; ring <= rings; ring++) {
+    const end = Math.round(ranked.length * ring * (ring + 1) / (rings * (rings + 1)))
+    const members = ranked.slice(start, end).sort((a, b) => a.angle - b.angle)
+    const radius = 18 + 52 * ring / rings
+    members.forEach((node, i) => result.set(node.id, { radius, angle: members[0].angle + turn * i / members.length }))
+    start = end
+  }
+  return result
+}
 
 // Only topic hubs participate. Opening an article block never changes these anchors.
 export function placeAtlasTopics(

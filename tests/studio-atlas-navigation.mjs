@@ -6,7 +6,7 @@ const marker = (page, selector) => page.locator(selector).evaluate(el => ['cx', 
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1])
 
 // Sample the same SVG positions that overlay the painted WebGL nodes, throughout each change.
-async function traceLayout(page, menu, mode, animated) {
+async function traceLayout(page, menu, mode, animated, following = false) {
   await menu.scrollIntoViewIfNeeded()
   await frames(page)
   await page.evaluate(({ hub, piano }) => {
@@ -15,7 +15,7 @@ async function traceLayout(page, menu, mode, animated) {
       const el = document.querySelector(selector)
       return ['cx', 'cy'].map(a => Number(el.getAttribute(a)))
     }
-    const sample = () => [marker(hub), marker(piano), surface.dataset.layoutMoving === 'true']
+    const sample = () => [marker(hub), marker(piano), surface.dataset.layoutMoving === 'true', performance.now()]
     window.layoutTrace = [sample()]
     const tick = () => {
       window.layoutTrace.push(sample())
@@ -33,11 +33,16 @@ async function traceLayout(page, menu, mode, animated) {
     return window.layoutTrace
   })
   const start = rows[0], end = rows.at(-1)
-  assert.ok(distance(start[0], end[0]) > 12 && distance(start[1], end[1]) > 12, 'Music and Piano both changed position')
-  const middle = rows.filter(row => [0, 1].every(i => Math.min(distance(row[i], start[i]), distance(row[i], end[i])) > 2))
+  if (following) {
+    const center = await page.locator('.atlas-map-surface').evaluate(el => [el.clientWidth / 2, el.clientHeight / 2])
+    assert.ok(rows.every(row => distance(row[0], center) < 1.5), 'Music should stay centered on every frame')
+  } else assert.ok(distance(start[0], end[0]) > 12, 'Music changed position in the overview')
+  assert.ok(distance(start[1], end[1]) > 12, 'Piano moved to its place in the new layout')
+  const middle = rows.filter(row => (following ? [1] : [0, 1]).every(i => Math.min(distance(row[i], start[i]), distance(row[i], end[i])) > 2))
   if (animated) assert.ok(middle.length >= 3, 'Both nodes were visible at several intermediate positions')
   else assert.ok(!middle.length && !rows.some(row => row[2]), 'Instant layouts jump directly to their final positions')
-  return { end, middle: middle.length }
+  const movement = rows.filter(row => row[2])
+  return { end, middle: middle.length, duration: movement.length ? movement.at(-1)[3] - movement[0][3] : 0 }
 }
 
 async function doubleAt(page, x, y, touch) {
@@ -68,6 +73,7 @@ export async function studioAtlasNavigation(context, home, touch = false) {
   const button = name => page.getByRole('button', { name, exact: true })
   const menu = page.getByRole('combobox', { name: 'Layout', exact: true })
   const toggle = page.getByRole('checkbox', { name: 'Animate layouts', exact: true })
+  const speed = page.getByRole('slider', { name: 'Layout speed' })
   const visible = () => page.locator('[data-visible-articles="96"]').waitFor()
   try {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
@@ -80,6 +86,7 @@ export async function studioAtlasNavigation(context, home, touch = false) {
     assert.ok(await toggle.isChecked())
     const orbit = await traceLayout(page, menu, 'orbit', true)
     await toggle.uncheck()
+    assert.ok(await speed.isDisabled())
     assert.equal(new URL(page.url()).searchParams.get('transition'), 'instant')
     await traceLayout(page, menu, 'published', false)
     const instant = await traceLayout(page, menu, 'orbit', false)
@@ -110,6 +117,7 @@ export async function studioAtlasNavigation(context, home, touch = false) {
     await centered(page, piano)
     assert.equal(await page.locator('[data-map-caption="selected"]').textContent(), 'Piano')
     await button('Fit view').click()
+    assert.equal(await page.locator('.wiki-following').count(), 0)
     await page.waitForFunction(selector => Number(document.querySelector(selector)?.getAttribute('r')) < 16, hub)
     // A closed topic opens once and stays open when focused from its name.
     await button('Collapse Music').click()
@@ -120,19 +128,36 @@ export async function studioAtlasNavigation(context, home, touch = false) {
     await doubleAt(page, box.x + box.width / 2, box.y + box.height / 2, touch)
     await visible()
     await centered(page, hub)
+    await page.getByText('Following Music', { exact: true }).waitFor()
+    await page.locator('[data-article-id="97"]').click()
+    await toggle.check()
+    await speed.press('Home')
+    for (let i = 0; i < 3; i++) await speed.press('ArrowRight')
+    assert.equal(await speed.inputValue(), '0.25')
+    const slow = await traceLayout(page, menu, 'orbit', true, true)
+    assert.ok(slow.duration > 1900 && slow.duration > orbit.duration * 2, 'Quarter speed visibly lengthens the trip')
+    assert.equal(new URL(page.url()).searchParams.get('speed'), '0.25')
+    await menu.selectOption('published')
+    await page.locator('[data-layout-moving="true"]').waitFor()
+    await speed.press('End')
+    await page.locator('[data-layout-moving="false"]').waitFor({ timeout: 1700 })
+    await centered(page, hub)
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.locator('.wiki-animate input:disabled').waitFor()
     assert.ok(await toggle.isDisabled())
+    assert.ok(await speed.isDisabled())
     await button('Fit view').click()
     await frames(page)
     await label.press('Enter')
     await centered(page, hub)
     await page.locator('[data-article-id="97"]').click()
     await frames(page)
-    await traceLayout(page, menu, 'orbit', false)
+    await traceLayout(page, menu, 'orbit', false, true)
     await visible()
     assert.equal(await page.locator('[data-map-caption="selected"]').textContent(), 'Piano')
     assert.deepEqual(errors, [])
-    return { intermediateFrames: orbit.middle, focused: ['Music', 'Piano'], touch }
+    await page.reload()
+    assert.equal(await speed.inputValue(), '2')
+    return { intermediateFrames: orbit.middle, slowMs: Math.round(slow.duration), focused: ['Music', 'Piano'], touch }
   } finally { await page.close() }
 }

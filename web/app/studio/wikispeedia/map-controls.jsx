@@ -1,17 +1,34 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { atlasLayouts } from '../../../../dist/atlas.js'
-import { atlasSpringControls } from '../../../../dist/atlas-map.js'
+import { atlasLayoutSpeed, atlasSpringControls } from '../../../../dist/atlas-map.js'
 
 const names = { published: 'Topic grid', drift: 'Drift', lanes: 'Lanes', orbit: 'Orbit', cloud: '3D Cloud' }
 export const layoutHints = {
   published: '',
   drift: 'Linked topics pull closer together.',
   lanes: 'Rows group topics by article count, largest groups first.',
-  orbit: 'Rings show distance from the most connected topic on the overview.',
+  orbit: 'Topic rings show distance from the most connected topic. Within a topic, articles with more links sit closer to the center.',
   cloud: 'Drag empty space to rotate the cloud.',
 }
-export function LayoutMenu({ value, onChange, animate, onAnimate }) {
+export function speedFromURL() {
+  const value = Number(new URLSearchParams(location.search).get('speed'))
+  return value >= atlasLayoutSpeed.min && value <= atlasLayoutSpeed.max
+    ? Number((Math.round(value / atlasLayoutSpeed.step) * atlasLayoutSpeed.step).toFixed(2))
+    : atlasLayoutSpeed.default
+}
+function writeSpeedURL(speed) {
+  const url = new URL(location.href)
+  if (speed === atlasLayoutSpeed.default) url.searchParams.delete('speed')
+  else url.searchParams.set('speed', speed)
+  if (url.href !== location.href) history.replaceState(history.state, '', url)
+}
+export function LayoutMenu({ value, onChange, animate, onAnimate, speed, onSpeed }) {
   const reduceMotion = useSyncExternalStore(watchMotion, reduced, () => false)
+  const rate = speed + '×'
+  useEffect(() => {
+    const timer = setTimeout(() => writeSpeedURL(speed), 150)
+    return () => clearTimeout(timer)
+  }, [speed])
   return (
     <div className="wiki-layout-tools">
       <label className="wiki-layout-picker">
@@ -31,6 +48,14 @@ export function LayoutMenu({ value, onChange, animate, onAnimate }) {
           {reduceMotion && <small id="wiki-animate-reduced">System reduced motion is on</small>}
         </span>
       </label>
+      <div className="wiki-speed">
+        <label htmlFor="wiki-layout-speed">Layout speed</label>
+        <output htmlFor="wiki-layout-speed">{rate}</output>
+        <input id="wiki-layout-speed" type="range" min={atlasLayoutSpeed.min} max={atlasLayoutSpeed.max}
+          step={atlasLayoutSpeed.step} value={speed} disabled={!animate || reduceMotion}
+          aria-valuetext={rate} onChange={e => onSpeed(e.currentTarget.valueAsNumber)}
+          onPointerUp={e => writeSpeedURL(e.currentTarget.valueAsNumber)} onKeyUp={e => writeSpeedURL(e.currentTarget.valueAsNumber)} />
+      </div>
     </div>
   )
 }

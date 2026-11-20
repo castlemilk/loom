@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { atlasConnections, atlasLayouts, createAtlas, createFullAtlasReader } from '../../../../dist/atlas.js'
 import { createSQLiteAtlasReader } from '../../../../dist/atlas-sqlite.js'
+import { createWikipediaImages } from '../../../../dist/wikipedia-images.js'
 import { TopicMap } from './topic-map'
-import { LayoutMenu, SpringTuning, layoutHints, springFromURL } from './map-controls'
+import { LayoutMenu, SpringTuning, layoutHints, speedFromURL, springFromURL } from './map-controls'
+import { ArticlePhoto, useArticleImages } from './article-images'
 import { ConnectionInspector } from './connections'
 import { cardNeighborhood } from '../../../../dist/cards.js'
 import manifest from '../../../public/examples/wikispeedia/manifest.json'
@@ -138,6 +140,10 @@ function Explorer({ atlas }) {
   const api = useRef(null)
   const [carry, setCarry] = useState(true),
     [animate, setAnimate] = useState(() => new URL(location.href).searchParams.get('transition') !== 'instant'),
+    [speed, setSpeed] = useState(speedFromURL),
+    [followed, setFollowed] = useState(null),
+    [showImages, setShowImages] = useState(() => new URL(location.href).searchParams.get('images') !== 'off'),
+    [imageSource] = useState(() => createWikipediaImages()),
     [spring, setSpring] = useState(springFromURL),
     [memberMotion, setMemberMotion] = useState(() =>
       new URL(location.href).searchParams.get('motion') === 'rigid' ? 'rigid' : 'spring',
@@ -162,6 +168,16 @@ function Explorer({ atlas }) {
     [cardMode, snap.scene, article],
   )
   const cardNode = cards?.nodes.find((n) => n.id === cardSelected)
+  const images = showImages ? imageSource : null
+  useEffect(() => () => imageSource.cancel(), [imageSource])
+  const following = useMemo(() => followed && snap.scene.nodes.find(n => n.id === followed)?.label, [followed, snap.scene])
+  const topicPage = useMemo(() => block?.articles.some(row => row[1] === activeTopic?.label) ? activeTopic.label : null, [block, activeTopic])
+  const photoTitle = cardNode?.label ?? article?.label ?? topicPage
+  const singleTitle = cards ? null : photoTitle
+  const titles = useMemo(() => cards ? cards.nodes.map(n => n.label) : singleTitle ? [singleTitle] : [], [cards, singleTitle])
+  const articleImages = useArticleImages(images, titles)
+  const imageFor = useMemo(() => n => articleImages?.get(n.label)?.src, [articleImages])
+  const photo = articleImages?.get(photoTitle)
   const ranked = useMemo(
     () => [...(block?.articles ?? [])].sort((a, b) => b[2] - a[2] || a[1].localeCompare(b[1])),
     [block],
@@ -264,6 +280,8 @@ function Explorer({ atlas }) {
               <LayoutMenu
                 value={snap.layout}
                 animate={animate}
+                speed={speed}
+                onSpeed={setSpeed}
                 onAnimate={(value) => {
                   setAnimate(value)
                   const url = new URL(location.href)
@@ -292,6 +310,10 @@ function Explorer({ atlas }) {
             api={api}
             keep={keep}
             animate={animate}
+            speed={speed}
+            active={active}
+            images={images}
+            onFollow={setFollowed}
             carry={carry}
             memberMotion={memberMotion}
             spring={spring}
@@ -320,12 +342,15 @@ function Explorer({ atlas }) {
               selected={cardSelected ?? article.id}
               onSelect={(n) => setCardSelected(n.id)}
               useNodePositions={false}
+              imageFor={imageFor}
               arrows
             />
           )}
         </div>
         <div className="atlas-status">
-          <span data-visible-articles={visible}>{number(visible)} articles on map</span>
+          <span data-visible-articles={visible}>{number(visible)} articles on map
+            {following && !cards && <span className="wiki-following" role="status">Following {following}</span>}
+          </span>
           <div className="atlas-map-tools" style={{ visibility: cards ? 'hidden' : 'visible' }}>
             <button aria-label="Zoom out" onClick={() => api.current?.zoom(0.8)}>
               −
@@ -377,7 +402,7 @@ function Explorer({ atlas }) {
             Move articles with their topic
           </label>
           <div className="wiki-position-tools">
-            <p>{layoutHints[snap.layout]} Drag a topic to move it. Double-click or double-tap a node to zoom in.</p>
+            <p>{layoutHints[snap.layout]} Drag a topic to move it. Double-click or double-tap a node to follow it across layouts. Pan or use Fit view to release it.</p>
             <button type="button" onClick={() => api.current?.resetPositions()}>
               Reset positions
             </button>
@@ -437,6 +462,18 @@ function Explorer({ atlas }) {
         <label className="atlas-check">
           <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
           Keep camera in place
+        </label>
+        <label className="atlas-check">
+          <input type="checkbox" checked={showImages} onChange={e => {
+            const on = e.target.checked
+            if (!on) imageSource.cancel()
+            setShowImages(on)
+            const url = new URL(location.href)
+            if (on) url.searchParams.delete('images')
+            else url.searchParams.set('images', 'off')
+            history.replaceState(history.state, '', url)
+          }} />
+          Wikipedia node images
         </label>
         {activeTopic && snap.expanded.includes(active) && (
           <section className="atlas-topic-detail">
@@ -511,6 +548,7 @@ function Explorer({ atlas }) {
                 </button>
               </div>
             )}
+            {photo && <ArticlePhoto key={photo.src} photo={photo} />}
           </section>
         )}
         <section className="atlas-directory-large">

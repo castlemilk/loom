@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { mountAtlasMap } from '../../../../dist/atlas-map.js'
 import manifest from '../../../public/examples/wikispeedia/manifest.json'
+import { mountNodePhotos } from './node-photos'
 
 const layoutKey = 'loom:wikispeedia:positions:' + manifest.database
 const count = new Intl.NumberFormat('en')
@@ -106,6 +107,10 @@ export function TopicMap({
   onConnection,
   keep,
   animate,
+  speed,
+  active,
+  images,
+  onFollow,
   carry,
   memberMotion,
   spring,
@@ -118,6 +123,8 @@ export function TopicMap({
   const canvas = useRef(null),
     labels = useRef(new Map()),
     highlight = useRef(null),
+    photoLayer = useRef(null),
+    photos = useRef(null),
     pick = useRef(onPick),
     open = useRef(onOpen),
     pickConnection = useRef(onConnection)
@@ -130,7 +137,7 @@ export function TopicMap({
   pick.current = onPick
   open.current = onOpen
   pickConnection.current = onConnection
-  drawing.current = { selected, edge, layout: snap.layout }
+  drawing.current = { selected, edge, active, layout: snap.layout }
   const displayTheme = useMemo(
     () =>
       pair
@@ -179,8 +186,9 @@ export function TopicMap({
     }
     const overlay = highlight.current
     if (!overlay) return
-    const moving = String(!!api.current?.isAnimatingLayout())
-    if (overlay.parentElement.dataset.layoutMoving !== moving) overlay.parentElement.dataset.layoutMoving = moving
+    const moving = !!api.current?.isAnimatingLayout()
+    if (overlay.parentElement.dataset.layoutMoving !== String(moving)) overlay.parentElement.dataset.layoutMoving = String(moving)
+    photos.current?.paint(frame, scene, cached.current.indices, drawing.current.active, drawing.current.selected, moving)
     const { selected, edge } = drawing.current
     const project = (id) => {
       const i = cached.current.indices.get(id)
@@ -237,6 +245,8 @@ export function TopicMap({
         theme: displayTheme,
         keepView: keep,
         animateLayouts: animate,
+        layoutSpeed: speed,
+        onFollowChange: onFollow,
         moveMembers: carry,
         memberMotion,
         spring,
@@ -276,6 +286,18 @@ export function TopicMap({
   useLayoutEffect(() => {
     api.current?.setAnimateLayouts(animate)
   }, [animate, api])
+  useLayoutEffect(() => {
+    api.current?.setLayoutSpeed(speed)
+  }, [speed, api])
+  useLayoutEffect(() => {
+    if (!images || hidden) return
+    photos.current = mountNodePhotos(photoLayer.current, images)
+    if (api.current) paint(api.current.getFrame(), atlas.getSnapshot().scene)
+    return () => {
+      photos.current.destroy()
+      photos.current = null
+    }
+  }, [images, hidden, api, atlas, paint])
   useEffect(() => {
     api.current?.setSpring(spring)
   }, [spring, api])
@@ -288,7 +310,7 @@ export function TopicMap({
       map.select(selected)
       paint(map.getFrame(), snap.scene)
     }
-  }, [edge, selected, snap.scene, api, paint])
+  }, [edge, selected, active, snap.scene, api, paint])
   function grab(event, id) {
     if (event.button !== 0 || !event.isPrimary || !api.current) return
     drag.current = {
@@ -333,6 +355,7 @@ export function TopicMap({
           ' the map.'
         }
       />
+      <div className="wiki-node-photos" aria-hidden="true" ref={photoLayer} />
       <svg ref={highlight} className="atlas-crossing-overlay" aria-hidden="true">
         {snap.expanded.map((id) => (
           <circle

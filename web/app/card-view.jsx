@@ -5,6 +5,7 @@ import { createCardGraph } from '../../dist/cards.js'
 import { homeURL } from '../site'
 
 const colors = { partner: '#f0ebfa', person: '#f7efdf', startup: '#e9effe', article: '#e8f0ed' }
+const exampleImage = n => n.image ? homeURL + 'examples/' + n.image : undefined
 function portrait(data, root) {
   const others = data.nodes.filter((n) => n.id !== root),
     split = Math.ceil(others.length / 2)
@@ -30,7 +31,7 @@ export function CardView({
   ports = true,
   arrows = false,
   useNodePositions = true,
-  imageFor,
+  imageFor = exampleImage,
   name = 'Relationship cards',
 }) {
   const svg = useRef(null),
@@ -53,7 +54,7 @@ export function CardView({
       showPorts: ports,
       showArrows: arrows,
       useNodePositions: compact || useNodePositions,
-      image: imageFor ?? ((n) => (n.image ? homeURL + 'examples/' + n.image : undefined)),
+      image: imageFor,
       badge: (n) => n.kind,
       tint: (n) => colors[n.kind] ?? '#e8edf7',
       relationship: (e) => e.label ?? e.kind,
@@ -64,10 +65,10 @@ export function CardView({
       graph.destroy()
       instance.current = null
     }
-  }, [data, root, compact, imageFor, useNodePositions])
+  }, [data, root, compact, useNodePositions])
   useEffect(() => {
-    instance.current?.setOptions({ appearance, showLabels: labels, showPorts: ports, showArrows: arrows })
-  }, [appearance, labels, ports, arrows])
+    instance.current?.setOptions({ appearance, showLabels: labels, showPorts: ports, showArrows: arrows, image: imageFor })
+  }, [appearance, labels, ports, arrows, imageFor])
   useEffect(() => {
     instance.current?.select(selected ?? root)
   }, [selected, root, data, compact])

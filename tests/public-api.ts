@@ -7,7 +7,8 @@ import { mapNodeRadius, mapWireWidth } from 'loom-core/metrics'
 import { createWireGraph, wireEffectsSchema, type WireEffects } from 'loom-core/wires'
 import { atlasConnections, atlasLayouts, createAtlas, createFullAtlasReader, type AtlasManifest, type AtlasLayout } from 'loom-core/atlas'
 import { createSQLiteAtlasReader, type AtlasSQLiteOptions } from 'loom-core/atlas-sqlite'
-import { atlasSpringControls, mountAtlasMap, type AtlasPositions, type AtlasMemberMotion, type AtlasSpringSettings } from 'loom-core/atlas-map'
+import { atlasLayoutSpeed, atlasSpringControls, mountAtlasMap, type AtlasPositions, type AtlasMemberMotion, type AtlasSpringSettings } from 'loom-core/atlas-map'
+import { createWikipediaImages } from 'loom-core/wikipedia-images'
 import { createCardGraph } from 'loom-core/cards'
 
 interface Paper extends GraphNode {
@@ -18,17 +19,19 @@ interface Citation extends GraphLink { reviewed: boolean }
 export function mountStreamingAtlas(canvas: HTMLCanvasElement, manifest: AtlasManifest, sqlite: AtlasSQLiteOptions, baseline: URL, positions?: AtlasPositions, memberMotion: AtlasMemberMotion = 'spring') {
   const atlas = createAtlas(manifest, { 'on-demand': () => createSQLiteAtlasReader(sqlite), full: () => createFullAtlasReader(baseline) })
   const spring: AtlasSpringSettings = { strength: atlasSpringControls.strength.default, damping: 0.65 }
-  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, animateLayouts: true, moveMembers: true, positions, memberMotion, spring,
+  const images = createWikipediaImages()
+  const map = mountAtlasMap(canvas, atlas, { theme: ink, keepView: true, animateLayouts: true, layoutSpeed: atlasLayoutSpeed.default, moveMembers: true, positions, memberMotion, spring,
     onPick: node => { if (node.kind === 'topic') void atlas.toggle(node.topic) },
     onOpen(node) { map.focus(node.id) } })
   return {
     setLoading: atlas.setLoading, expand: atlas.setExpanded, fit: map.fit,
     layouts: atlasLayouts, setLayout: (value: AtlasLayout) => atlas.setLayout(value),
     animateLayouts: map.setAnimateLayouts, isMoving: map.isAnimatingLayout, focus: map.focus,
+    setLayoutSpeed: map.setLayoutSpeed, layoutSpeed: map.getLayoutSpeed, followed: map.getFollowedNode, image: images.lookup,
     tune: map.setSpring, readSpring: map.getSpring, nudge: map.moveTopicByScreen,
     moveTopic: map.moveTopic, setMoveMembers: map.setMoveMembers, setMemberMotion: map.setMemberMotion, save: map.getPositions, reset: map.resetPositions,
     connectedTopics: (topic: number) => atlasConnections(manifest, topic), crossings: atlas.crossings, focusConnection: map.focusConnection,
-    close() { map.destroy(); atlas.close() },
+    close() { images.cancel(); map.destroy(); atlas.close() },
   }
 }
 export function mountCitationCards(svg: SVGSVGElement, data: GraphData<Paper,Citation>) {

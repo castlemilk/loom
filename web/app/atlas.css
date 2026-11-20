@@ -115,6 +115,11 @@ body:has(.atlas-app) { display:block; margin:0; height:auto; }
   .atlas-directory-large li button,.atlas-results button {min-height:38px;}
 }
 .atlas-crossing-overlay {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.wiki-node-photos {position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.wiki-node-photos img {position:absolute;top:0;left:0;object-fit:cover;border-radius:50%;box-shadow:0 0 0 1px var(--paper);pointer-events:none;}
+.wiki-article-photo {display:inline-flex;align-items:center;gap:10px;margin-top:8px;font-size:12px;}
+.wiki-article-photo img {display:block;width:80px;height:64px;object-fit:contain;background:var(--paper);border-radius:4px;}
+.wiki-following {display:block;color:#365b43;font-weight:600;overflow-wrap:anywhere;}
 .atlas-article-caption {font:600 12px/1.2 Inter,system-ui,sans-serif;fill:#763c2a;paint-order:stroke;stroke:var(--paper,#f7f7f0);stroke-width:4px;stroke-linejoin:round;}
 .atlas-article-caption[data-map-caption=selected] {fill:#324e8d;}
 .atlas-map-label {touch-action:none;cursor:grab;user-select:none;}
@@ -123,7 +128,13 @@ body:has(.atlas-app) { display:block; margin:0; height:auto; }
 .wiki-board-actions,.wiki-layout-picker {display:flex;align-items:center;gap:12px;}
 .wiki-layout-picker {gap:7px;color:var(--ink);font-size:13px;font-weight:600;}
 .wiki-layout-picker select {min-height:35px;padding:4px 8px;border:1px solid #9eab9c;border-radius:5px;background:var(--panel);font-weight:500;}
-.wiki-layout-tools {display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;}
+.wiki-layout-tools {display:grid;grid-template-columns:auto minmax(102px,126px);align-items:center;gap:0 16px;}
+.wiki-layout-tools .wiki-animate {grid-column:1;min-height:26px;}
+.wiki-speed {grid-column:2;grid-row:1 / span 2;display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:3px 6px;}
+.wiki-speed label {font-size:12px;font-weight:600;white-space:nowrap;}
+.wiki-speed output {font:11px/1.3 ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+.wiki-speed input {grid-column:1 / -1;min-width:0;width:100%;height:24px;margin:0;accent-color:#496951;}
+.wiki-speed:has(:disabled) {color:var(--muted);}
 .wiki-animate {white-space:nowrap;cursor:pointer;}
 .wiki-animate:has(:disabled) {color:var(--muted);cursor:default;}
 .wiki-animate small {display:block;font-size:11px;}
@@ -141,9 +152,11 @@ body:has(.atlas-app) { display:block; margin:0; height:auto; }
 .wiki-slider-ends,.wiki-motion-note {font-size:12px;color:var(--muted);}
 .wiki-motion .wiki-motion-note {margin:7px 0;}
 .wiki-spring-tuning .wiki-reset-tuning {justify-self:start;background:transparent;border:0;padding:2px 0;color:#435e4b;text-decoration:underline;text-underline-offset:3px;font-size:12px;}
-@media(max-width:720px) {
-  .atlas-board-title:has(.wiki-board-actions) {flex-wrap:wrap;gap:8px;}
-  .wiki-board-actions {flex-wrap:wrap;gap:8px 13px;}
+@media(max-width:920px) {
+  .atlas-board-title:has(.wiki-board-actions) {display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;}
+  .wiki-board-actions {display:contents;}
+  .wiki-board-actions>button {grid-column:2;grid-row:1;}
+  .wiki-layout-tools {grid-column:1 / -1;grid-row:2;grid-template-columns:auto minmax(120px,40%);justify-content:space-between;}
   .wiki-board-actions button,.wiki-layout-picker select {min-height:36px;}
 }
 .wiki-position-tools p,.wiki-pages span,.wiki-edge-location {font-size:12px;line-height:1.45;color:var(--muted);}

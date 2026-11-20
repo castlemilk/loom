@@ -49,6 +49,10 @@
       "types": "./dist/atlas-map.d.ts",
       "import": "./dist/atlas-map.js"
     },
+    "./wikipedia-images": {
+      "types": "./dist/wikipedia-images.d.ts",
+      "import": "./dist/wikipedia-images.js"
+    },
     "./atlas-sqlite": {
       "types": "./dist/atlas-sqlite.d.ts",
       "import": "./dist/atlas-sqlite.js"

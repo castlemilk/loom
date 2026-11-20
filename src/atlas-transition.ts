@@ -1,12 +1,19 @@
 import type { AtlasNode, AtlasScene } from './atlas.js'
 import type { GraphViewport, LoomGraph, Mode } from './types.js'
+import { range } from './constraints.js'
 
 export interface AtlasPoint { x: number; y: number; z: number }
 
-// Use elapsed time so a slow frame or a background tab cannot stretch the trip.
-export function travelProgress(start: number, duration: number) {
-  const t = Math.max(0, Math.min(1, (performance.now() - start) / duration))
+export const atlasLayoutSpeed = { min: 0.1, max: 2, step: 0.05, default: 1 } as const
+export function validateSpeed(rate: number) {
+  return range(rate, atlasLayoutSpeed.min, atlasLayoutSpeed.max, 'atlas layout speed')
+}
+function ease(fraction: number) {
+  const t = Math.max(0, Math.min(1, fraction))
   return t * t * (3 - 2 * t)
+}
+export function travelProgress(start: number, duration: number) {
+  return ease((performance.now() - start) / duration)
 }
 const mix = (a: number, b: number, t: number) => a + (b - a) * t
 export function travelView(a: GraphViewport, b: GraphViewport, t: number): GraphViewport {
@@ -21,20 +28,32 @@ export function travelView(a: GraphViewport, b: GraphViewport, t: number): Graph
 
 /** Keep each article on its topic's trajectory, including blocks delivered during the move. */
 export class AtlasLayoutTransition {
-  readonly start = performance.now()
+  private since = performance.now()
+  private elapsed = 0
   readonly mode: Mode
   private tracks: { id: string; from: AtlasPoint; to: AtlasPoint }[] = []
   private fromView: GraphViewport
   private toView: GraphViewport
   constructor(
     private origins: Map<string, AtlasPoint>, from: GraphViewport, source: Mode,
-    readonly destination: GraphViewport, readonly destinationMode: Mode,
+    readonly destination: GraphViewport, readonly destinationMode: Mode, private speed: number = atlasLayoutSpeed.default,
   ) {
     this.mode = source === 'cloud' || destinationMode === 'cloud' ? 'cloud' : 'drift'
     // A flat graph is the head-on, zero-depth plane of the 3D view.
     const flat = (v: GraphViewport) => ({ ...v, yaw: 0, pitch: 0, z: 0 })
     this.fromView = source === 'cloud' ? from : flat(from)
     this.toView = destinationMode === 'cloud' ? destination : flat(destination)
+  }
+
+  progress() {
+    return ease((this.elapsed + (performance.now() - this.since) * this.speed) / 700)
+  }
+
+  setSpeed(rate: number) {
+    const now = performance.now()
+    this.elapsed += (now - this.since) * this.speed
+    this.since = now
+    this.speed = rate
   }
 
   bind(scene: AtlasScene, placed: (node: AtlasNode) => AtlasPoint) {

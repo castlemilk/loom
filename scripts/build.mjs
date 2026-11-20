@@ -64,7 +64,7 @@ await Promise.all(core.outputFiles.map(async (file) => {
 }))
 await build({ ...options, entryPoints: ['src/console.ts', 'src/wires.ts','src/atlas-map.ts'], external: ['./index.js'] })
 await build({ ...options, entryPoints: ['src/taxonomy.ts'] })
-await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts', 'src/explore.ts', 'src/atlas.ts', 'src/atlas-sqlite.ts', 'src/cards.ts'] })
+await build({ ...options, entryPoints: ['src/performance.ts', 'src/clusters.ts', 'src/metrics.ts', 'src/drilldown.ts', 'src/editor.ts', 'src/explore.ts', 'src/atlas.ts', 'src/atlas-sqlite.ts', 'src/wikipedia-images.ts', 'src/cards.ts'] })
 await mkdir('dist/atlas-runtime', { recursive:true })
 for (const file of ['sqlite.worker.js','sql-wasm.wasm'])
   await copyFile(new URL(import.meta.resolve('sql.js-httpvfs/dist/' + file)), 'dist/atlas-runtime/' + file)
