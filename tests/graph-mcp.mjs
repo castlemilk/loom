@@ -4,6 +4,31 @@ import { fileURLToPath } from 'node:url'
 
 const shots = new URL('../artifacts/studio/', import.meta.url)
 
+async function searchBeforeHydration(context, home) {
+  const page = await context.newPage()
+  let release
+  const scripts = new Promise(resolve => { release = resolve })
+  try {
+    await page.route('**/_next/static/**/*.js*', async route => {
+      await scripts
+      await route.continue()
+    })
+    await page.goto(new URL('mcp/', home).href, { waitUntil: 'commit' })
+    const input = page.getByRole('searchbox', { name: 'Find an article' })
+    await input.fill('Gropius')
+    release()
+    const matches = page.getByRole('list', { name: 'Article search results' }).getByRole('button')
+    await page.waitForFunction(() => document.querySelectorAll('.explorer-index li').length === 1)
+    assert.equal(await input.inputValue(), 'Gropius')
+    assert.match(await matches.innerText(), /Walter Gropius/)
+    await input.fill('')
+    await page.waitForFunction(() => document.querySelectorAll('.explorer-index li').length === 5)
+  } finally {
+    release()
+    await page.close()
+  }
+}
+
 async function dataSavingPlayback(context, home) {
   const page = await context.newPage()
   try {
@@ -171,7 +196,10 @@ export async function graphMcpJourney(context, home, { touch = false, live = fal
     assert.ok((await context.request.head(new URL(download, home).href)).ok())
     await fits()
     assert.deepEqual(failures, [])
-    if (!touch) await dataSavingPlayback(context, home)
+    if (!touch) {
+      await dataSavingPlayback(context, home)
+      await searchBeforeHydration(context, home)
+    }
     return { device, visited: target.label, archive: packageURL.pathname.split('/').at(-1) }
   } finally { await page.close() }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import graph from '../../../demo/atlases/bauhaus.json'
 import { getNeighbors, indexGraph, searchNodes } from '../../../mcp/query.js'
 
@@ -10,6 +10,10 @@ const first = 'Anni_Albers'
 export function GraphExplorer() {
   const [query, setQuery] = useState(''), [history, setHistory] = useState([first])
   const [direction, setDirection] = useState('outgoing')
+  // The static page accepts typing before React attaches the search handler.
+  const readInitialSearch = useCallback(input => {
+    if (input?.value) setQuery(input.value)
+  }, [])
   const id = history.at(-1), node = atlas.node(id)
   const hits = query.trim() ? searchNodes(atlas, { query, offset: 0, limit: 15 }).items : graph.nodes.slice(0, 5).map(atlas.reference)
   const result = getNeighbors(atlas, { id, direction, offset: 0, limit: 50 })
@@ -20,7 +24,7 @@ export function GraphExplorer() {
   return <div className="graph-explorer">
     <div className="explorer-index">
       <label htmlFor="graph-node-search">Find an article</label>
-      <input id="graph-node-search" type="search" placeholder="Name, subject or artist" value={query} onChange={e => setQuery(e.target.value)} />
+      <input ref={readInitialSearch} id="graph-node-search" type="search" placeholder="Name, subject or artist" value={query} onChange={e => setQuery(e.target.value)} />
       <ul aria-label="Article search results">{hits.map(hit => <li key={hit.id}><button type="button" aria-pressed={id === hit.id}
         onClick={() => inspect(hit.id)}>{hit.label}<span aria-hidden="true">↗</span></button></li>)}</ul>
       {hits.length === 0 && <p role="status">No matching articles. Try a name such as Albers.</p>}
