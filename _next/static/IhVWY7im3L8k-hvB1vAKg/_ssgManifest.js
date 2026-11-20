@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fdocs\u002F[chapter]","\u002Fexamples\u002F[collection]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()

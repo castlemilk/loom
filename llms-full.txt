@@ -8,20 +8,15 @@ Build a small synthesizer signal path. Mount it on a canvas, switch its layout, 
 
 ## Install Loom
 
-Start in an empty directory with Node.js 22.12 or newer and npm. The studio publishes a typed ESM package on GitHub Pages. Vite serves the example and resolves its package imports.
+Start in an empty directory with Node.js 22.12 or newer and npm. Vite serves the example and resolves the SDK imports.
 
 ```bash
 npm init -y
-npm install https://castlemilk.github.io/loom/loom-core-0.1.0.tgz
+npm install https://castlemilk.github.io/loom/packages/788acec0e0f6550afb07c5301ea7749dac7fd136/loom-core-0.1.0.tgz
 npm install --save-dev vite
 ```
 
-For a build you can reproduce later, read the current source revision and install its permanent archive. Commit the resulting lockfile with your app.
-
-```bash
-revision=$(curl -fsSL https://castlemilk.github.io/loom/revision.txt)
-npm install "https://castlemilk.github.io/loom/packages/$revision/loom-core-0.1.0.tgz"
-```
+The install command matches this Studio build. Published releases use an exact npm version. Preview builds use their GitHub Pages archive. Commit the resulting lockfile with your app.
 
 ## Mount the graph
 
