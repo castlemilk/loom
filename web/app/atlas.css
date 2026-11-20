@@ -77,6 +77,17 @@ body:has(.atlas-app) { display:block; margin:0; height:auto; }
 .atlas-graph-error {padding:9px;background:#fff5dd;}
 .atlas-map-surface>.atlas-graph-error { position:absolute;top:12px;left:12px; }
 .atlas-start {padding:30px;}
+.atlas-start > p {max-width:60ch;margin-block:12px;}
+.atlas-start .wiki-trails {max-width:32rem;margin-top:24px;}
+.wiki-trails {margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule);}
+.wiki-trails h2 {font-size:17px;line-height:1.25;}
+.wiki-trails p {margin:6px 0 10px;color:var(--muted);font-size:13px;}
+.wiki-trails ul {padding:0;list-style:none;}
+.wiki-trails a {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;padding:7px 0;text-decoration:none;}
+.wiki-trails a span {font-weight:600;}
+.wiki-trails a small {grid-column:1;color:var(--muted);font-size:11px;}
+.wiki-trails a::after {content:'→' / '';grid-column:2;grid-row:1 / 3;color:#57695b;}
+.wiki-trails a:hover span {text-decoration:underline;text-underline-offset:3px;}
 .atlas-card-stage {background-color:#f9fafc;background-image:radial-gradient(#d0d6e2 0.7px,transparent 0.8px);}
 .atlas-card-svg {display:block;font-family:Inter,system-ui,sans-serif;}
 .atlas-card-svg [data-card-id]:focus-visible {outline:0;}

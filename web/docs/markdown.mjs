@@ -3,6 +3,7 @@ import { createProcessor } from '@mdx-js/mdx'
 import { toMarkdown } from 'mdast-util-to-markdown'
 import { chapters, chapterFile } from './catalog.js'
 import { readExample } from './examples.mjs'
+import { siteOrigin } from '../site.js'
 
 const parser = createProcessor({ format: 'mdx' })
 const text = value => ({ type: 'text', value })
@@ -59,7 +60,7 @@ async function markdownChapter(chapter, site, index) {
 }
 
 export async function writeAssistantDocs(publicDir, indexFile) {
-  const site = new URL((process.env.PAGES_BASE_PATH ?? '/loom') + '/', 'https://castlemilk.github.io')
+  const site = new URL((process.env.PAGES_BASE_PATH ?? '/loom') + '/', siteOrigin)
   const index = JSON.parse(await readFile(indexFile, 'utf8'))
   const pages = await Promise.all(chapters.map(async chapter => {
     const body = await markdownChapter(chapter, site, index)

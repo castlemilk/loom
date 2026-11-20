@@ -1,6 +1,7 @@
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '/loom'
 
 export const homeURL = base + '/'
+export const siteOrigin = 'https://castlemilk.github.io'
 export const studioURL = base + '/studio/'
 export const repositoryURL = 'https://github.com/castlemilk/loom'
 export const docsURL = homeURL + 'docs/'

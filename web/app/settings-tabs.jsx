@@ -1,9 +1,15 @@
 'use client'
 
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { artURL, settingsSections } from '../site'
+import { artURL, docsURL, settingsSections } from '../site'
 
 const ActiveSection = createContext('explore')
+const guides = {
+  explore: ['navigation/#inspect-a-connection', 'Inspect a connection'],
+  layout: ['drawing/#choose-a-layout', 'Choose a graph layout'],
+  groups: ['navigation/#navigate-a-group', 'Navigate a group'],
+  style: ['drawing/#map-data-to-appearance', 'Style nodes and wires'],
+}
 
 export function findInGraph() {
   document.getElementById('tab-explore')?.click()
@@ -96,5 +102,8 @@ export function SettingsTabs({ children }) {
 
 export function SettingsPanel({ id, children }) {
   const active = useContext(ActiveSection)
-  return <div id={'panel-' + id} role="tabpanel" aria-labelledby={'tab-' + id} hidden={id !== active}>{children}</div>
+  const [path, label] = guides[id]
+  return <div id={'panel-' + id} role="tabpanel" aria-labelledby={'tab-' + id} hidden={id !== active}>
+    {children}<a className="panel-guide" href={docsURL + path}>{label} in the SDK <span aria-hidden="true">→</span></a>
+  </div>
 }

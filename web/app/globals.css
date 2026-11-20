@@ -425,3 +425,4 @@ input, textarea { caret-color: var(--accent); }
 @media (forced-colors: active) {
   .drawing-choices label:has(:checked), .direction-switch button[aria-pressed="true"] { outline: 2px solid Highlight; }
 }
+.panel-guide { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin-inline: 2px; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }

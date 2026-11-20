@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { atlasConnections } from '../../../../dist/atlas.js'
 import manifest from '../../../public/examples/wikispeedia/manifest.json'
 import { homeURL } from '../../../site'
+import { connectionURL, topicSlug } from '../../../wiki-connections'
 
 const archive = 'https://dlab.epfl.ch/wikispeedia/wpcd/',
   cache = new Map()
@@ -43,7 +44,7 @@ function useEvidence(a, b) {
     },
   }
 }
-function Evidence({ row, evidence, retry, onFocus }) {
+function Evidence({ row, pair, evidence, retry, onFocus }) {
   const record = evidence?.data?.links[key(row)],
     path = evidence?.data?.pages[row.source]
   const [section, fragment, anchor, context] = record ?? []
@@ -98,6 +99,9 @@ function Evidence({ row, evidence, retry, onFocus }) {
       <button type="button" onClick={() => onFocus(row)}>
         Show link on map
       </button>
+      <a href={connectionURL(pair.map(id => topicSlug(manifest.topics[id])), key(row))}>
+        Permalink to this connection
+      </a>
     </section>
   )
 }
@@ -114,12 +118,10 @@ export function ConnectionInspector({ atlas, snap, pair, onPair, edge, onEdge, o
         .sort((x, y) => x.sourceTitle.localeCompare(y.sourceTitle) || x.targetTitle.localeCompare(y.targetTitle)),
     [atlas, a, b, left, right],
   )
+  const [initialEdge] = useState(edge)
   const [direction, setDirection] = useState('both'),
     [query, setQuery] = useState(''),
-    [page, setPage] = useState(() => {
-      const index = edge ? rows.findIndex((row) => key(row) === key(edge)) : 0
-      return Math.floor(Math.max(0, index) / pageSize)
-    })
+    [page, setPage] = useState(null)
   const results = useMemo(
     () =>
       rows.filter(
@@ -129,12 +131,15 @@ export function ConnectionInspector({ atlas, snap, pair, onPair, edge, onEdge, o
       ),
     [rows, direction, query, a, b],
   )
-  const start = Math.min(page, Math.max(0, Math.ceil(results.length / pageSize) - 1)) * pageSize
+  // The bookmarked article can be on a later page in a topic block that is still loading.
+  const initialIndex = page === null && initialEdge ? results.findIndex(row => key(row) === key(initialEdge)) : 0
+  const pageIndex = Math.min(page ?? Math.floor(Math.max(0, initialIndex) / pageSize), Math.max(0, Math.ceil(results.length / pageSize) - 1))
+  const start = pageIndex * pageSize
   const shown = useMemo(() => results.slice(start, start + pageSize), [start, results])
   const current = shown.find((row) => edge && key(edge) === key(row)) ?? shown[0]
   useEffect(() => {
-    onEdge(current ?? null)
-  }, [current, onEdge])
+    if (left && right) onEdge(current ?? null)
+  }, [left, right, current, onEdge])
   const { result: evidence, retry } = useEvidence(a, b)
   return (
     <section className="wiki-connections" aria-label="Topic connections">
@@ -228,18 +233,18 @@ export function ConnectionInspector({ atlas, snap, pair, onPair, edge, onEdge, o
       )}
       {results.length > pageSize && (
         <div className="wiki-pages">
-          <button disabled={start === 0} onClick={() => setPage((n) => n - 1)}>
+          <button disabled={start === 0} onClick={() => setPage(pageIndex - 1)}>
             Previous
           </button>
           <span>
             {number(start + 1)}–{number(start + shown.length)} of {number(results.length)}
           </span>
-          <button disabled={start + pageSize >= results.length} onClick={() => setPage((n) => n + 1)}>
+          <button disabled={start + pageSize >= results.length} onClick={() => setPage(pageIndex + 1)}>
             Next
           </button>
         </div>
       )}
-      {current && <Evidence row={current} evidence={evidence} retry={retry} onFocus={onFocus} />}
+      {current && <Evidence row={current} pair={pair} evidence={evidence} retry={retry} onFocus={onFocus} />}
     </section>
   )
 }

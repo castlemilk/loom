@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { GuideFrame } from '../app/guide-frame'
 import { homeURL } from '../site'
+import { pageMetadata } from '../metadata'
 import { chapters, chapterURL, markdownURL } from './catalog'
 import { CopyButton } from './copy-button'
 import FirstGraph from './guides/first-graph.mdx'
@@ -25,8 +26,8 @@ function Contents({ slug }) {
 export function metadataFor(slug) {
   const chapter = chapters.find(c => c.slug === slug)
   if (!chapter) notFound()
-  return { title: chapter.title + ' · SDK docs', description: chapter.intro,
-    alternates: { canonical: chapterURL(slug), types: { 'text/markdown': markdownURL(slug) } } }
+  return pageMetadata({ title: chapter.title + ' · Loom SDK docs', description: chapter.intro,
+    path: chapterURL(slug), markdown: markdownURL(slug) })
 }
 export function Guide({ slug }) {
   const i = chapters.findIndex(c => c.slug === slug)

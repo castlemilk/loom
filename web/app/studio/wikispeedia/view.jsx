@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { atlasConnections, atlasLayouts, createAtlas, createFullAtlasReader } from '../../../../dist/atlas.js'
 import { createSQLiteAtlasReader } from '../../../../dist/atlas-sqlite.js'
 import { createWikipediaImages } from '../../../../dist/wikipedia-images.js'
@@ -13,6 +13,7 @@ import manifest from '../../../public/examples/wikispeedia/manifest.json'
 import { AtlasShell, ModeSwitch } from '../../atlas-shell'
 import { CardView } from '../../card-view'
 import { docsURL, homeURL, studioURL } from '../../../site'
+import { connectionURL, exampleConnections, parseEdge, topicSlug as slug } from '../../../wiki-connections'
 
 const base = homeURL + 'examples/wikispeedia/',
   runtime = homeURL + 'atlas-runtime/0.8.12/'
@@ -20,11 +21,6 @@ const fmt = new Intl.NumberFormat('en'),
   number = (n) => fmt.format(n)
 const bytes = (n) =>
   n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(0) + ' KiB' : (n / 1048576).toFixed(2) + ' MiB'
-const slug = (t) =>
-  t.label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/-$/, '')
 const articleUrl = (title) => 'https://en.wikipedia.org/wiki/' + encodeURIComponent(title.replaceAll(' ', '_'))
 const theme = {
   bg: '#f7f7f0',
@@ -77,11 +73,28 @@ function bookmarkedPair() {
     ? ids
     : null
 }
-function savePair(pair) {
+function savePair(pair, edge = null) {
   const url = new URL(location.href)
   if (pair) url.searchParams.set('connections', pair.map((id) => slug(manifest.topics[id])).join(','))
   else url.searchParams.delete('connections')
-  history.replaceState(history.state, '', url)
+  if (pair && edge) url.searchParams.set('edge', edge.source + ':' + edge.target)
+  else url.searchParams.delete('edge')
+  if (url.href !== location.href) history.replaceState(history.state, '', url)
+}
+
+function ExampleConnections({ open }) {
+  return <section className="wiki-trails" aria-labelledby="example-connections">
+    <h2 id="example-connections">Follow a Wikipedia link</h2>
+    <p>Open two topics and read the passage that connects a pair of articles.</p>
+    <ul>{exampleConnections.map(example => <li key={example.edge}>
+      <a href={connectionURL(example.topics, example.edge)} onClick={event => {
+        if (!open || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+        event.preventDefault()
+        const [a, b] = example.topics.map(name => manifest.topics.find(topic => slug(topic) === name).id)
+        open(a, b, parseEdge(example.edge))
+      }}><span>{example.title}</span><small>{example.detail}</small></a>
+    </li>)}</ul>
+  </section>
 }
 
 export default function Wikispeedia() {
@@ -122,7 +135,11 @@ export default function Wikispeedia() {
       ) : (
         <main className="atlas-start">
           <h1>Wikispeedia</h1>
-          <p>Opening the topic map…</p>
+          <p>Explore {number(manifest.articles)} articles and {number(manifest.links)} hyperlinks from the historical Wikispeedia dataset.
+            Each of the {manifest.topics.length} topics loads its articles from SQLite when you open it.</p>
+          <ExampleConnections />
+          <a href={docsURL + 'atlas/'}>Build a streaming Wikipedia atlas</a> · <a href={manifest.source}>Wikispeedia dataset</a>
+          <noscript><p>Enable JavaScript to move around the map and inspect an article pair.</p></noscript>
         </main>
       )}
     </AtlasShell>
@@ -150,7 +167,7 @@ function Explorer({ atlas }) {
     ),
     [pair, setPair] = useState(bookmarkedPair),
     [inspection, setInspection] = useState(0),
-    [edge, setEdge] = useState(null)
+    [edge, setEdge] = useState(() => pair ? parseEdge(new URL(location.href).searchParams.get('edge')) : null)
   const [keep, setKeep] = useState(true),
     [active, setActive] = useState(() => snap.expanded.at(-1) ?? null)
   const [selection, setSelection] = useState(null),
@@ -192,6 +209,10 @@ function Explorer({ atlas }) {
     savePair(null)
     updateURL(snap.mode, atlas.getSnapshot().expanded)
   }
+  const selectEdge = useCallback(row => {
+    setEdge(row)
+    savePair(pair, row)
+  }, [pair])
   function openPair(a, b, link = null) {
     const nextPair = [a, b],
       ids = new Set([...atlas.getSnapshot().expanded, a, b])
@@ -203,7 +224,7 @@ function Explorer({ atlas }) {
     setActive(a)
     void atlas.setExpanded(ids)
     updateURL(snap.mode, [...ids])
-    savePair(nextPair)
+    savePair(nextPair, link)
     requestAnimationFrame(() => document.querySelector('.wiki-connections')?.scrollIntoView({ block: 'nearest' }))
   }
   function explorePair() {
@@ -372,7 +393,7 @@ function Explorer({ atlas }) {
             pair={pair}
             onPair={openPair}
             edge={edge}
-            onEdge={setEdge}
+            onEdge={selectEdge}
             onClose={closePair}
             onFocus={(row) => {
               api.current?.focusConnection('article:' + row.source, 'article:' + row.target)
@@ -380,6 +401,7 @@ function Explorer({ atlas }) {
             }}
           />
         )}
+        {!pair && !cards && !snap.expanded.length && <ExampleConnections open={openPair} />}
         <section className="wiki-motion" aria-label="Topic movement" hidden={!!cards}>
           <ModeSwitch
             label="Article motion"

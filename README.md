@@ -1,12 +1,48 @@
 # Loom
 
-Loom draws interactive node graphs on a WebGL2 canvas. The first draw contains nodes and Bézier wires. The default layout seeds unpositioned nodes on a deterministic golden-angle spiral. A structured layout can seed on diagram anchors or blend the two positions. Force layout, label rasterization and artwork loading begin on later frames.
+Loom is a TypeScript graph visualization library for the browser. Give it nodes, links and a canvas to draw an interactive WebGL2 graph. Readers can drag a cluster, follow a connection to its source, or switch from a flat diagram to a 3D cloud. The studio lets you try those interactions on real data.
 
-Build a working graph with the [SDK quickstart](https://castlemilk.github.io/loom/docs/), or follow the [SQLite/WASM atlas guide](https://castlemilk.github.io/loom/docs/atlas/) to load articles as topics open. The [API reference](https://castlemilk.github.io/loom/docs/api/) covers the package’s public imports, types and controller methods. Tools can read the same [JSON index](https://castlemilk.github.io/loom/docs/api-index.json) from `loom-core/api-index.json`. Proposed additions are on the [SDK roadmap](https://castlemilk.github.io/loom/docs/roadmap/).
+[Library homepage](https://castlemilk.github.io/loom/) · [Graph studio](https://castlemilk.github.io/loom/studio/) · [SDK quickstart](https://castlemilk.github.io/loom/docs/) · [API reference](https://castlemilk.github.io/loom/docs/api/)
 
-For AI integrations, use the [tool-calling guide](https://castlemilk.github.io/loom/docs/ai-tooling/) and [Markdown documentation index](https://castlemilk.github.io/loom/llms.txt). To investigate a slow map, [measure frame times](https://castlemilk.github.io/loom/docs/performance/) and [compare large-graph optimisations](https://castlemilk.github.io/loom/docs/optimisations/).
+## Draw your first graph
 
-On the M2 Max, the bundle including the optional worker measured 23,945 bytes minified and gzipped. The 1,000-node graph presented its first frame in 27.3–40.5 ms across seven fresh contexts, above the 10 ms release budget. A clear-only WebGL canvas presented in 19.2–20.5 ms. The layout settled in 295 ms in a separate run. With the knowledge-console styling, camera movement sustained 118.9 fps at 5,000 nodes and 118.1 fps at 25,000 nodes. Both sizes used four draw calls. The [hardware measurements](benchmarks/m2-max.json) include the raw samples.
+Install the tested package from GitHub Pages. This command pins the source revision in your lockfile.
+
+```sh
+revision=$(curl -fsSL https://castlemilk.github.io/loom/revision.txt)
+npm install "https://castlemilk.github.io/loom/packages/$revision/loom-core-0.1.0.tgz"
+```
+
+Add a canvas to the page and run this TypeScript after it mounts.
+
+```html
+<canvas id="map" style="width: 100%; height: 360px"></canvas>
+```
+
+```ts
+import { createGraph, parchment } from 'loom-core'
+
+const canvas = document.querySelector<HTMLCanvasElement>('#map')!
+const graph = createGraph(canvas, {
+  nodes: [{ id: 'music', label: 'Music' }, { id: 'sound', label: 'Sound' }],
+  links: [{ source: 'music', target: 'sound' }],
+  theme: parchment,
+})
+graph.on('open', id => graph.focus(id))
+```
+
+Double-click a node to focus it. Call `graph.destroy()` when removing the canvas. The quickstart has a complete five-node example and a live preview. [Build your first graph](https://castlemilk.github.io/loom/docs/)
+
+## Try a demo, then build it
+
+| Explore in the studio | What to try | SDK guide |
+| --- | --- | --- |
+| [Music → Sound on Wikipedia](https://castlemilk.github.io/loom/studio/wikispeedia/?connections=music,science&edge=74%3A2863) | Inspect the archived passage, then show both articles on the map. | [Stream topics with SQLite/WASM](https://castlemilk.github.io/loom/docs/atlas/#inspect-links-across-topics) |
+| [Canva’s relationship cards](https://castlemilk.github.io/loom/studio/cards/) | Select a founder or investor and follow the evidence for their connection. | [Build relationship cards](https://castlemilk.github.io/loom/docs/navigation/#open-relationship-cards) |
+| [Weighted connections](https://castlemilk.github.io/loom/studio/?example=wires#settings-style) | Change a wire’s stroke and animate the direction of travel. | [Draw and style connections](https://castlemilk.github.io/loom/docs/drawing/#draw-a-connection) |
+| [Generated stress graph](https://castlemilk.github.io/loom/studio/?example=stress) | Open **Perf**, pan the map, and watch frame times as it settles. | [Measure performance](https://castlemilk.github.io/loom/docs/performance/) · [Optimise large graphs](https://castlemilk.github.io/loom/docs/optimisations/) |
+
+For an AI integration, start with the worked graph edit and its revision checks. Tools can read the same documentation as Markdown and discover the SDK’s public imports from `loom-core/api-index.json`. [AI tooling guide](https://castlemilk.github.io/loom/docs/ai-tooling/) · [Markdown index](https://castlemilk.github.io/loom/llms.txt) · [API index](https://castlemilk.github.io/loom/docs/api-index.json) · [SDK roadmap](https://castlemilk.github.io/loom/docs/roadmap/)
 
 ## Edit a graph
 
@@ -219,12 +255,7 @@ Open the URL printed by the server. The studio opens a 25-node, 30-link excerpt 
 
 ## Use the core
 
-Install the typed ESM package from the [Pages build](https://castlemilk.github.io/loom/loom-core-0.1.0.tgz), or build this checkout with `npm run build`. The package includes the core, optional annotation, performance and console entry points, and the layout worker. For a reproducible install, use the source revision in the URL. Pages retains those archives across deployments and npm records the URL and integrity in your lockfile. The browser needs a canvas with a CSS width and height.
-
-```sh
-revision=$(curl -fsSL https://castlemilk.github.io/loom/revision.txt)
-npm install "https://castlemilk.github.io/loom/packages/$revision/loom-core-0.1.0.tgz"
-```
+The [package quickstart](#draw-your-first-graph) uses the typed ESM package. To run the following HTML directly from a checkout, build the library with `npm run build` and serve the checkout over HTTP. Its `dist` directory includes the core, optional entry points, and the layout worker.
 
 ```html
 <canvas id="map" style="width: 100%; height: 480px"></canvas>
@@ -540,6 +571,8 @@ Markers support circles, rings, squares and rounded squares. `nodes.scale` scale
 
 ## Data and rendering
 
+The first draw contains nodes and Bézier wires. By default, unpositioned nodes start on a deterministic golden-angle spiral. A structured layout can seed them on diagram anchors or blend the two positions. Force layout, label rasterization and artwork loading begin on later frames.
+
 - IDs are unique nonempty strings. Link endpoints reference those IDs. A node with both `x` and `y` stays pinned by default, including explicit zero values. Supply `pinned: false` to use those coordinates as a movable starting position. The presence of this flag survives a protobuf round trip. An unpositioned node can settle around pinned neighbours. A fully pinned graph schedules zero physics ticks.
 - One instanced strip draw handles all wires. The vertex shader derives cubic control points and evaluates the curve. A floating-point position texture lets both endpoints refer to live node positions by index. Nodes use instanced SDF quads. Labels add one instanced draw for all accepted glyphs.
 - Label placement gives priority to selection, hover and degree. A screen-space grid rejects overlapping boxes. Runtime raster glyphs are cached in a separate texture. Picking uses a CPU grid with the same projection as the vertex shaders.
@@ -568,6 +601,8 @@ const renderer = mountConsoleGraph(canvas, knowledgeGraph, useLoom, mountLegacyC
 With the flag enabled, the adapter reads the host’s inherited `--kg-ink`, `--kg-dim` and six `--kg-<kind>` colours, and uses the console layout at 25% structure with temporary dragging. If the host switches colour schemes, call `graph.setTheme(readConsoleTheme(canvas))` on the Loom handle. The host supplies its feature flag and existing canvas mount function. Mount a fresh canvas when changing renderer type, since browsers associate a canvas with its first context type. The host owns its panels, links, picker and other DOM controls. Framework wrappers and activation in the console application are follow-up milestones.
 
 ## Verification
+
+In the recorded M2 Max run, a 1,000-node graph first appeared in 27.3–40.5 ms across seven fresh contexts, above the 10 ms first-paint target. A clear-only canvas took 19.2–20.5 ms. In separate trials the layout settled in 295 ms, and camera movement with the console theme sustained 118.9 fps at 5,000 positioned nodes and 118.1 fps at 25,000 nodes and 100,000 links. Both camera trials used four draw calls. The benchmark revision’s core and worker measured 23,945 bytes gzipped. [Hardware measurements](benchmarks/m2-max.json) · [How to reproduce the benchmark](https://castlemilk.github.io/loom/docs/performance/#reproduce-a-comparison)
 
 `npm run bench:contours` measures boundary CPU time for 25,000 projected nodes in 32 groups. It reports the median, p95 and number of rebuilt paths over 100 frames for a single moving group and for movement across every group. Selection-only paints reuse existing paths.
 

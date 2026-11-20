@@ -1,14 +1,16 @@
-import { apiURL, artURL, homeURL, modelURL, opticsURL, settingsSections, studioURL } from '../site'
+import { apiURL, artURL, docsURL, homeURL, modelURL, opticsURL, repositoryURL, settingsSections, studioURL } from '../site'
+import { absoluteURL, atlasImage, cardsImage, pageMetadata } from '../metadata'
+import { connectionURL, exampleConnections } from '../wiki-connections'
 import model from '../public/examples/wire-model.json'
 import { ModelPlate } from './model-plate'
 import { GuideFrame } from './guide-frame'
 import atlases from '../../demo/atlases/catalog.json'
 
-export const metadata = {
-  alternates: { canonical: homeURL },
-  openGraph: { title: 'Loom · A field guide to graphs', description: 'Handle a wire model in 3D and explore connections between Wikipedia articles.',
-    url: homeURL, images: [{ url: artURL('wire-study-1280.webp'), width: 1280, height: 853, alt: 'A wire-and-bead graph model on a charcoal workbench.' }] },
-}
+const description = 'Loom is a TypeScript graph visualization library for WebGL2. Build interactive network diagrams, explore a Wikipedia topic map, and edit nodes and connections in the browser.'
+export const metadata = pageMetadata({ title: 'Loom · TypeScript graph visualization library for WebGL2', description, path: homeURL })
+const library = { '@context': 'https://schema.org', '@type': 'SoftwareSourceCode', name: 'Loom',
+  description, programmingLanguage: 'TypeScript', codeRepository: repositoryURL, url: absoluteURL(homeURL) }
+const music = exampleConnections[0]
 
 const examples = {
   explore: { name: 'Optics notebook', note: 'Isolate the seven children of the Optics hub and inspect each one.', measure: '8 nodes', href: opticsURL },
@@ -23,32 +25,44 @@ const legacyStudio = `(() => { const p = new URLSearchParams(location.search); i
 export default function FieldGuide() {
   return <>
     <script dangerouslySetInnerHTML={{ __html: legacyStudio }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(library).replace(/</g, '\\u003c') }} />
     <GuideFrame>
     <main id="guide-main">
       <section className="guide-width guide-hero" aria-labelledby="guide-title">
         <div className="guide-intro">
-          <h1 id="guide-title">A field guide<br />to <em>graphs.</em></h1>
-          <p>Pull a node, open a group and follow its connections. Explore how a network takes shape in Loom’s WebGL2 graph studio.</p>
-          <a className="guide-primary" href={studioURL}>Open graph studio <span aria-hidden="true">→</span></a>
+          <h1 id="guide-title">Interactive graphs<br />in <em>TypeScript.</em></h1>
+          <p>Loom is a WebGL2 graph library for the browser. Drag a cluster, trace a relationship to its source, or explore 4,604 Wikipedia articles one topic at a time.</p>
+          <div className="guide-actions">
+            <a className="guide-primary" href={docsURL}>Build your first graph <span aria-hidden="true">→</span></a>
+            <a className="guide-text-link" href={studioURL}>Open graph studio <span aria-hidden="true">↗</span></a>
+          </div>
         </div>
         <ModelPlate nodes={model.nodes.length} links={model.links.length} />
       </section>
       <section className="guide-examples" id="examples" aria-labelledby="examples-title">
-        <div className="guide-width guide-index atlas-index">
-          <div className="index-intro"><h2>Wikipedia atlases</h2>
-            <p>Open a topic, pick an article and follow the references across the map.</p></div>
-          <ul className="example-list atlas-examples"><li><a href={studioURL+'wikispeedia/'} aria-labelledby="example-wikispeedia">
-            <div className="example-copy"><h3 id="example-wikispeedia">Wikispeedia</h3><p>Open topics in place and compare on-demand SQLite with a full download.</p></div>
-            <span className="example-measure">4,604 articles</span><span className="example-arrow" aria-hidden="true">↗</span></a></li>{Object.entries(atlases).map(([key, atlas]) =>
-            <li key={key}><a href={studioURL + '?example=' + key} aria-labelledby={'example-' + key}>
-              <div className="example-copy"><h3 id={'example-' + key}>{atlas.title}</h3><p>{atlas.description}</p></div>
-              <span className="example-measure">{Object.values(atlas.sections).reduce((n, group) => n + group.articles.length, 0)} articles</span>
-              <span className="example-arrow" aria-hidden="true">↗</span>
-            </a></li>)}</ul>
+        <div className="guide-width featured-studies">
+          <h2 id="examples-title">Explore the graphs</h2>
+          <div className="featured-pair">
+            <article><a className="featured-open" href={studioURL + 'wikispeedia/'} aria-labelledby="example-wikispeedia">
+              <img src={atlasImage.url} alt={atlasImage.alt} width={atlasImage.width} height={atlasImage.height} loading="lazy" />
+              <h3 id="example-wikispeedia">Wikispeedia</h3>
+            </a>
+              <p>Open a topic in a map of 4,604 Wikipedia articles. The Music article links to Sound in its opening paragraph. Follow the link back to that passage.</p>
+              <div className="study-links"><a href={connectionURL(music.topics, music.edge)}>Follow {music.title}</a><a href={docsURL + 'atlas/'}>Build a streaming atlas</a></div>
+            </article>
+            <article><a className="featured-open" href={studioURL + 'cards/'} aria-labelledby="example-canva">
+              <img src={cardsImage.url} alt={cardsImage.alt} width={cardsImage.width} height={cardsImage.height} loading="lazy" />
+              <h3 id="example-canva">Around Canva</h3>
+            </a>
+              <p>See how founders and investors connect to Canva. Select a card to highlight its relationships and inspect the evidence for each one.</p>
+              <div className="study-links"><a href={docsURL + 'navigation/#open-relationship-cards'}>Build relationship cards</a></div>
+            </article>
+          </div>
         </div>
         <div className="guide-width guide-index">
-          <div className="index-intro"><h2 id="examples-title">Studio examples</h2>
-            <p>Explore layouts, connections and relationship cards. Each study opens in the studio.</p>
+          <div className="index-intro"><h2>Graph studies</h2>
+            <p>Try the same controls on a small graph. Change its layout, follow a wire or look inside a group.</p>
+            <a className="guide-text-link" href={docsURL + 'drawing/'}>Layouts and styling <span aria-hidden="true">→</span></a>
           </div>
           <ul className="example-list">{settingsSections.map(({ id }) => {
             const example = examples[id]
@@ -57,15 +71,21 @@ export default function FieldGuide() {
               <div className="example-copy"><h3 id={'example-' + id}>{example.name}</h3><p>{example.note}</p></div>
               <span className="example-measure">{example.measure}</span><span className="example-arrow" aria-hidden="true">↗</span>
             </a></li>
-          })}<li><a href={studioURL+'cards/'} aria-label="Around Canva"><div className="example-copy" style={{gridColumn:'span 2'}}><h3>Around Canva</h3>
-            <p>Inspect a founder or investor and follow the evidence behind each connection.</p></div><span className="example-measure">7 entities</span><span className="example-arrow" aria-hidden="true">↗</span></a></li></ul>
+          })}{Object.entries(atlases).map(([key, atlas]) =>
+            <li key={key} className="collection-study"><a href={studioURL + '?example=' + key} aria-labelledby={'example-' + key}>
+              <div className="example-copy"><h3 id={'example-' + key}>{atlas.title}</h3><p>{atlas.description}</p></div>
+              <span className="example-measure">{Object.values(atlas.sections).reduce((n, group) => n + group.articles.length, 0)} articles</span>
+              <span className="example-arrow" aria-hidden="true">↗</span>
+            </a></li>)}</ul>
         </div>
       </section>
       <section className="guide-library" id="typescript" aria-labelledby="library-title">
         <div className="guide-width library-grid">
           <div><h2 id="library-title">Build with Loom</h2>
-            <p>Mount the TypeScript engine on a sized canvas. The wire model uses the same nodes and links in the live preview and in the studio.</p>
+            <p>Start with an array of nodes and links. Mount the graph on a sized canvas, then choose a layout, handle a selection or connect an AI editing tool.</p>
             <div className="library-links"><a href={apiURL}>TypeScript API <span aria-hidden="true">↗</span></a>
+              <a href={docsURL + 'ai-tooling/'}>Build an AI graph tool</a>
+              <a href={docsURL + 'performance/'}>Measure graph performance</a>
               <a href={homeURL + 'loom-core-0.1.0.tgz'} download>Download package <span aria-hidden="true">↓</span></a></div>
           </div>
           <div className="code-specimen"><div className="code-caption"><span>Mount the wire model</span><a href={modelURL} download>wire-model.json <span aria-hidden="true">↓</span></a></div>

@@ -41,7 +41,7 @@ function connectionAt({ x, y }, frame, scene, indices) {
 
 // At oblique angles several topic dots can project close together. Try the four sides of each
 // dot and reserve the open topics' captions first. Measurements only change with the viewport.
-function arrangeLabels(frame, labels, sizes, scene, selectedIndex) {
+function arrangeLabels(frame, labels, sizes, scene, articleIndices) {
   if (sizes.width !== frame.width) {
     sizes.width = frame.width
     sizes.byId.clear()
@@ -49,10 +49,11 @@ function arrangeLabels(frame, labels, sizes, scene, selectedIndex) {
   const result = new Map(),
     occupied = [],
     visible = []
-  if (selectedIndex !== undefined) {
-    const x = frame.points[selectedIndex * 4], y = frame.points[selectedIndex * 4 + 1]
-    const width = 12 + Math.min(30, scene.nodes[selectedIndex].label.length) * 8
-    // Leave the selected marker and its caption readable and available for a second click.
+  for (const index of articleIndices) {
+    if (index === undefined) continue
+    const x = frame.points[index * 4], y = frame.points[index * 4 + 1]
+    const width = 12 + Math.min(30, scene.nodes[index].label.length) * 8
+    // Reserve the article marker and caption before placing any topic labels.
     occupied.push(x > frame.width / 2 ? [x - width, y - 22, x + 7, y + 7] : [x - 7, y - 22, x + width, y + 7])
   }
   manifest.topics.forEach((topic, i) => {
@@ -163,9 +164,10 @@ export function TopicMap({
   const paint = useCallback((frame, scene) => {
     if (cached.current.scene !== scene)
       cached.current = { scene, indices: new Map(scene.nodes.map((n, i) => [n.id, i])) }
-    const selectedIndex = cached.current.indices.get(drawing.current.selected)
-    const positions = drawing.current.layout === 'published' ? null
-      : arrangeLabels(frame, labels.current, labelSizes.current, scene, selectedIndex)
+    const { selected, edge, layout } = drawing.current
+    const indices = cached.current.indices
+    const positions = layout === 'published' && !edge ? null : arrangeLabels(frame, labels.current, labelSizes.current, scene,
+      edge ? [indices.get('article:' + edge.source), indices.get('article:' + edge.target)] : [indices.get(selected)])
     for (const [i, t] of manifest.topics.entries()) {
       const label = labels.current.get(t.id)
       if (!label) continue
@@ -189,7 +191,6 @@ export function TopicMap({
     const moving = !!api.current?.isAnimatingLayout()
     if (overlay.parentElement.dataset.layoutMoving !== String(moving)) overlay.parentElement.dataset.layoutMoving = String(moving)
     photos.current?.paint(frame, scene, cached.current.indices, drawing.current.active, drawing.current.selected, moving)
-    const { selected, edge } = drawing.current
     const project = (id) => {
       const i = cached.current.indices.get(id)
       return i === undefined

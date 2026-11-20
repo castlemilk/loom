@@ -1,11 +1,12 @@
 import { artURL, homeURL, modelStudioURL, modelURL, repositoryURL, settingsSections } from '../../site'
 import { GuideFrame, pigments } from '../guide-frame'
+import { pageMetadata } from '../../metadata'
 
-export const metadata = {
-  title: 'Artwork',
+export const metadata = pageMetadata({
+  title: 'Graph illustrations and the wire model · Loom artwork',
   description: 'The individual Loom illustrations, wire study, mark and field guide palette.',
-  alternates: { canonical: homeURL + 'artwork/' },
-}
+  path: homeURL + 'artwork/',
+})
 
 const subjects = { explore: 'Finding a node', layout: 'Arranging nodes in lanes', groups: 'Outlining related nodes', style: 'Changing a wire stroke' }
 

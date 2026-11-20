@@ -4,7 +4,7 @@ import { useState } from 'react'
 import data from '../../../public/examples/around-canva.json'
 import { AtlasShell, ModeSwitch } from '../../atlas-shell'
 import { CardView } from '../../card-view'
-import { homeURL, studioURL } from '../../../site'
+import { docsURL, homeURL, studioURL } from '../../../site'
 
 const root = 'startup:canva'
 export default function AroundCanva() {
@@ -89,6 +89,7 @@ export default function AroundCanva() {
           <a className="atlas-text-link" href={homeURL + 'examples/around-canva.json'}>
             Graph data ↗
           </a>
+          <a className="atlas-text-link" href={docsURL + 'navigation/#open-relationship-cards'}>Build relationship cards with the SDK →</a>
           <a className="atlas-text-link" href={studioURL + 'wikispeedia/'}>
             Open the Wikipedia atlas →
           </a>
