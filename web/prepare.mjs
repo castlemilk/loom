@@ -31,8 +31,9 @@ const prefix = /^[a-f0-9]{40}$/.test(revision) ? 'packages/' + revision + '/' : 
 const site = new URL((process.env.PAGES_BASE_PATH ?? '/loom') + '/', siteOrigin)
 execFileSync(process.execPath, ['scripts/build-mcp.mjs', publicDir], { cwd: root, stdio: 'inherit' })
 // The catalog imports the SDK index copied by build-mcp above.
-const { lightStudy } = await import('./light-study.mjs')
-await writeFile(target('./.generated/light-study.json'), JSON.stringify(await lightStudy()))
+const { writeLightStudies } = await import('./light-study.mjs')
+const light = await writeLightStudies(target('./public/graphs/light-path/v1/'))
+await writeFile(target('./.generated/light-study.json'), JSON.stringify(light))
 await writeFile(target('./.generated/graph-mcp.json'), JSON.stringify({ filename: mcpFile, archiveURL: new URL(prefix + mcpFile, site).href }))
 const archiveURL = new URL(prefix + archive.filename, site).href
 let published
