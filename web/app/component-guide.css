@@ -103,7 +103,7 @@
 .owner-sample { display: flex; align-items: center; flex-wrap: wrap; gap: 9px 15px; margin: 16px 0 0; font-size: 14px; }
 .owner-sample button { background: transparent; color: var(--pine); }
 .owner-sample a, #http > p a, .plugin-install a[href="#connect"] { color: var(--copper); text-decoration: underline; text-underline-offset: 3px; }
-.owner-receipt { margin-top: 20px; padding: 16px 18px; background: var(--paper,#faf7ee); border-left: 3px solid var(--copper); overflow-wrap: anywhere; }
+.owner-receipt { margin-top: 20px; padding: 16px 18px; background: var(--paper,#faf7ee); overflow-wrap: anywhere; }
 .owner-receipt .owner-count { margin-top: 0; padding-bottom: 10px; border-bottom: var(--guide-rule); }
 .owner-receipt > code { color: var(--muted); font: 12px/1.5 var(--measure); }
 .owner-receipt h4 { margin-block: 4px; font: 400 clamp(23px,2.1vw,31px)/1.2 var(--guide-serif,Georgia),serif; }
