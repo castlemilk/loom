@@ -67,12 +67,12 @@
   .editor-dock button:not(.export-trigger) span { display: none; }
 }
 @media (max-width: 480px) {
-  header .editor-dock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(43px, 1.2fr) repeat(3, minmax(0, 1fr)) minmax(39px, 1.1fr); gap: 1px; }
+  header .editor-dock { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(43px, 1.2fr) repeat(4, minmax(0, 1fr)) minmax(39px, 1.1fr); gap: 1px; }
   header .editor-dock button { flex-direction: column; gap: 2px; height: 43px; min-width: 0; padding: 0; margin: 0; }
   header .editor-dock .export-trigger { padding-inline: 0; margin-inline-start: 0; }
   header .editor-dock button span { display: block; font-size: 10px; line-height: 1.15; }
   header .editor-dock .tool-divider { display: none; }
 }
 @media (max-width: 360px) {
-  header .editor-dock { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  header .editor-dock { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }

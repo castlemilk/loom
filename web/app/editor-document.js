@@ -22,9 +22,9 @@ export function useDocument(input, dataset, name, setDataset) {
     }
     return cached.current.editor
   }
-  function apply(tx) {
+  function commit(change) {
     const document = editor()
-    const receipt = document.apply(tx)
+    const receipt = change(document)
     if (!draft && receipt.ok && receipt.changes.length) {
       const serial = ++count.current, key = 'draft-' + serial
       setDrafts((all) => [...all, { key, origin: dataset, name: name + ' · edit ' + serial, editor: document }])
@@ -39,5 +39,6 @@ export function useDocument(input, dataset, name, setDataset) {
     setDrafts(all => [...all, { key, origin: 'blank', name, editor: document }])
     return key
   }
-  return { editor, apply, createBlank, drafts, draft, state, data: state?.data ?? input }
+  return { editor, apply:tx => commit(doc => doc.apply(tx)), replace:(data, revision) => commit(doc => doc.replaceData(data, revision)),
+    createBlank, drafts, draft, state, data: state?.data ?? input }
 }

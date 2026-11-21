@@ -119,6 +119,11 @@ export function mergeWorkload(current, config) {
 
 export function imageURL(data, node, base = '') {
   if (!node?.art) return undefined
+  const ref = Object.hasOwn(data.images ?? {}, node.art) && data.images[node.art]?.src
+  if (typeof ref === 'string') {
+    if (/^https?:\/\//i.test(ref)) return ref
+    if (/^[\w./-]+$/.test(ref) && !ref.startsWith('/') && !ref.includes('..')) return base + '/examples/orbit-art/' + ref
+  }
   const value = Object.hasOwn(data.artwork ?? {}, node.art) ? data.artwork[node.art] : node.art
   if (typeof value !== 'string') return undefined
   if (/^data:image\/(?:png|jpe?g|webp|gif|avif);base64,/i.test(value) || /^https?:\/\//i.test(value)) return value

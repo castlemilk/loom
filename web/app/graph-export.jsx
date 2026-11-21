@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { CopyButton } from '../docs/copy-button'
 import { artURL, docsURL, mcpURL } from '../site'
 import sdk from '../.generated/sdk-package.json'
+import examples from '../.generated/notebook-sources.json'
 import { downloadFile } from './download-file'
 import { fileStem, mountCode, projectCommands, projectZip } from './export-project.mjs'
 import './graph-export.css'
@@ -64,7 +65,8 @@ export function ExportDialog({ snapshot, close }) {
     setNotice('')
     try {
       const title = projectName.trim()
-      const bytes = await projectZip({ name: title, scene: chosenScene(), language, dependency: sdk.dependency })
+      const bytes = await projectZip({ name:title, scene:chosenScene(), language, dependency:sdk.dependency,
+        dataModule:snapshot.module, dataTypes:examples['notebook-types.ts'] })
       downloadFile(fileStem(title) + '.zip', bytes, 'application/zip')
       setNotice('Project downloaded. Unzip it and run the commands above.')
     } catch (error) { setNotice('Could not create the project. ' + error.message) }
@@ -93,6 +95,7 @@ export function ExportDialog({ snapshot, close }) {
     </div>}
     {tab === 'project' ? <>
       <ul className="export-files">
+        {language === 'ts' && <li><code>data.ts</code><span>Your live TypeScript graph</span></li>}
         {[[moduleFile, 'Mounts the graph on a canvas'], ['scene.json', 'Graph, layout and styling'], ['index.html', 'A page to run and build']].map(([file, label]) =>
           <li key={file}><code>{file}</code><span>{label}</span></li>)}
       </ul>
@@ -103,12 +106,14 @@ export function ExportDialog({ snapshot, close }) {
       <button type="button" className="export-primary" onClick={saveScene}>Download scene.json</button>
       <a href={mcpURL + '?source=studio#connect'} target="_blank" rel="noreferrer">Open MCP client setup ↗</a>
     </div> : <>
-      <p className="export-instruction">Install Loom, then save this module beside <code>scene.json</code>. Call <code>await mountGraph(canvas)</code> on a sized canvas.</p>
+      <p className="export-instruction">Install Loom, then save this module beside <code>scene.json</code>{language === 'ts' && <>, <code>data.ts</code> and <code>notebook-types.ts</code></>}. Call <code>await mountGraph(canvas)</code> on a sized canvas.</p>
       <Code name="Install Loom">{'npm install ' + sdk.installSpec}</Code>
       <Code key={moduleFile} name={moduleFile}>{mountCode(language)}</Code>
       <button type="button" className="export-primary" onClick={saveScene}>Download scene.json</button>
     </>}
     <output className="export-notice" aria-live="polite">{notice}</output>
+    {snapshot.module && <div className="export-foot"><button type="button" onClick={() => downloadFile('data.ts', snapshot.module, 'text/plain')}>Download data.ts</button>
+      <button type="button" onClick={() => downloadFile('notebook-types.ts', examples['notebook-types.ts'], 'text/plain')}>Download graph types</button></div>}
     <div className="export-foot"><button type="button" onClick={() => {
       downloadFile(fileStem(name) + '.json', JSON.stringify(full, null, 2) + '\n', 'application/json')
       setNotice('Full graph data downloaded.')

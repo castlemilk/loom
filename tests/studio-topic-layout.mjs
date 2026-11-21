@@ -17,7 +17,7 @@ function at(actual, expected, what) {
 }
 
 // Use trusted mouse or touch input so capture, scrolling and hit testing all run in Chrome.
-async function drag(page, touch, [x, y], [dx, dy], held) {
+export async function drag(page, touch, [x, y], [dx, dy], held) {
   if (touch) {
     const session = await page.context().newCDPSession(page)
     const send = (type, touchPoints) => session.send('Input.dispatchTouchEvent', { type, touchPoints })

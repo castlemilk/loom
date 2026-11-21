@@ -15,6 +15,10 @@ export interface CardOptions<N extends GraphNode, E extends GraphLink> {
   tint?: (node: N) => string
   relationship?: (edge: E) => string
   onSelect?: (node: N) => void
+  /** Report the card's world coordinates once per completed drag or keyboard move. */
+  onMove?: (node: N, position: { x: number; y: number }) => void
+  /** Disable moving cards while leaving selection and camera navigation available. */
+  movable?: boolean
 }
 
 /** Take up to limit distinct one-hop neighbors in input order, retaining their directed links to the root. */
@@ -387,11 +391,12 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
   svg.addEventListener(
     'pointerdown',
     (e) => {
-      if (e.button !== 0) return
+      if (e.button !== 0 || active) return
       stopFocus()
       const transform = svg.getScreenCTM()
       if (!transform) return
       const id = hit(e.target)
+      if (id && options.movable === false) return
       active = {
         id,
         pointer: e.pointerId,
@@ -428,16 +433,29 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
     },
     { signal },
   )
-  const end = () => {
-    skipClick = active?.moved ?? false
+  function moved(id: string) {
+    const { x, y } = boxes.get(id)!
+    options.onMove?.(data.nodes.find(node => node.id === id)!, { x, y })
+  }
+  const end = (event: PointerEvent) => {
+    if (active?.pointer !== event.pointerId) return
+    const { id, start, moved: dragged } = active
+    skipClick = dragged
     active = undefined
+    if (!id || !dragged) return
+    if (event.type === 'pointerup') moved(id)
+    else {
+      Object.assign(boxes.get(id)!, { x: start.x, y: start.y })
+      draw()
+    }
   }
   svg.addEventListener('pointerup', end, { signal })
   svg.addEventListener('pointercancel', end, { signal })
+  svg.addEventListener('lostpointercapture', event => { if (event.target === svg) end(event) }, { signal })
   svg.addEventListener(
     'pointerleave',
-    () => {
-      if (active && !active.moved) end()
+    (event) => {
+      if (active && !active.moved) end(event)
     },
     { signal },
   )
@@ -481,12 +499,13 @@ export function createCardGraph<N extends GraphNode, E extends GraphLink>(
         ArrowUp: [0, -12],
         ArrowDown: [0, 12],
       }
-      if (delta[e.key]) {
+      if (delta[e.key] && options.movable !== false) {
         e.preventDefault()
         const b = boxes.get(id)!
         b.x += delta[e.key][0]
         b.y += delta[e.key][1]
         draw()
+        moved(id)
       }
     },
     { signal },

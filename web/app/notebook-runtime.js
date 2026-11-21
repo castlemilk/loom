@@ -1,10 +1,20 @@
 import workerAsset from '../.generated/notebook-compiler.json'
 import { homeURL } from '../site'
+import { runPlayground } from './run-thread-pattern'
+import { hasVisualEdits } from '../notebook-rewrite.mjs'
+
+export function showEditedRecord(editor, source, id) {
+  if (!id || !editor?.clientHeight || editor === document.activeElement) return
+  const value = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const rows = new RegExp('(?:\\bid|["\']id["\'])\\s*(?::|===)\\s*["\']' + value + '["\']', 'g')
+  const match = [...source.matchAll(rows)].at(-1)
+  if (match) editor.scrollTop = Math.max(0, (source.slice(0, match.index).split('\n').length - 2) * parseFloat(getComputedStyle(editor).lineHeight))
+}
 
 export function makeNotebookCompiler() {
   let worker, sequence = 0
   function dispose() { worker?.terminate(); worker = undefined }
-  function compile(source, signal) {
+  function compile(source, signal, profile, operations, afterModule) {
     return new Promise((resolve, reject) => {
       if (signal.aborted) return reject(signal.reason)
       worker ??= new Worker(homeURL + 'playground/' + workerAsset.filename)
@@ -23,15 +33,32 @@ export function makeNotebookCompiler() {
         if (data.id !== id) return
         cleanup()
         if (data.error) reject(new Error(data.error))
-        else resolve(data.code)
+        else resolve(data)
       }
       current.addEventListener('message', result)
       current.addEventListener('error', failed)
       signal.addEventListener('abort', abort, { once: true })
-      current.postMessage({ id, source })
+      current.postMessage({ id, source, profile, operations, afterModule })
     })
   }
   return { compile, dispose }
+}
+
+export async function evaluateGraph(compiler, source, signal, { profile = 'notebook', operations, base, previous } = {}) {
+  const edits = operations?.map(op => op.op === 'node.update' && record(op.changes?.metadata) && previous
+    ? { ...op, previousMetadata:previous.nodes.find(node => node.id === op.id)?.metadata } : op)
+  async function evaluate(afterModule) {
+    const result = await compiler.compile(source, signal, profile, edits, afterModule)
+    const value = await runPlayground({ source: result.code, entry: profile === 'studio' ? 'studio' : 'graph' }, signal)
+    const graph = profile === 'studio' ? value : readNotebook(value, base)
+    if (edits && !hasVisualEdits(graph, edits, previous)) throw Error('The module recalculated a field after the visual edit.')
+    return { source: result.source, graph }
+  }
+  try { return await evaluate(false) }
+  catch (error) {
+    if (!edits?.length || signal.aborted) throw error
+    return evaluate(true)
+  }
 }
 
 const record = v => v !== null && typeof v === 'object' && [Object.prototype, null].includes(Object.getPrototypeOf(v))

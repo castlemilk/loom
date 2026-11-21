@@ -31,7 +31,10 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
   const start = performance.now()
   const mode = options.mode ?? 'drift'
   let theme = options.theme ?? parchment
-  if (!modes.has(mode)) throw new TypeError('Unknown graph mode: ' + mode)
+  function validateMode(value: Mode) {
+    if (!modes.has(value)) throw new TypeError('Unknown graph mode: ' + value)
+  }
+  validateMode(mode)
   let layout: LayoutOptions = { ...options.layout }
   let forces = layoutForces(layout)
   const model = prepare(options, theme, mode, layout)
@@ -63,15 +66,9 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     spin = false,
     timer: ReturnType<typeof setTimeout> | undefined
   let adjacent = new Uint8Array(model.n)
-  const original = {
-    width: canvas.getAttribute('width'),
-    height: canvas.getAttribute('height'),
-    touch: canvas.style.touchAction,
-    cssWidth: canvas.style.width,
-    cssHeight: canvas.style.height,
-    tab: canvas.getAttribute('tabindex'),
-    label: canvas.getAttribute('aria-label'),
-  }
+  const [originalWidth, originalHeight, originalTab, originalLabel] =
+    ['width', 'height', 'tabindex', 'aria-label'].map(key => canvas.getAttribute(key))
+  const { width: originalCssWidth, height: originalCssHeight, touchAction: originalTouch } = canvas.style
   let ownsWidth = false,
     ownsHeight = false
   const listeners = new EventTarget()
@@ -126,16 +123,15 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     sizeDirty = false
     gridDirty = dirty = true
   }
+  function restoreAttribute(key: string, value: string | null) {
+    if (value === null) canvas.removeAttribute(key)
+    else canvas.setAttribute(key, value)
+  }
   function restoreSize() {
-    if (ownsWidth) canvas.style.width = original.cssWidth
-    if (ownsHeight) canvas.style.height = original.cssHeight
-    for (const [key, value] of [
-      ['width', original.width],
-      ['height', original.height],
-    ] as const) {
-      if (value === null) canvas.removeAttribute(key)
-      else canvas.setAttribute(key, value)
-    }
+    if (ownsWidth) canvas.style.width = originalCssWidth
+    if (ownsHeight) canvas.style.height = originalCssHeight
+    restoreAttribute('width', originalWidth)
+    restoreAttribute('height', originalHeight)
   }
   size()
   const gl = canvas.getContext('webgl2', {
@@ -191,6 +187,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       else if (point) emit('backgroundclick', point)
     },
     positions: () => shown,
+    drop: i => emit('nodedrop', options.nodes[i].id),
     pin: movePin,
   })
   let uploadNeeded = false
@@ -306,8 +303,8 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
   const events = new AbortController(),
     eventOptions = { signal: events.signal }
   canvas.style.touchAction = 'none'
-  if (original.tab === null) canvas.tabIndex = 0
-  if (original.label === null)
+  if (originalTab === null) canvas.tabIndex = 0
+  if (originalLabel === null)
     canvas.setAttribute(
       'aria-label',
       'Interactive graph. Arrow keys move the view, plus and minus zoom, Enter opens the selection.',
@@ -392,7 +389,7 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
     },
     setMode(next) {
       if (dead || next === camera.mode) return
-      if (!modes.has(next)) throw new TypeError('Unknown graph mode: ' + next)
+      validateMode(next)
       input.reset()
       camera.mode = next
       render.setLayout(layout, next)
@@ -566,15 +563,10 @@ export function createGraph(canvas: HTMLCanvasElement, options: GraphOptions): L
       intersection.disconnect()
       resizeObserver.disconnect()
       render.destroy()
-      canvas.style.touchAction = original.touch
+      canvas.style.touchAction = originalTouch
       restoreSize()
-      for (const [key, value] of [
-        ['tabindex', original.tab],
-        ['aria-label', original.label],
-      ] as const) {
-        if (value === null) canvas.removeAttribute(key)
-        else canvas.setAttribute(key, value)
-      }
+      restoreAttribute('tabindex', originalTab)
+      restoreAttribute('aria-label', originalLabel)
     },
   }
 }

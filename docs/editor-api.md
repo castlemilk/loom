@@ -10,6 +10,7 @@ The studio and the headless editor read and write the same graph document. A hum
 | Discover available edits | `editor.describe()`, `editorSchema`, `loom-core/editor.schema.json` | Counts, operation names and a versioned JSON Schema |
 | Find an object or its connections | `query({entity, text, kind, incidentTo, offset, limit})`, `getNode(id)`, `getLink(id)` | Bounded search results and authoritative full records |
 | Author with TypeScript | `transact(operations, expectedRevision?)`, `EditorTransaction`, `EditorOperation` | Typed operations and a structured receipt |
+| Apply an evaluated graph module | `replaceData(data, expectedRevision?)` | A validated snapshot including graph-level metadata, committed as one undo step. Its receipt identifies the document with `graph.replace`. |
 | Author with JSON | `preview(input)`, `apply(input)` | Shared validation, atomic changes, revision and an error path on failure |
 | Observe, undo or redo | `getSnapshot()`, `subscribe(listener)`, `undo(revision?)`, `redo(revision?)` | A stable immutable snapshot and one undo step per committed batch |
 | Save or transfer | `checkpoint()`, `restoreEditor(parsedJson)`, `snapshot.data` | Lossless JSON for graph metadata, stable IDs and authored coordinates |

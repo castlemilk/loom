@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
 import { consoleLayout } from '../../dist/console.js'
@@ -33,6 +33,10 @@ import { artURL, docsURL, fetchGraphFile, homeURL, modelURL, studioURL } from '.
 import { findInGraph, SettingsPanel, SettingsTabs } from './settings-tabs'
 import { wireAnchor, wireForces, wireModelStyle } from './wire-study'
 import { GraphPicker } from './graph-picker'
+import { notebookSamples, readNotebookDraft } from './notebook-samples'
+import { readNotebook } from './notebook-runtime'
+import { StudioSource, studioModule, studioWriteOperations, useStudioSource } from './studio-source'
+import './record-fields.css'
 
 const datasets = [['sample', 'Knowledge console · excerpt'], ['sections', 'Section atlas'], ['model', 'Wire model'], ['full', 'Knowledge console · full'], ['stress', 'Generated stress graph']]
 const emptyGraph = { nodes: [], links: [] }
@@ -51,7 +55,7 @@ const times = (value) => value + '×'
 
 function setExampleURL(example) {
   const url = new URL(location.href)
-  for (const param of ['example', 'article', 'group', 'bubbles']) url.searchParams.delete(param)
+  for (const param of ['example', 'article', 'group', 'bubbles', 'draft']) url.searchParams.delete(param)
   if (example) url.searchParams.set('example', example)
   history.replaceState(history.state, '', url)
 }
@@ -75,6 +79,7 @@ function Workbench({ sample }) {
   const [newGraphOpen, setNewGraphOpen] = useState(false)
   const [exported, setExported] = useState(null)
   const [editNotice, setEditNotice] = useState('')
+  const [codeOpen, setCodeOpen] = useState(false), [handoff, setHandoff] = useState(null)
   const pendingView = useRef(null)
   const retainedScene = useRef(null)
   const [perf, setPerf] = useState(false)
@@ -113,10 +118,12 @@ function Workbench({ sample }) {
     return null
   }, [stress, countOption, workload, placement])
   const atlas = useMemo(() => dataset === 'sections' ? sectionAtlas() : null, [dataset])
-  const input = atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : remoteURL ? remote.data ?? emptyGraph : sample)
-  const datasetLabel = requestedAtlas?.title ?? datasets.find(([key]) => key === dataset)?.[1] ?? (countOption ? formatCount.format(countOption.config.nodes) + ' nodes' : custom?.name ?? 'Graph')
+  const notebook = Object.hasOwn(notebookSamples, dataset) ? (handoff?.name === dataset ? handoff : notebookSamples[dataset]) : null
+  const input = notebook?.graph ?? atlas ?? (stress ? generated : dataset === 'custom' && custom ? custom.data : remoteURL ? remote.data ?? emptyGraph : sample)
+  const datasetLabel = notebookSamples[dataset]?.title ?? requestedAtlas?.title ?? datasets.find(([key]) => key === dataset)?.[1] ?? (countOption ? formatCount.format(countOption.config.nodes) + ' nodes' : custom?.name ?? 'Graph')
   const model = useDocument(input, dataset, datasetLabel, setDataset)
   const source = model.data, origin = model.draft?.origin ?? dataset
+  const code = useStudioSource(source, notebook?.source, codeOpen, result => replaceSource(result, snapshot.selected))
   const wiki = getAtlas(origin)
   const graphIndex = useMemo(() => createGraphIndex(source), [source])
   const drill = useMemo(() => createDrilldown(source), [source])
@@ -167,6 +174,19 @@ function Workbench({ sample }) {
   const scopeKey = JSON.stringify(snapshot.path.map(({ kind, id, taxonomy, action, hops, direction, fromOverview }) =>
     [kind, id, taxonomy, action, hops, direction, fromOverview]))
   const view = useGraph(data, engine, effective.layout, theme, effective.mode, grouping.index, annotations, drill, source, scopeKey, retainedScene, wireEffects, style.drawing)
+  async function savePosition(id) {
+    const renderer = view.graph.current, position = renderer.getPosition(id)
+    const result = await editDocument({ version:1, operations:[{ op:'node.update', id, changes:position }] }, id)
+    if (!result.ok && view.graph.current === renderer) {
+      const row = source.nodes.find(n => n.id === id)
+      if (row?.x !== undefined && row?.y !== undefined) renderer.pin(id, row)
+      if (row?.pinned === false || row?.x === undefined || row?.y === undefined) renderer.unpin(id)
+    }
+  }
+  const drop = useEffectEvent(savePosition)
+  useEffect(() => {
+    return view.instance?.on('nodedrop', drop)
+  }, [view.instance])
   useEffect(() => {
     if (tool !== 'node' || !view.instance) return
     return view.instance.on('backgroundclick', ({ x, y }) => {
@@ -258,14 +278,38 @@ function Workbench({ sample }) {
     }
     retainedScene.current = { source: next, scopeKey, poses, viewport: graph.getViewport(), paused: view.paused }
   }
-  function editDocument(tx, selectedId = snapshot.selected) {
+  function replaceSource(result, selectedId, expectedRevision) {
+    const editor = model.editor(), previous = editor.getSnapshot()
+    const previousText = code.authored
+    const receipt = model.replace(result.graph, expectedRevision ?? previous.revision)
+    if (!receipt.ok) throw Error(receipt.error.message)
+    code.remember(previous.data, previousText)
+    code.remember(editor.getSnapshot().data, result.source)
+    retainScene(editor, selectedId)
+    return receipt
+  }
+  async function editDocument(tx, selectedId = snapshot.selected) {
+    if (code.locked) { setEditNotice('Finish or revert the TypeScript edit first.'); return { ok:false } }
     const editor = model.editor()
-    const result = model.apply(tx)
+    let result
+    if (code.authored) {
+      result = editor.preview(tx)
+      if (result.ok && result.changes.length) {
+        const before = editor.getSnapshot()
+        try {
+          const ops = studioWriteOperations(tx.operations, before.data)
+          result = await code.rewrite(ops, output => replaceSource(output, selectedId, before.revision))
+        } catch (error) { setEditNotice(error.message); return { ok:false } }
+      }
+    } else {
+      result = model.apply(tx)
+      if (result.ok && result.changes.length) retainScene(editor, selectedId)
+    }
     if (!result.ok) {
       setEditNotice(result.error.path + ' ' + result.error.message)
       return result
     }
-    if (result.changes.length) retainScene(editor, selectedId)
+    if (result.changes.length) code.markEdit(editor.getSnapshot().data, tx.operations.at(-1))
     if (tool && tool !== 'json') closeTool()
     setEditNotice(result.changes.length ? 'Saved · revision ' + result.revision : 'Already up to date')
     return result
@@ -288,6 +332,11 @@ function Workbench({ sample }) {
   }
   function pickGraph(value) {
     const base = model.drafts.find((item) => item.key === value)?.origin ?? value
+    if (Object.hasOwn(notebookSamples, base)) {
+      setCodeOpen(true); setMode('drift'); setPacked(false); setStyle(preset('sketchbook'))
+      grouping.setActive('kind'); grouping.setBubblesVisible(false)
+      setSettings(old => ({ ...old, blend:0, guides:false, pinOnDrag:true }))
+    }
     if (getAtlas(base)) {
       grouping.setActive('section')
       grouping.setBoundary({ shape: 'hull', padding: 15, fillOpacity: 0.055, pattern: 'solid' })
@@ -351,14 +400,15 @@ function Workbench({ sample }) {
         graph: view.graph.current ?? undefined, selected: snapshot.selected,
         art: { urlFor: node => imageURL(data, node, assetBase) },
       })
-      setExported({ scene, full: source, name: model.draft?.name ?? datasetLabel })
+      setExported({ scene, full:source, name:model.draft?.name ?? datasetLabel,
+        module:level.kind === 'overview' ? code.exportText() : studioModule(scene.data) })
     } catch (error) { setEditNotice(error.message) }
   }
   function selectDataset(value) {
     if (value === 'blank') { startGraph('Untitled graph'); return }
     if (value === 'wikispeedia' || value === 'cards') { location.assign(studioURL + value + '/'); return }
     pickGraph(value)
-    const example = getAtlas(value) ? value : { sections: 'clusters', model: 'wire-model', full: 'full', stress: 'stress' }[value]
+    const example = getAtlas(value) || Object.hasOwn(notebookSamples, value) ? value : { sections: 'clusters', model: 'wire-model', full: 'full', stress: 'stress' }[value]
     setExampleURL(example)
   }
   const routeRead = useRef(false)
@@ -367,6 +417,17 @@ function Workbench({ sample }) {
     routeRead.current = true
     const params = new URLSearchParams(location.search)
     const example = params.get('example')
+    if (Object.hasOwn(notebookSamples, example)) {
+      pickGraph(example)
+      requestedArticle.current = notebookSamples[example].graph.nodes[0].id
+      const token = params.get('draft')
+      if (token) try {
+        const saved = readNotebookDraft(token)
+        if (saved?.name !== example || typeof saved.source !== 'string') throw Error()
+        readNotebook(saved.graph, new URL(homeURL + 'examples/orbit-art/', location.href))
+        setHandoff(saved); requestedArticle.current = saved.selected
+      } catch { setEditNotice('This tab has no saved draft for that link. Opened the original notebook.') }
+    }
     if (example === 'blank') startGraph('Untitled graph')
     if (example === 'full' || example === 'stress') pickGraph(example)
     if (getAtlas(example)) {
@@ -397,6 +458,9 @@ function Workbench({ sample }) {
     if (params.get('bubbles') === 'off') grouping.setBubblesVisible(false)
   }, [])
   useEffect(() => {
+    if (notebook && requestedArticle.current && source.nodes.some(n => n.id === requestedArticle.current)) {
+      drill.inspect(requestedArticle.current); requestedArticle.current = null
+    }
     if (wiki && remote.data && grouping.active.id === 'section') {
       const term = grouping.groups.find((g) => g.id === requestedGroup.current)
       requestedGroup.current = null
@@ -414,7 +478,7 @@ function Workbench({ sample }) {
       setStyle((old) => ({ ...old, opacity: 0.6 }))
       drill.openGroup(drilldownGroup(term, data.nodes), 'isolate')
     }
-  }, [dataset, grouping.active.id, grouping.groups, drill, data.nodes, remote.data, source, wiki])
+  }, [dataset, grouping.active.id, grouping.groups, drill, data.nodes, remote.data, source, wiki, notebook])
   function enableClusters(on) {
     setPacked(on)
     if (on) {
@@ -429,8 +493,8 @@ function Workbench({ sample }) {
       <div className="identity"><a className="wordmark studio-home" href={homeURL} aria-label="Loom field guide"><img src={artURL('loom-logo.png')} width="22" height="22" alt="" />Loom</a>
         <span className="slash" aria-hidden="true">/</span><h1>Graph studio</h1></div>
       <EditorToolbar tool={tool} choose={chooseTool} select={() => { chooseTool(null); view.canvas.current?.focus() }}
-        state={model.state} history={editHistory} ready={!remoteURL || !!remote.data}
-        onNew={() => setNewGraphOpen(true)} onExport={openExport}/>
+        state={code.locked ? null : model.state} history={editHistory} ready={(!remoteURL || !!remote.data) && !code.locked}
+        onNew={() => setNewGraphOpen(true)} onExport={openExport} codeOpen={codeOpen} onCode={() => setCodeOpen(!codeOpen)}/>
       <GraphPicker value={dataset} onChange={selectDataset}>
         {custom && <option value="custom">{custom.name}</option>}
         {!!model.drafts.length && <optgroup label="Edited graphs">{model.drafts.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}</optgroup>}
@@ -450,7 +514,7 @@ function Workbench({ sample }) {
       </div>
     </header>
     <main className="studio-workspace min-w-0">
-      <section id="studio-stage" className="stage isolate" data-atlas={wiki ? origin : undefined} data-editor-tool={tool} data-member-detail={singleGroupView || undefined}
+      <section id="studio-stage" className="stage isolate" data-atlas={wiki ? origin : undefined} data-editor-tool={tool} data-code-pending={code.locked || undefined} data-member-detail={singleGroupView || undefined}
         aria-label="Graph viewport" style={{ backgroundColor: theme.bg, '--map-ink': theme.ink, '--map-bg': theme.bg }}
         onPointerUp={view.syncPin} onPointerCancel={view.syncPin} onKeyDownCapture={(event) => {
           if (event.key === 'Escape' && event.target === view.canvas.current && (tool || snapshot.path.length > 1)) {
@@ -505,6 +569,7 @@ function Workbench({ sample }) {
       </section>
       <Splitter />
       <SettingsTabs>
+        {codeOpen && <StudioSource code={code}/>}
         <DocumentComposer tool={tool} link={editingLink} model={model} point={placementPoint} clearPoint={() => setPlacementPoint(null)}
           selectedId={view.selected} graph={view.instance} run={editDocument} close={closeTool} onEndpoints={setWireEnds}/>
         {editNotice && <output className="document-status" aria-live="polite">{editNotice}</output>}
@@ -515,7 +580,7 @@ function Workbench({ sample }) {
             {requestedAtlas && <a href={studioURL + '?' + new URLSearchParams({ example: dataset, article: selected.id })}>Article permalink</a>}</div>}
           <p id="selection-meta">{description && ((groupNames.join(', ') || grouping.index.ungrouped) + ' · ' + description.connections + (view.pinned ? ' · pinned' : ''))}</p>
           <div className="selection-tools" hidden={!selected}><button id="focus" onClick={() => selected && view.graph.current?.focus(selected.id)}>Focus node</button>
-            <button id="pin" onClick={view.togglePin}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
+            <button id="pin" disabled={code.locked} onClick={() => { view.togglePin(); savePosition(selected.id) }}>{view.pinned ? 'Release node' : 'Pin node'}</button></div>
           {selected && <div className="selection-tools drill-actions"><button id="open-neighbors" onClick={() => drill.openNeighborhood(selected.id)}>Open neighbors</button>
             <button type="button" onClick={() => setCardRoot(selected.id)}>View relationship cards</button>
             {groupEnabled && description?.groups.filter((g) => g.taxonomy === grouping.active.id).map((g) =>
@@ -525,6 +590,8 @@ function Workbench({ sample }) {
             ink={grouping.nativeMarkers ? marker(theme, selected.kind).color : grouping.index.primary(selected.id, grouping.active.id)?.color ?? theme.dim}
             model={model} run={editDocument}/>
           <NodeProperties key={JSON.stringify([selected.id, selected.label, selected.kind])} node={selected} connectionsLabel={description?.connections} model={model} run={editDocument} editLink={(link) => chooseTool('link', link)} initialOpen={!articleURL}/>
+          {selected.metadata && typeof selected.metadata === 'object' && <dl className="selection-metrics">{Object.entries(selected.metadata).map(([k,v]) =>
+            <div key={k}><dt>{k}</dt><dd>{typeof v === 'string' ? v : JSON.stringify(v)}</dd></div>)}</dl>}
           {selected && <dl className="selection-metrics">{Object.entries({ Section: selected.section,
             'Content bytes': bytes === undefined ? undefined : formatCount.format(bytes), Complexity: selected.complexity,
             ...selected.metrics }).filter(([,v]) => v != null).map(([k,v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}

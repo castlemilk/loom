@@ -1,0 +1,25 @@
+.record-fields fieldset, .notebook-compose fieldset { min-width: 0; padding: 0; margin: 0; border: 0; }
+.record-fields legend, .notebook-compose legend { padding: 0; margin: 0 0 10px; font-weight: 650; }
+.record-field { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,.72fr); gap: 5px 8px; margin-bottom: 10px; }
+.record-field label, .notebook-compose label { display: grid; gap: 3px; font-size: 12px; color: #49564a; }
+.record-field textarea, .record-field input, .record-field select, .notebook-compose :is(input,select) {
+  box-sizing: border-box; width: 100%; min-width: 0; min-height: 34px; padding: 5px 7px; border: 1px solid #9ea897; border-radius: 4px;
+  background: #fffdf7; color: #25352b; font: 14px/1.4 system-ui,sans-serif;
+}
+.record-value { grid-column: 1 / -1; grid-row: auto; padding-right: 34px; }
+.record-value textarea { resize: vertical; }
+.record-field > button { justify-self: end; margin-top: -39px; height: 34px; width: 30px; grid-column: 2; align-self: end; }
+.record-actions, .notebook-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 11px; }
+.record-actions { margin-top: 10px; }
+.record-fields button, .notebook-compose button { min-height: 34px; border: 1px solid #a9b2a4; border-radius: 4px; background: #f5f5ec; color: #2b3e32; padding: 4px 10px; }
+.record-actions .record-submit { background: #263e30; color: #fffaf1; border-color: #263e30; }
+.record-fields [role=alert], .notebook-form [role=alert] { color: #8c3c23; }
+.studio-source { margin: 8px 0; border: 1px solid #49574b; border-radius: 6px; overflow: hidden; background: #1e2c26; color: #ecede4; }
+.studio-source > div, .studio-source footer { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; }
+.studio-source label { font: 12px ui-monospace, monospace; }
+.studio-source button { background: none; color: #efd0a5; min-height: 30px; border: 0; }
+.studio-source textarea { display:block; width:100%; padding:10px; height:clamp(150px,25svh,310px); border:0; border-block:1px solid #47574a;
+  border-radius:0; background:#18251e; color:#f2eedf; font:13px/1.55 ui-monospace, monospace; resize:vertical; }
+.studio-source footer { font-size:12px; }
+.studio-source footer output { color:#e9e4d6; }
+[data-code-pending] #graph { pointer-events: none; }

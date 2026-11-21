@@ -6,6 +6,7 @@ import '../../demo/graph-picker.css'
 
 const groups = [
   ['Create a graph', [['blank', 'Blank canvas', '?example=blank']]],
+  ['TypeScript notebooks', [['saturn', 'Saturn system · live TypeScript', '?example=saturn'], ['cassini', 'Cassini flybys · live TypeScript', '?example=cassini']]],
   [
     'Wikipedia atlases',
     [

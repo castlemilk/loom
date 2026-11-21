@@ -10,6 +10,22 @@ const source = () => ({ nodes: [{ id: 'a', label: 'Alpha', topics: ['Light'] }, 
   artwork: { light: 'graphs/light.webp' }, provenance: { source: 'notebook' } })
 const tx = (operations: EditorOperation[], expectedRevision = 0) => ({ version: 1, expectedRevision, operations })
 
+test('replacing the document preserves order, document metadata and undo, and rejects stale or invalid writes', () => {
+  const doc = createEditor(source()), original = doc.getSnapshot()
+  const next = { nodes:[{id:'z',metadata:{fields:[2,true]}},{id:'y'}], links:[{source:'z',target:'y'}], images:{ nebula:'blue' } }
+  assert.ok(doc.replaceData(next,0).ok)
+  const saved = doc.getSnapshot()
+  assert.deepEqual(saved.data.nodes,next.nodes)
+  assert.deepEqual(saved.data.images,next.images)
+  assert.equal(doc.replaceData({nodes:[],links:[]},0).ok,false)
+  assert.equal(doc.replaceData({nodes:[],links:next.links},1).ok,false)
+  assert.equal(doc.getSnapshot(),saved)
+  assert.ok(doc.undo(1).ok)
+  assert.equal(doc.getSnapshot().data,original.data)
+  assert.ok(doc.redo(2).ok)
+  assert.equal(doc.getSnapshot().data,saved.data)
+})
+
 test('imports legacy and explicit IDs together, preserves JSON and isolates caller mutations', () => {
   const data = source()
   const doc = createEditor({ ...data, nodes: [...data.nodes, { id: '__proto__', label: undefined }] })

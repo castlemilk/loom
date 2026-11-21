@@ -20,7 +20,7 @@ export type EditorOperation =
   | { op: 'node.remove'; id: string; cascade?: boolean }
   | { op: 'link.remove'; id: string }
 export interface EditorTransaction { version: 1; documentId?: string; expectedRevision?: number; operations: readonly EditorOperation[] }
-export interface EditorChange { op: EditorOperation['op']; id: string }
+export interface EditorChange { op: EditorOperation['op'] | 'graph.replace'; id: string }
 export type EditorErrorCode = 'invalid_input' | 'wrong_document' | 'stale_revision' | 'duplicate_id' | 'not_found' | 'missing_endpoint' | 'connected_node' | 'empty_history'
 export type EditorReceipt = { ok: true; revision: number; changes: readonly EditorChange[] } |
   { ok: false; revision: number; error: { code: EditorErrorCode; path: string; message: string } }
@@ -170,9 +170,10 @@ function edit(current: Version, input: unknown, revision: number, documentId: st
   return { next: changes.length ? finish(current.data, nodes, links) : current, changes }
 }
 
-const reverse: Record<EditorOperation['op'], EditorOperation['op']> = {
+const reverse: Record<EditorChange['op'], EditorChange['op']> = {
   'node.add': 'node.remove', 'node.remove': 'node.add', 'node.update': 'node.update',
   'link.add': 'link.remove', 'link.remove': 'link.add', 'link.update': 'link.update',
+  'graph.replace': 'graph.replace',
 }
 
 /** A document session shared by UI controls and JSON clients. No DOM or renderer is required. */
@@ -201,10 +202,7 @@ function session(data: GraphData, documentId: string, revision: number, historyL
     state = snapshot()
     for (const fn of [...listeners]) fn()
   }
-  function submit(transaction: unknown, commit: boolean): EditorReceipt {
-    let result: ReturnType<typeof edit>
-    try { result = edit(current, transaction, revision, documentId) }
-    catch (error) { if (error instanceof EditError) return failure(error); throw error }
+  function record(result: ReturnType<typeof edit>, commit: boolean): EditorReceipt {
     const changes = Object.freeze(result.changes.map((change) => Object.freeze(change)))
     const resultRevision = revision + Number(commit && changes.length > 0)
     if (commit && changes.length) {
@@ -216,6 +214,17 @@ function session(data: GraphData, documentId: string, revision: number, historyL
       publish(result.next)
     }
     return { ok: true, revision: resultRevision, changes }
+  }
+  function submit(transaction: unknown, commit: boolean): EditorReceipt {
+    try { return record(edit(current, transaction, revision, documentId), commit) }
+    catch (error) { if (error instanceof EditError) return failure(error); throw error }
+  }
+  function replaceData(data: GraphData, expectedRevision = revision): EditorReceipt {
+    if (expectedRevision !== revision) return failure(new EditError('stale_revision', '/expectedRevision', 'Read the current revision before replacing the graph.'))
+    let next
+    try { next = initialVersion(data) }
+    catch (error) { if (error instanceof EditError) return failure(error); throw error }
+    return record({ next, changes:[{ op:'graph.replace', id:documentId }] }, true)
   }
   function travel(back: boolean, expectedRevision?: number): EditorReceipt {
     if (expectedRevision !== undefined && expectedRevision !== revision) return failure(new EditError('stale_revision', '/expectedRevision', 'Read the current revision before changing history.'))
@@ -243,7 +252,7 @@ function session(data: GraphData, documentId: string, revision: number, historyL
     return { revision, total, items, nextOffset: offset + items.length < total ? offset + items.length : null }
   }
   return {
-    getSnapshot: () => state, checkpoint,
+    getSnapshot: () => state, checkpoint, replaceData,
     describe: () => ({ version: 1 as const, documentId, revision, nodes: current.nodes.size, links: current.links.size, canUndo: state.canUndo,
       canRedo: state.canRedo, operations: Object.keys(commandFields) }),
     getNode: (id: string) => current.nodes.get(id), getLink: (id: string) => current.links.get(id), query,

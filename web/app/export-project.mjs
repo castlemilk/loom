@@ -2,13 +2,13 @@ export const projectCommands = 'npm install\nnpm run dev'
 
 export function mountCode(language) {
   const ts = language === 'ts'
-  return `import { mountScene${ts ? ', type GraphScene' : ''} } from 'loom-core/scene'
+  return `import { mountScene${ts ? ', type GraphScene' : ''} } from 'loom-core/scene'${ts ? "\nimport { graph as data } from './data.js'" : ''}
 
 export async function mountGraph(canvas${ts ? ': HTMLCanvasElement' : ''}, workerURL${ts ? '?: string' : ''}) {
   const response = await fetch(new URL('./scene.json', import.meta.url))
   if (!response.ok) throw new Error('Could not load scene.json (' + response.status + ')')
   const scene${ts ? ': GraphScene' : ''} = await response.json()
-  const graph = mountScene(canvas, scene, { workerURL })
+  const graph = mountScene(canvas, ${ts ? '{ ...scene, data }' : 'scene'}, { workerURL })
   graph.on('open', id => graph.focus(id))
   return graph
 }`
@@ -67,7 +67,7 @@ export function starterManifest(name, dependency, typescript) {
 }
 
 /** Build the archive only on download. The preview and ZIP share the same mount code and SDK release. */
-export async function projectZip({ name, scene, language, dependency }) {
+export async function projectZip({ name, scene, language, dependency, dataModule, dataTypes }) {
   const { strToU8, zip } = await import('fflate')
   const typescript = language === 'ts'
   const manifest = starterManifest('loom-graph-export', dependency, typescript)
@@ -81,7 +81,7 @@ ${projectCommands}
 
 Open the local URL printed by Vite. To deploy the graph, run \`npm run build\` and serve the generated \`dist/\` directory.
 
-To use the graph in an existing app, copy \`scene.json\` and \`graph.${language}\` together, install the loom-core dependency from package.json, and call \`await mountGraph(canvas)\` after your canvas has a width and height. Keep the returned graph and call \`graph.destroy()\` when the canvas unmounts.
+To use the graph in an existing app, copy \`scene.json\`, ${typescript ? '\`data.ts\`, \`notebook-types.ts\` and ' : 'and '}\`graph.${language}\` together, install the loom-core dependency from package.json, and call \`await mountGraph(canvas)\` after your canvas has a width and height. Keep the returned graph and call \`graph.destroy()\` when the canvas unmounts.
 
 The starter passes Vite's bundled layout worker URL for large graphs. With another bundler, you can serve the package's layout-worker.js and pass its URL as the second argument. Artwork URLs in the scene are fetched from their original hosts.
 `
@@ -93,6 +93,7 @@ The starter passes Vite's bundled layout worker URL for large graphs. With anoth
     }, null, 2) + '\n') }),
     'index.html': strToU8(projectHTML(name, language)),
     ['graph.' + language]: strToU8(mountCode(language) + '\n'),
+    ...(typescript && { 'data.ts':strToU8(dataModule), 'notebook-types.ts':strToU8(dataTypes) }),
     'scene.json': strToU8(JSON.stringify(scene, null, 2) + '\n'),
     'README.md': strToU8(readme),
   }

@@ -1,7 +1,8 @@
 import { createCardGraph } from 'loom-core/cards'
 import type { Notebook, RecordNode } from './notebook-types.js'
 
-export function mountNotebook(svg: SVGSVGElement, initial: Notebook, imageBase: URL, onSelect: (node: RecordNode) => void) {
+export function mountNotebook(svg: SVGSVGElement, initial: Notebook, imageBase: URL, onSelect: (node: RecordNode) => void,
+  onMove?: (node: RecordNode, position: { x: number; y: number }) => void) {
   let notebook = initial
   const view = createCardGraph(svg, initial, {
     root: initial.nodes[0]?.id, showArrows: true,
@@ -10,11 +11,12 @@ export function mountNotebook(svg: SVGSVGElement, initial: Notebook, imageBase: 
       const ref = node.art && notebook.images[node.art]
       return ref ? new URL(ref.src, imageBase).href : undefined
     },
-    onSelect,
+    onSelect, onMove,
   })
   return {
     select: view.select, fit: view.fit, destroy: view.destroy,
-    update(next: Notebook) {
+    setMovable: (movable: boolean) => view.setOptions({ movable }),
+    update(next: Notebook, fitChanges = true) {
       const previous = notebook
       notebook = next
       view.setData(next)
@@ -24,7 +26,7 @@ export function mountNotebook(svg: SVGSVGElement, initial: Notebook, imageBase: 
         const old = previous.nodes[i]
         return old?.id !== node.id || old.x !== node.x || old.y !== node.y
       })
-      if (moved || previous.nodes.length !== next.nodes.length) view.fit()
+      if (fitChanges && (moved || previous.nodes.length !== next.nodes.length)) view.fit()
     },
   }
 }

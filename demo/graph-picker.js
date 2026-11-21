@@ -18,6 +18,8 @@ const icons = {
   wikispeedia: 'wiki',
   bauhaus: 'bauhaus',
   'outer-solar-system': 'orbit',
+  saturn: 'orbit',
+  cassini: 'wire',
   cards: 'cards',
   sections: 'atlas',
   model: 'wire',

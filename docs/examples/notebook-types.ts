@@ -2,6 +2,10 @@ import type { GraphData, GraphLink, GraphNode } from 'loom-core'
 
 export type Field = string | number | boolean | null | readonly Field[] | { readonly [key: string]: Field }
 
+/** The Studio also accepts graphs with optional labels and application-specific fields. */
+export type StudioGraph = GraphData<GraphNode & Record<string, unknown>, GraphLink & Record<string, unknown>>
+  & Record<string, unknown>
+
 export interface RecordNode extends GraphNode {
   label: string
   kind: string

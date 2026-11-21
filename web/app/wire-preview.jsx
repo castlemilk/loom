@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef } from 'react'
+import { useLayoutEffect, useId, useMemo, useRef } from 'react'
 
 function pathBetween(a, b, route, vertical, loop) {
   const [x, y, r] = a, [u, v] = b
@@ -21,7 +21,7 @@ export function WirePreview({ graph, canvas, nodes, ends, route, accent, backgro
   const svg = useRef(null), line = useRef(null), ring = useRef(null)
   const pointer = useRef(null), hovered = useRef(null)
   const index = useMemo(() => new Map(nodes.map((node, i) => [node.id, 4 * i])), [nodes])
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = canvas.current
     if (!graph || !element) return
     let frame = graph.getFrame()

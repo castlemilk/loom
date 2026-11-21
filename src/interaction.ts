@@ -7,6 +7,7 @@ interface Actions {
   pick(x: number, y: number, touch?: boolean): number
   hover(i: number): void
   select(i: number): void
+  drop(i: number): void
   open(index?: number, point?: { x: number; y: number; clicks: number }): void
   positions(): Float32Array
   pin(i: number, x: number, y: number, fixed: number, z?: number, dragging?: boolean): void
@@ -134,7 +135,9 @@ export class Interaction {
         }
         if (cancel || e.timeStamp - last.time > 90 || actions.reduced()) this.#vx = this.#vy = 0
         this.#releaseTime = performance.now()
+        const dropped = !cancel && this.draggingNode ? this.#node : -1
         this.#releaseNode(!cancel && actions.pinOnDrag())
+        if (dropped >= 0) actions.drop(dropped)
       }
       if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
       actions.touch()

@@ -52,6 +52,14 @@
 .notebook-footer button:disabled { opacity: .55; }
 .notebook-footer > span { flex-basis: 100%; color: var(--copper); }
 .notebook-panes { display: none; }
+.notebook-form { padding: clamp(12px,1.8vw,24px); }
+.notebook-pair { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:10px; }
+.notebook-compose label { margin-bottom:8px; }
+.notebook-compose small { display:contents; }
+.notebook-map figcaption { flex-wrap:wrap; gap:1px 10px; }
+.notebook-map figcaption button:disabled, .notebook-tools button:disabled { opacity:.5; cursor:default; }
+.notebook-image-key { display:flex; align-items:center; gap:6px; margin-top:4px; font-size:11px; color:var(--muted); }
+.notebook-image-key select { min-width:0; max-width:100%; padding:3px 4px; border:1px solid #adb7a6; border-radius:4px; font:inherit; color:var(--pine); background:#faf8ee; }
 @media (max-width: 740px) {
   .notebook-bench { grid-template-columns: minmax(0,1fr); grid-template-areas: "bar" "map" "panes" "record" "editor" "foot"; }
   .notebook-bench .thread-bar { padding-inline: 12px; }

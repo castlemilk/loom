@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFile, writeFile, readdir, unlink } from 'node:fs/promises'
 import { transform } from 'esbuild'
 import ts from 'typescript'
+import { rewriteGraphSource } from './notebook-rewrite.mjs'
 
 export async function prepareNotebook() {
   const local = path => new URL(path, import.meta.url)
@@ -20,7 +21,7 @@ export async function prepareNotebook() {
     readFile(new URL('../LICENSE.txt', tsLib)),
   ])
   const files = { '/lib.d.ts': [...libraries.values()].join('\n'), '/notebook-types.ts': types, '/loom-core.d.ts': sdkTypes }
-  const source = compiler + '\nconst notebookFiles = ' + JSON.stringify(files) + ';\n' + worker
+  const source = compiler + '\nconst notebookFiles = ' + JSON.stringify(files) + ';\n' + rewriteGraphSource.toString() + '\n' + worker
   const { code } = await transform(source, { minify: true, target: 'es2022', legalComments: 'eof' })
   const hash = createHash('sha256').update(code).digest('hex').slice(0, 16)
   const filename = 'notebook-' + hash + '.js'

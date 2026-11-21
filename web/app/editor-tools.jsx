@@ -5,6 +5,7 @@ import { docsURL, homeURL } from '../site'
 import { InspectorSection, InspectorSummary } from './fields'
 import { shapes } from './appearance'
 import { downloadFile } from './download-file'
+import { MetadataForm, uniqueNodeId } from './record-fields'
 
 const paths = {
   new: 'M5 3h9l5 5v13H5zM14 3v6h5M9 14h6m-3-3v6',
@@ -22,7 +23,7 @@ function Icon({ name }) {
 }
 const editable = (target) => target instanceof Element && !!target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
 
-export function EditorToolbar({ tool, choose, select, state, history, ready, onNew, onExport }) {
+export function EditorToolbar({ tool, choose, select, state, history, ready, onNew, onExport, codeOpen, onCode }) {
   useEffect(() => {
     function keyboard(event) {
       if (event.defaultPrevented || editable(event.target) || event.target.closest?.('dialog[open]') || event.altKey || event.repeat) return
@@ -50,6 +51,7 @@ export function EditorToolbar({ tool, choose, select, state, history, ready, onN
         aria-controls={tool === id ? 'document-composer' : undefined} disabled={!ready} onClick={() => choose(tool === id ? null : id)}>
         <Icon name={id} /><span>{short}</span></button>)}
     <i className="tool-divider" aria-hidden="true" />
+    <button type="button" aria-label="Live TypeScript" title="Edit graph and TypeScript together" aria-pressed={codeOpen} onClick={onCode}>TS<span className="mobile-tool-label">Code</span></button>
     {['undo','redo'].map((id) => <button key={id} type="button" aria-label={id === 'undo' ? 'Undo document edit' : 'Redo document edit'}
       title={id === 'undo' ? 'Undo document edit (Ctrl/⌘ Z)' : 'Redo document edit (Ctrl/⌘ Shift Z)'}
       disabled={!(id === 'undo' ? state?.canUndo : state?.canRedo)} onClick={() => history(id)}><Icon name={id}/><span className="mobile-tool-label">{id === 'undo' ? 'Undo' : 'Redo'}</span></button>)}
@@ -58,19 +60,13 @@ export function EditorToolbar({ tool, choose, select, state, history, ready, onN
   </div>
 }
 
-function uniqueId(name, exists) {
-  const base = name.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'node'
-  let id = base, n = 1
-  while (exists(id)) id = base + '-' + ++n
-  return id
-}
 const guarded = (editor, operations) => ({ version: 1, documentId: editor.getSnapshot().documentId, expectedRevision: editor.getSnapshot().revision, operations })
 
 function NodeForm({ model, run, point, clearPoint }) {
   const [label, setLabel] = useState(''), [kind, setKind] = useState('concept')
   return <form onSubmit={(event) => {
     event.preventDefault()
-    const editor = model.editor(), id = uniqueId(label, editor.getNode)
+    const editor = model.editor(), id = uniqueNodeId(label, editor.getNode)
     run(guarded(editor, [{ op: 'node.add', value: { id, label: label.trim(), kind: kind.trim(), ...(point && { ...point, pinned: true }) } }]), id)
   }}>
     <label>Name<input required value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Node name" /></label>
@@ -111,7 +107,7 @@ function LinkForm({ model, selectedId, graph, link, run, onEndpoints }) {
   return <form onSubmit={(event) => {
     event.preventDefault()
     const editor = model.editor(), fields = { source, target, kind: kind.trim(), ...(weight !== '' && { weight: Number(weight) }) }
-    const id = link?.id ?? uniqueId(source + '-' + target, editor.getLink)
+    const id = link?.id ?? uniqueNodeId(source + '-' + target, editor.getLink)
     const op = link ? { op: 'link.update', id, changes: fields, ...(weight === '' && link.weight !== undefined && { unset: ['weight'] }) } :
       { op: 'link.add', value: { id, ...fields } }
     run(guarded(editor, [op]), source)
@@ -128,7 +124,7 @@ function LinkForm({ model, selectedId, graph, link, run, onEndpoints }) {
 
 function JsonForm({ model, run }) {
   const editor = model.editor()
-  const [text, write] = useState(() => JSON.stringify(guarded(editor, [{ op: 'node.add', value: { id: uniqueId('new-node', editor.getNode), label: 'New node' } }]), null, 2))
+  const [text, write] = useState(() => JSON.stringify(guarded(editor, [{ op: 'node.add', value: { id: uniqueNodeId('new-node', editor.getNode), label: 'New node' } }]), null, 2))
   const [review, setReview] = useState(null), [notice, report] = useState('')
   const current = editor.getSnapshot()
   const fresh = review?.ok && review.editor === editor && review.revision === current.revision && review.text === text
@@ -145,7 +141,7 @@ function JsonForm({ model, run }) {
       <a href={homeURL + 'editor.schema.json'} target="_blank" rel="noreferrer">JSON Schema ↗</a></div>
     <label>Transaction<textarea value={text} spellCheck={false} rows={8} onChange={(e) => { write(e.target.value); setReview(null); report('') }} /></label>
     <div className="edit-actions"><button type="button" onClick={preview}>Preview</button><button type="button" className="commit-edit" disabled={!fresh || !review.changes.length}
-      onClick={() => { const result = run({ ...review.body, expectedRevision: review.revision }); if (result.ok) { setReview(null); report('Applied at revision ' + result.revision) } }}>Apply changes</button></div>
+      onClick={async () => { const result = await run({ ...review.body, expectedRevision: review.revision }); if (result.ok) { setReview(null); report('Applied at revision ' + result.revision) } }}>Apply changes</button></div>
     {notice && <output aria-live="polite">{notice}</output>}
     {!!review?.changes?.length && <ul className="edit-preview">{review.changes.slice(0,8).map((c,i) => <li key={i}><code>{c.op}</code> {c.id}</li>)}</ul>}
     <div className="edit-actions file-actions"><button onClick={() => document.getElementById('workload-file')?.click()}>Import graph</button>
@@ -206,6 +202,7 @@ export function MarkerProperties({ node, ink, model, run }) {
 export function NodeProperties({ node, connectionsLabel, model, run, editLink, initialOpen = true }) {
   const [name, setName] = useState(node.label ?? node.id), [kind, setKind] = useState(node.kind ?? '')
   const [connections, list] = useState(false), [offset, setOffset] = useState(0)
+  const [metadataOpen, setMetadataOpen] = useState(false)
   const page = connections ? model.editor().query({ entity:'link', incidentTo:node.id, offset, limit:6 }) : null
   return <>
     <InspectorSection title="Node properties" value={node.kind || 'Node'} initialOpen={initialOpen}>
@@ -218,6 +215,14 @@ export function NodeProperties({ node, connectionsLabel, model, run, editLink, i
         <div className="edit-actions"><button className="commit-edit" disabled={!name.trim() || (name.trim() === (node.label ?? node.id) && kind.trim() === (node.kind ?? ''))}>Save node</button>
           <button type="button" onClick={() => run(guarded(model.editor(), [{ op:'node.remove', id:node.id, cascade:true }]), null)}>Remove node</button></div>
       </form>
+      {metadataOpen ? <MetadataForm metadata={node.metadata} cancel={() => setMetadataOpen(false)} save={async metadata => {
+        const receipt = await run(guarded(model.editor(), [{ op:'node.update', id:node.id, changes:{ metadata } }]), node.id)
+        if (receipt.ok) setMetadataOpen(false)
+      }}/> : <button type="button" onClick={() => setMetadataOpen(true)}>Edit metadata</button>}
+      {model.data.images && typeof model.data.images === 'object' && <label>Image reference<select value={node.art ?? ''} onChange={e => {
+        const art = e.target.value
+        run(guarded(model.editor(), [{ op:'node.update', id:node.id, ...(art ? {changes:{art}} : {unset:['art']}) }]), node.id)
+      }}><option value="">No image</option>{Object.keys(model.data.images).map(key => <option key={key} value={key}>{key}</option>)}</select></label>}
     </InspectorSection>
     <details className="inspector-section" onToggle={(e) => list(e.currentTarget.open)}>
       <InspectorSummary title="Connections" value={page?.total ?? connectionsLabel}/>
