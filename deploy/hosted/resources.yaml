@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       labels: {app: loom-graph}
-      annotations: {loom.github.io/source: "__REVISION__", loom.github.io/archive-sha256: "__CHECKSUM__"}
+      annotations: {loom.github.io/source: "__REVISION__", loom.github.io/archive-sha256: "__CHECKSUM__", loom.github.io/deployment: "__DEPLOYMENT__"}
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -56,12 +56,13 @@ spec:
               if (createHash('sha256').update(archive).digest('hex') !== '__CHECKSUM__') throw new Error('Release checksum mismatch')
               await writeFile('release.tgz', archive)
               NODE
-              tar --no-same-owner -xzf release.tgz
+              mkdir -p runtime
+              tar --no-same-owner --no-overwrite-dir -xzf release.tgz -C runtime
               rm release.tgz
       containers:
         - name: server
           image: *runtime
-          command: [node, /app/hosted/start.mjs]
+          command: [node, /app/runtime/hosted/start.mjs]
           ports: [{name: http, containerPort: 8080}]
           env: [{name: NODE_ENV, value: production}]
           securityContext: *restricted

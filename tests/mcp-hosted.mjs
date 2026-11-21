@@ -35,17 +35,16 @@ try {
     const port = new URL(config.issuer).port
     const index = process.argv.indexOf('--archive')
     if (index >= 0) {
-      const app = join(directory, 'app')
-      await mkdir(app)
-      execFileSync('tar', ['-xzf', resolve(process.argv[index + 1]), '-C', app])
-      expectedRevision = JSON.parse(await readFile(join(app, 'release.json'), 'utf8')).revision
+      const archive = resolve(process.argv[index + 1])
+      expectedRevision = JSON.parse(execFileSync('tar', ['-xOzf', archive, './release.json'])).revision
       const manifest = await readFile(new URL('../deploy/hosted/resources.yaml', import.meta.url), 'utf8')
       const [, image] = manifest.match(/image: &runtime (\S+)/)
       const name = 'loom-hosted-test-' + randomUUID()
       execFileSync('docker', ['run', '-d', '--rm', '--name', name, '--platform', 'linux/amd64', '--read-only', '--user', '1000:1000',
-        '--tmpfs', '/var/lib/loom:rw,uid=1000,gid=1000,mode=0700', '-v', app + ':/app:ro',
+        '--tmpfs', '/var/lib/loom:rw,uid=1000,gid=1000,mode=0700', '--tmpfs', '/app:rw,uid=0,gid=1000,mode=0770',
+        '-v', archive + ':/release.tgz:ro', '--workdir', '/app',
         '-p', '127.0.0.1:' + port + ':8080', '-e', 'LOOM_PAGES_CALLBACK=' + callback, '-e', 'LOOM_PUBLIC_ORIGIN=' + config.issuer,
-        image, 'node', '/app/hosted/start.mjs'])
+        image, '/bin/sh', '-ec', 'mkdir -p runtime && tar --no-same-owner --no-overwrite-dir -xzf /release.tgz -C runtime && exec node /app/runtime/hosted/start.mjs'])
       container = name
       const deadline = Date.now() + 90_000
       while (!(await fetch(config.issuer + '/healthz').then(r => r.ok, () => false))) {

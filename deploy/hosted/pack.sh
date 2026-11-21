@@ -14,7 +14,7 @@ mv "$stage/plugins/loom-graph/server/data" "$stage/mcp/data"
 cp "$stage/LICENSE" "$stage/mcp/"
 npm --prefix "$stage/mcp" ci --include=dev --ignore-scripts --no-audit --no-fund
 printf '{"revision":"%s"}\n' "$revision" > "$stage/mcp/release.json"
-COPYFILE_DISABLE=1 tar -czf "$out/loom-graph-hosted.tgz" -C "$stage/mcp" .
+COPYFILE_DISABLE=1 tar --no-xattrs -czf "$out/loom-graph-hosted.tgz" -C "$stage/mcp" .
 node --input-type=module - "$out" <<'NODE'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'

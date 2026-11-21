@@ -13,6 +13,8 @@ node tests/mcp-hosted.mjs --archive "artifacts/hosted/$(git rev-parse HEAD)/loom
 
 Push the checked commit to GitHub. Run `task mcp:hosted:deploy` with access to the management cluster and the GitHub repository. It publishes the tested archive under a commit-specific GitHub Release, compares GitHub’s SHA-256 receipt and applies the service through the HA kubeconfig. A fresh pod downloads that release, verifies its bytes and runs it under the pinned Node image. The deployment records the previous revision and waits for a Paprika Pipeline to verify the revision and public OAuth discovery. The first deployment provisions a 10 GiB block volume.
 
-After the same commit reaches `main`, the existing Pages workflow publishes and tests the website. Run the complete public browser journey against a specific backend revision with `LOOM_EXPECTED_REVISION=$(git rev-parse HEAD) node tests/mcp-hosted.mjs --live`.
+For a change to the deployment manifest, set `LOOM_HOSTED_REVISION` to the previously verified runtime commit before running the deploy task. The publisher reuses the release, verifies GitHub’s archive digest, and records both the runtime and deployment revisions on the pod.
+
+After the website reaches `main`, the Pages workflow publishes and tests it. Run the complete public browser journey against a specific backend revision with `LOOM_EXPECTED_REVISION=RUNTIME_COMMIT node tests/mcp-hosted.mjs --live`.
 
 To restore an earlier deployment, use `kubectl --kubeconfig ~/projects/paprika/terraform/omega-ha.kubeconfig -n loom-graph rollout history deployment/loom-graph`, select the known-good revision, and run `rollout undo deployment/loom-graph --to-revision=NUMBER` with the same cluster and namespace. Verify the restored source at `/healthz` and repeat the public browser test.
