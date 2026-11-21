@@ -102,7 +102,7 @@ export function ExportDialog({ snapshot, close }) {
       <Code name="Run the project">{projectCommands}</Code>
       <button type="button" className="export-primary" disabled={busy || !projectName.trim()} onClick={saveProject}>{busy ? 'Preparing ZIP…' : 'Download project ZIP'}</button>
     </> : tab === 'mcp' ? <div className="export-mcp">
-      <p className="export-instruction">Download this graph, then give its file path to Graph MCP. Your assistant can search the nodes and trace their connections locally.</p>
+      <p className="export-instruction">Save your graph, then open setup to preview a query and get the command for Codex or Claude Code. Your assistant can follow the connections you drew here.</p>
       <button type="button" className="export-primary" onClick={saveScene}>Download scene.json</button>
       <a href={mcpURL + '?source=studio#connect'} target="_blank" rel="noreferrer">Open MCP client setup ↗</a>
     </div> : <>

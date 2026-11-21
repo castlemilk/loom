@@ -90,7 +90,7 @@ export async function writeAssistantDocs(publicDir, indexFile, installCommands) 
     lines.push('')
   }
   lines.push('## Machine-readable reference', '',
-    '- [Graph MCP server, tools and graph sources](' + new URL('mcp/index.md', site) + ')',
+    '- [Give your knowledge graph an MCP server](' + new URL('mcp/index.md', site) + ')',
     '- [Public imports, types and controller methods](' + new URL('docs/api-index.json', site) + ')',
     '- [Editor transaction schema](' + new URL('editor.schema.json', site) + ')',
     '- [M2 Max benchmark samples and test conditions](' + new URL('benchmarks/m2-max.json', site) + ')',

@@ -1,7 +1,7 @@
 {
   "name": "loom-graph",
-  "version": "0.3.0",
-  "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol.",
+  "version": "0.4.0",
+  "description": "Turn your knowledge graph into a read-only MCP server. Give assistants tools to search your nodes, follow relationships and trace paths.",
   "author": {
     "name": "Loom"
   },

@@ -12,13 +12,13 @@ const commands = {
 export function PluginInstall({ marketplaceURL, desktopURL, version, iconURL }) {
   return <section id="install" className="guide-width mcp-section" aria-labelledby="install-title">
     <div className="section-heading"><h2 id="install-title">Install Loom Graph</h2>
-      <p>Give your client four offline graphs and six read-only tools. MCP Apps clients can also open the graph browser and inspect a connection with its source.</p></div>
+      <p>Install the marketplace plugin to try the same tools on four offline example graphs. To connect your own file, use <a href="#connect">graph setup</a>.</p></div>
     <div className="plugin-install">
       <div className="plugin-edition">
         <img src={iconURL} width="56" height="56" alt="" />
         <h3>Loom Graph</h3><p>Wikispeedia, the knowledge console, Bauhaus and the outer solar system.</p>
         <dl><div><dt>Release</dt><dd>v{version}</dd></div><div><dt>Transport</dt><dd>Local stdio</dd></div></dl>
-        <a className="guide-text-link" href="#connect">Configure HTTP and OAuth ↓</a>
+        <a className="guide-text-link" href="#connect">Connect my graph ↑</a>
       </div>
       <InstallOptions marketplaceURL={marketplaceURL} desktopURL={desktopURL} />
     </div>

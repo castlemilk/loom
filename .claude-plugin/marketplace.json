@@ -7,7 +7,7 @@
     {
       "name": "loom-graph",
       "source": "./plugins/loom-graph",
-      "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol."
+      "description": "Turn your knowledge graph into a read-only MCP server. Give assistants tools to search your nodes, follow relationships and trace paths."
     }
   ]
 }

@@ -134,9 +134,9 @@ function LiveDemo({ config, callback }) {
     finally { setBusy(false) }
   }
   return <><header><span>Loom / Graph MCP</span><h1>Connect over HTTP</h1>
-    <p>{config.hosted ? 'Continue as a guest, approve five minutes of read access, then ask how Music links to Sound.' :
+    <p>{config.hosted ? 'Try the experience your graph readers will see. Approve five minutes of guest access to Loom’s public graph, then ask how Music links to Sound.' :
       'Connect to your local graph server, sign in with ' + config.provider + ', then ask how Music links to Sound.'}</p>
-    {config.hosted && <a href="../#http">Back to the MCP guide</a>}</header>
+    {config.hosted && <a href="../#connect">Connect my own graph</a>}</header>
     <ConnectionFrames live step={step} record={record} onNext={next} busy={busy} error={error} />
     {step === 5 && <section className="demo-extension"><button type="button" aria-haspopup="dialog" onClick={() => setShowApp(true)}>
       Open graph browser</button>

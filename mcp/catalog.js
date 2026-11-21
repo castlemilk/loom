@@ -1,15 +1,12 @@
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
-import { graphDocument } from './query.js'
+import { graphFileSource } from './query.js'
 
 const assets = new URL('./data/', import.meta.url)
-const readJSON = async (url) => JSON.parse(await readFile(url, 'utf8'))
+const readJSON = async (url) => JSON.parse((await readFile(url, 'utf8')).replace(/^\uFEFF/, ''))
 
 export async function loadGraphFile(path) {
-  const doc = await readJSON(path)
-  const data = graphDocument(doc)
-  const name = [doc.data?.title, doc.title, doc.name, doc.data?.name].find(value => typeof value === 'string' && value.trim())
-  return { id: 'local', name: name ?? basename(path), data }
+  return graphFileSource(await readJSON(path), basename(path))
 }
 
 async function wikispeedia() {

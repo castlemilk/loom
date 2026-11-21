@@ -17,6 +17,12 @@ export function graphDocument(value) {
   return { nodes: graph.nodes, links }
 }
 
+export function graphFileSource(doc, filename) {
+  const data = graphDocument(doc)
+  const name = [doc.data?.title, doc.title, doc.name, doc.data?.name].find(value => typeof value === 'string' && value.trim())
+  return { id: 'local', name: name ?? filename, data }
+}
+
 const nodeUri = (graph, id) => 'loom://graphs/node?graph=' + encodeURIComponent(graph) + '&id=' + encodeURIComponent(id)
 
 function page(items, { offset, limit }) {

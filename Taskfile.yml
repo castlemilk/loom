@@ -67,6 +67,7 @@ tasks:
     cmds:
       - task: check
       - task: studio:test
+      - node mcp/tests/owner-setup.mjs
       - task: mcp:test
         vars: { SCENE: artifacts/mcp/studio-scene.json }
       - task: studio:test:dev

@@ -9,14 +9,16 @@ try {
     issuer: { type: 'string' }, 'resource-url': { type: 'string' }, help: { type: 'boolean', short: 'h' },
   } })
   if (values.help) {
-    console.log(`loom-graph-mcp [--graph /path/to/scene.json] [--http [--port 7341] [--issuer URL] [--resource-url URL]]
+    console.log(`loom-graph-mcp [--graph /path/to/graph.json] [--http [--port 7341] [--issuer URL] [--resource-url URL]]
 Serve graph tools over stdio (default) or Streamable HTTP at http://127.0.0.1:7341/mcp.
+--graph reads your nodes-and-links JSON or Studio export. You can also set LOOM_GRAPH_FILE in the server environment. With neither, the server offers the four sample graphs.
 --issuer enables OAuth with an OpenID Connect provider. Use --resource-url for the public HTTPS endpoint behind a reverse proxy.`)
   } else {
     if (!values.http && [values.port, values.issuer, values['resource-url']].some(value => value !== undefined)) {
       throw new Error('--port, --issuer and --resource-url require --http.')
     }
-    const sources = values.graph === undefined ? await loadBuiltinGraphs() : [await loadGraphFile(values.graph)]
+    const file = values.graph ?? (process.env.LOOM_GRAPH_FILE || undefined)
+    const sources = file === undefined ? await loadBuiltinGraphs() : [await loadGraphFile(file)]
     const factory = createLoomMcpServerFactory(sources)
     if (values.http) {
       const advertised = values['resource-url'] === undefined ? null : new URL(values['resource-url'])

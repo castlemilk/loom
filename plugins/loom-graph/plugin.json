@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "loom-graph",
-  "version": "0.3.0",
-  "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol.",
+  "version": "0.4.0",
+  "description": "Turn your knowledge graph into a read-only MCP server. Give assistants tools to search your nodes, follow relationships and trace paths.",
   "author": {
     "name": "Loom"
   },
@@ -12,8 +12,8 @@
     "com.openai": {
       "interface": {
         "displayName": "Loom Graph",
-        "shortDescription": "Explore knowledge graphs",
-        "longDescription": "Search four offline graphs, follow links and read the archived passage behind a connection.",
+        "shortDescription": "Query your knowledge graph",
+        "longDescription": "Search nodes, follow relationships and trace paths. Connect your graph file with the setup guide, or explore the four included graphs.",
         "developerName": "Loom",
         "category": "Developer Tools",
         "capabilities": [
@@ -25,7 +25,7 @@
         "composerIcon": "./server/data/icon.png",
         "brandColor": "#254131",
         "defaultPrompt": [
-          "How does Music connect to Sound in Wikispeedia? Show me the source."
+          "Which graphs can I query? Pick a node and show me one of its connections."
         ]
       }
     }

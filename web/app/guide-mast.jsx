@@ -10,7 +10,7 @@ const sections = [
       icon: 'groups.webp', thumbnail: 'wire-study-640.webp', image: 'wire-study-640.webp', caption: 'Shape the wire model' },
     { name: 'TypeScript SDK', note: 'Mount a graph in your own app.', href: docsURL,
       icon: 'layout.webp', image: 'layout.webp', caption: 'Build your first graph' },
-    { name: 'Graph MCP', note: 'Give an assistant access to nodes and sources.', href: mcpURL,
+    { name: 'Graph MCP', note: 'Give your knowledge graph an MCP server.', href: mcpURL,
       icon: 'graph-mcp.png', image: 'graph-mcp.png', caption: 'Query the Bauhaus graph' },
   ] },
   { title: 'Examples', href: homeURL + '#examples', entries: [

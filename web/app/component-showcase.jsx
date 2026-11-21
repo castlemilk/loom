@@ -9,7 +9,7 @@ const parts = [
     alt: 'The Music topic expanded into a map of 96 articles, with Jazz selected.' },
   { id: 'sdk', title: 'TypeScript SDK', heading: 'Query the same graph', href: docsURL + 'navigation/#inspect-a-connection', action: 'Read the SDK example',
     alt: 'An outgoing-neighbor query on Music returns 24 articles. Sound appears in the Science topic.' },
-  { id: 'mcp', title: 'Graph MCP', heading: 'Trace a link to its source', href: mcpURL + '#http', action: 'Explore Graph MCP',
+  { id: 'mcp', title: 'Graph MCP', heading: 'Give an assistant your graph', href: mcpURL, action: 'Explore Graph MCP',
     alt: 'The get_connection tool returns the passage where Music links to Sound and identifies the archived source.' },
 ]
 

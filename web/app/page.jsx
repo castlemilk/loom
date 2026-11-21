@@ -44,7 +44,7 @@ export default function FieldGuide() {
       <section className="guide-tour-section" aria-labelledby="tour-title"><div className="guide-width tour-spread">
         <div className="tour-intro">
           <h2 id="tour-title">Inside the <em>Music</em> cluster.</h2>
-          <p>Open Music in Studio to find Jazz. Query its neighbors in TypeScript, then ask Graph MCP for the sentence where Music links to Sound.</p>
+          <p>Open Music in Studio to find Jazz. Query its neighbors in TypeScript, then see how the same tools let an assistant follow links in your own graph.</p>
           <nav className="hero-guides" aria-label="SDK shortcuts">
             <a href={docsURL + 'editing/#export-a-graph-to-your-app'}>Export to code</a>
             <a href={docsURL + 'atlas/'}>Stream clusters with SQLite</a>

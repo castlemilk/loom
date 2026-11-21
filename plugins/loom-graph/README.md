@@ -1,10 +1,30 @@
 # Loom Graph MCP
 
-Search a Loom knowledge graph, follow its directed links and read the passage behind a connection. The same six tools run over local stdio and Streamable HTTP. HTTP clients can sign in with an OAuth provider. [Walk through the HTTP connection](https://castlemilk.github.io/loom/mcp/#http)
+Give an assistant read-only access to your knowledge graph. Loom reads a JSON file and provides six MCP tools to search nodes, inspect relationships and trace paths. Your node IDs, link direction and custom fields carry through to the results. [Connect your graph](https://castlemilk.github.io/loom/mcp/#connect)
+
+## Bring your graph
+
+1. Export your graph as JSON with a `nodes` array and a `links` array. Each node needs a unique string `id`. Each link’s `source` and `target` refer to those IDs. Loom also accepts `edges` in place of `links` and Studio scenes with a `data` object. [Download a working sample](https://castlemilk.github.io/loom/examples/team-graph.json)
+2. In **Bring your graph**, choose the file to run a real MCP query inside your browser. You can also go straight to setup if you already have the file path. [Open graph setup](https://castlemilk.github.io/loom/mcp/#connect)
+3. For one assistant, select **Local stdio** and copy the **Codex** or **Claude Code** command. Run it from the folder containing your file with Node.js 22.14 or later installed. The shell resolves its full path once, so the assistant can start the server from any project. You can also enter an absolute path or choose **Client JSON** for another MCP host. Your file appears as the graph `local`.
+4. For a team, select **Streamable HTTP**. Use the path on your server, configure your HTTPS endpoint and OAuth issuer, then give teammates the MCP URL. The public guest walkthrough demonstrates this connection using Loom’s sample data. [Try the hosted example](https://castlemilk.github.io/loom/mcp/live/)
+
+```json
+{
+  "name": "Service ownership",
+  "nodes": [
+    { "id": "checkout", "label": "Checkout" },
+    { "id": "payments", "label": "Payments team" }
+  ],
+  "links": [{ "source": "checkout", "target": "payments", "kind": "owned_by" }]
+}
+```
+
+Ask **“How does Checkout connect to Payments team in my graph?”** The assistant can call `get_connection` with `{"graph":"local","from":"checkout","to":"payments"}` and read the original `owned_by` relationship.
 
 ## Install the plugin or desktop extension
 
-Add this GitHub repository as a marketplace, then install `loom-graph@loom`. With Node.js 22.14 or later on your path, your client launches the included MCP server over stdio. The four graphs and source evidence are available offline after installation. [Choose your installer](https://castlemilk.github.io/loom/mcp/#install)
+Add this GitHub repository as a marketplace, then install `loom-graph@loom`. The plugin includes four offline examples and the same read-only MCP server. To use your file, the graph setup above generates a separate `my-graph` connection. Hosts that let you set the server process environment can also pass `LOOM_GRAPH_FILE` to the installed launcher. An explicit `--graph` takes precedence. [Choose your installer](https://castlemilk.github.io/loom/mcp/#install)
 
 **Codex**
 
@@ -43,7 +63,7 @@ node mcp/cli.js --http
 The listener binds to loopback. Use `--port` to change the port and `--graph /absolute/path/to/scene.json` to serve a Studio export. For a public endpoint, terminate HTTPS at a reverse proxy, preserve the public Host header and forward both the MCP endpoint and its well-known metadata routes to the listener. Set `--resource-url` to the exact public MCP URL and `--issuer` to the exact issuer in the provider’s OpenID Connect discovery document.
 
 ```sh
-node mcp/cli.js --http --resource-url https://graphs.example.org/mcp \
+node mcp/cli.js --graph /srv/graphs/team.json --http --resource-url https://graphs.example.org/mcp \
   --issuer https://identity.example.org/realms/loom
 ```
 
@@ -93,7 +113,7 @@ The public walkthrough replays exchanges captured from both providers. Run `task
 
 ## Connect over stdio
 
-Use Node.js 22.14 or later. The component page supplies a configuration with the exact downloadable package URL for that Studio release. Add it to your client's local MCP servers. Choose **My Studio export** to supply an absolute path to a graph JSON file. That process then exposes the file as a single graph named `local`.
+The setup page supplies the exact downloadable package URL for that release. Choose **My graph file** and enter its absolute path. Reconnect or restart the server after editing the file to load the new snapshot.
 
 In Studio, choose **Export graph → Graph MCP** to download the current scene and open client setup. From a repository checkout, run `task setup` followed by `task mcp:serve`, or `task mcp:serve GRAPH=/path/to/scene.json`. A Studio scene, a raw `{nodes, links}` graph and a console `{nodes, edges}` export are supported. Queries use the IDs in your file.
 
@@ -123,15 +143,19 @@ Search, neighbors and edge results accept `offset` and `limit` (1–50, default 
 
 ## Use the server in code
 
-```ts
-import { createLoomMcpServerFactory, loadGraphFile } from 'loom-graph-mcp'
-import { serveStdio } from '@modelcontextprotocol/server/stdio'
+If your application already returns a graph snapshot, pass its nodes and links directly to the server. For this example, `readCatalog` is your application’s function for reading that snapshot.
 
-const graph = await loadGraphFile('/absolute/path/to/scene.json')
+```ts
+import { createLoomMcpServerFactory } from 'loom-graph-mcp'
+import { serveStdio } from '@modelcontextprotocol/server/stdio'
+import { readCatalog } from './catalog.js'
+
+const { nodes, links } = await readCatalog()
+const graph = { id: 'catalog', name: 'Service catalog', data: { nodes, links } }
 serveStdio(createLoomMcpServerFactory([graph]))
 ```
 
-For an in-memory graph, pass `{id, name, data: {nodes, links}}` directly. The factory builds the graph index once and supplies a fresh server for each connection. For a transport that takes one server instance, call `createLoomMcpServer([graph])`. An optional `evidence(from, to)` function can attach source information to an existing edge. [Official MCP stdio transport](https://ts.sdk.modelcontextprotocol.io/v2/serving/stdio)
+The factory indexes the snapshot once and supplies a fresh server for each connection. To read a JSON file in code, use `await loadGraphFile(path)` from the same package. For a transport that takes one server instance, call `createLoomMcpServer([graph])`. An optional `evidence(from, to)` function can attach source information to an existing edge. [Official MCP stdio transport](https://ts.sdk.modelcontextprotocol.io/v2/serving/stdio)
 
 ## Built-in data
 

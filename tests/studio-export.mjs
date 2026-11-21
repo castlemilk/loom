@@ -125,7 +125,9 @@ export async function studioExport(context, url, { touch = false, live = false }
     }
     const [setup] = await Promise.all([page.waitForEvent('popup'), press(dialog.getByRole('link', { name: /Open MCP client setup/ }))])
     await setup.getByLabel('Path on your computer').waitFor()
-    assert.equal(await setup.getByRole('radio', { name: 'My Studio export' }).isChecked(), true)
+    assert.equal(await setup.getByRole('radio', { name: 'My graph file' }).isChecked(), true)
+    await setup.getByLabel('Preview a graph file').setInputFiles(await mcpExport.path())
+    await setup.locator('.owner-receipt').getByText('get_connection', { exact: true }).waitFor()
     await setup.close()
     await press(button('Existing app', dialog))
     const language = touch ? 'js' : 'ts'

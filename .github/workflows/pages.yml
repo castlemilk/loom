@@ -36,6 +36,8 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: '1'
       - run: npm run test:site
+      - name: Launch the server configured for a graph owner's file
+        run: node mcp/tests/owner-setup.mjs
       - run: npm --prefix mcp test && node mcp/tests/install.mjs web/out artifacts/mcp/studio-scene.json
       - run: node mcp/tests/installers.mjs web/out
       - run: npm run test:dev
@@ -130,3 +132,5 @@ jobs:
           node mcp/tests/install.mjs "${PAGES_URL%/}/packages/$GITHUB_SHA/" artifacts/mcp/studio-scene.json
       - name: Authorize a guest and query the public MCP service from Pages
         run: node tests/mcp-hosted.mjs --live
+      - name: Check a graph owner's setup from the public guide
+        run: node mcp/tests/owner-setup.mjs "$PAGES_URL"
