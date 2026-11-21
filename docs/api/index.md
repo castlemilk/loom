@@ -111,6 +111,7 @@ createEditor<T extends GraphData>(data: T, { historyLimit, documentId }?: { hist
   .preview(input: unknown): EditorReceipt
   .query({ entity, text, kind, incidentTo, offset, limit }: EditorQuery): { revision: number; total: number; items: { id: string; kind?: string; label?: string; source?: string; target?: string; }[]; nextOffset: number | null; }
   .redo(expectedRevision?: number): EditorReceipt
+  .replaceData(data: GraphData, expectedRevision?: number): EditorReceipt
   .subscribe(fn: () => void): () => void
   .transact(operations: readonly EditorOperation[], expectedRevision?: number): EditorReceipt
   .undo(expectedRevision?: number): EditorReceipt
@@ -125,6 +126,7 @@ restoreEditor(checkpoint: unknown, { historyLimit }?: { historyLimit?: number | 
   .preview(input: unknown): EditorReceipt
   .query({ entity, text, kind, incidentTo, offset, limit }: EditorQuery): { revision: number; total: number; items: { id: string; kind?: string; label?: string; source?: string; target?: string; }[]; nextOffset: number | null; }
   .redo(expectedRevision?: number): EditorReceipt
+  .replaceData(data: GraphData, expectedRevision?: number): EditorReceipt
   .subscribe(fn: () => void): () => void
   .transact(operations: readonly EditorOperation[], expectedRevision?: number): EditorReceipt
   .undo(expectedRevision?: number): EditorReceipt

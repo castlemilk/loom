@@ -7,7 +7,7 @@ function work() {
   self.onmessage = ({ data }) => {
     try {
       let value
-      if (data.entry === 'graph') {
+      if (data.entry !== 'pattern') {
         const exports = Object.create(null)
         new Function('exports', data.source)(exports)
         value = exports.graph
@@ -17,7 +17,9 @@ function work() {
         value = run(ring)
       }
       if (!Array.isArray(value?.nodes) || !Array.isArray(value?.links)) throw new Error('Return an object with nodes and links arrays.')
-      if (value.nodes.length > 256 || value.links.length > 2048) throw new Error('This pinboard fits up to 256 nodes and 2,048 links.')
+      if (data.entry === 'studio') {
+        if (value.nodes.length > 25000 || value.links.length > 100000) throw new Error('Studio fits 25,000 nodes and 100,000 links.')
+      } else if (value.nodes.length > 256 || value.links.length > 2048) throw new Error('This pinboard fits up to 256 nodes and 2,048 links.')
       self.postMessage({ value })
     } catch (error) {
       self.postMessage({ error: String(error?.message || error).slice(0, 240) })
@@ -28,7 +30,7 @@ window.addEventListener('message', event => {
   if (self.origin !== 'null' || self === parent || event.source !== parent ||
       event.origin !== new URL(location.href).origin || !event.ports[0]) return
   const port = event.ports[0]
-  const entry = event.data?.entry === 'graph' ? 'graph' : 'pattern'
+  const entry = ['graph', 'studio'].includes(event.data?.entry) ? event.data.entry : 'pattern'
   let worker, url, timer
   function finish(message) {
     clearTimeout(timer)
@@ -43,7 +45,7 @@ window.addEventListener('message', event => {
     worker.onmessage = ({ data }) => finish(data)
     worker.onerror = event => { event.preventDefault(); finish({ error: 'The ' + entry + ' could not run.' }) }
     timer = setTimeout(() => finish({ error: 'This ' + entry + ' took too long. Try a shorter loop.' }), 1200)
-    worker.postMessage(event.data)
+    worker.postMessage({ ...event.data, entry })
   } catch {
     finish({ error: 'The browser could not start the pattern runner. Try again.' })
   }

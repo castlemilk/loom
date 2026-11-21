@@ -20,7 +20,7 @@
         {
           "name": "GraphEvents",
           "kind": "type",
-          "declaration": "interface GraphEvents {\n    select: string | null;\n    /** A click or tap on a node or its label, including repeated clicks on the current selection. */\n    nodeclick: string;\n    hover: string | null;\n    open: string;\n    /** A clean click on empty graph space, in canvas CSS pixels. Nodes and labels take precedence. */\n    backgroundclick: {\n        x: number;\n        y: number;\n        clicks: number;\n    };\n    modechange: Mode;\n    destroy: undefined;\n}"
+          "declaration": "interface GraphEvents {\n    select: string | null;\n    /** A click or tap on a node or its label, including repeated clicks on the current selection. */\n    nodeclick: string;\n    /** A completed pointer drag. Read the released world coordinates with getPosition(id). */\n    nodedrop: string;\n    hover: string | null;\n    open: string;\n    /** A clean click on empty graph space, in canvas CSS pixels. Nodes and labels take precedence. */\n    backgroundclick: {\n        x: number;\n        y: number;\n        clicks: number;\n    };\n    modechange: Mode;\n    destroy: undefined;\n}"
         },
         {
           "name": "GraphFrame",
@@ -442,7 +442,7 @@
         {
           "name": "EditorChange",
           "kind": "type",
-          "declaration": "interface EditorChange {\n    op: EditorOperation['op'];\n    id: string;\n}"
+          "declaration": "interface EditorChange {\n    op: EditorOperation['op'] | 'graph.replace';\n    id: string;\n}"
         },
         {
           "name": "EditorCheckpoint",
@@ -557,6 +557,12 @@
               ]
             },
             {
+              "name": "replaceData",
+              "signatures": [
+                "replaceData(data: GraphData, expectedRevision?: number): EditorReceipt"
+              ]
+            },
+            {
               "name": "subscribe",
               "signatures": [
                 "subscribe(fn: () => void): () => void"
@@ -640,6 +646,12 @@
               "name": "redo",
               "signatures": [
                 "redo(expectedRevision?: number): EditorReceipt"
+              ]
+            },
+            {
+              "name": "replaceData",
+              "signatures": [
+                "replaceData(data: GraphData, expectedRevision?: number): EditorReceipt"
               ]
             },
             {
@@ -1781,7 +1793,7 @@
         {
           "name": "CardOptions",
           "kind": "type",
-          "declaration": "interface CardOptions<N extends GraphNode, E extends GraphLink> {\n    root?: string;\n    appearance?: 'cards' | 'dots';\n    showLabels?: boolean;\n    showPorts?: boolean;\n    showArrows?: boolean;\n    /** Center a card on double-click, double-tap or Enter. Defaults to true. */\n    focusOnOpen?: boolean;\n    /** Use authored coordinates if supplied. Set false to arrange a neighborhood around its root. */\n    useNodePositions?: boolean;\n    image?: (node: N) => string | undefined;\n    badge?: (node: N) => string;\n    tint?: (node: N) => string;\n    relationship?: (edge: E) => string;\n    onSelect?: (node: N) => void;\n}"
+          "declaration": "interface CardOptions<N extends GraphNode, E extends GraphLink> {\n    root?: string;\n    appearance?: 'cards' | 'dots';\n    showLabels?: boolean;\n    showPorts?: boolean;\n    showArrows?: boolean;\n    /** Center a card on double-click, double-tap or Enter. Defaults to true. */\n    focusOnOpen?: boolean;\n    /** Use authored coordinates if supplied. Set false to arrange a neighborhood around its root. */\n    useNodePositions?: boolean;\n    image?: (node: N) => string | undefined;\n    badge?: (node: N) => string;\n    tint?: (node: N) => string;\n    relationship?: (edge: E) => string;\n    onSelect?: (node: N) => void;\n    /** Report the card's world coordinates once per completed drag or keyboard move. */\n    onMove?: (node: N, position: {\n        x: number;\n        y: number;\n    }) => void;\n    /** Disable moving cards while leaving selection and camera navigation available. */\n    movable?: boolean;\n}"
         },
         {
           "name": "cardNeighborhood",
