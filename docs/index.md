@@ -12,7 +12,7 @@ Start in an empty directory with Node.js 22.12 or newer and npm. Vite serves the
 
 ```bash
 npm init -y
-npm install https://castlemilk.github.io/loom/packages/ae8a81f4e8c641addc5489efd72965af1a4ed42a/loom-core-0.1.0.tgz
+npm install https://castlemilk.github.io/loom/packages/61e26061bb150c6cc25b2ee770b986cdbf397b4d/loom-core-0.1.0.tgz
 npm install --save-dev vite
 ```
 
