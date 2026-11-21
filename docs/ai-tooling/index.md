@@ -6,7 +6,7 @@ Give an assistant enough context to edit a graph. Follow one request from findin
 
 ## Give the model the right context
 
-For read-only graph questions, connect the [Graph MCP server](https://castlemilk.github.io/loom/mcp/) to your assistant. It can search a Studio export, trace a path or return the archived source for a Wikipedia connection. The component page includes a browser example and a configuration you can copy.
+For read-only graph questions, connect Graph MCP to your assistant over stdio or Streamable HTTP. It can search a Studio export, trace a path or return the archived source for a Wikipedia connection. The HTTP walkthrough follows Keycloak and oidc-provider sign-ins through discovery, consent and a tool call. Client setup also includes Auth0 settings. [Walk through an HTTP connection →](https://castlemilk.github.io/loom/mcp/#http)
 
 An assistant adding a recorder to a synthesizer patch needs the amplifier’s ID, its existing connections and the document revision. Sending the entire graph spends context on unrelated nodes and can hide the one fact that matters. Use the SDK index to discover capabilities, then query the editor for facts about this particular patch.
 
