@@ -22,3 +22,7 @@ public/llms-full.txt
 public/benchmarks/m2-max.json
 public/examples/bauhaus.json
 public/examples/outer-solar-system.json
+public/index.md
+public/artwork/index.md
+public/studio/**/index.md
+public/examples/**/index.md

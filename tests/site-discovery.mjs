@@ -51,23 +51,44 @@ export async function searchPages(browser, home) {
       assert.equal(response.status(), 200, url)
       return response.text()
     }))
+    const assistantIndex = await request.get(new URL('llms.txt', base).href)
+    const fullMarkdown = await request.get(new URL('llms-full.txt', base).href)
+    assert.equal(assistantIndex.status(), 200)
+    assert.equal(fullMarkdown.status(), 200)
+    const indexText = await assistantIndex.text()
+    const fullText = await fullMarkdown.text()
     const metadata = await page.evaluate(sources => sources.map(html => {
       const doc = new DOMParser().parseFromString(html, 'text/html')
       return { title: doc.title, summary: doc.querySelector('meta[name=description]')?.content,
         canonical: doc.querySelector('link[rel=canonical]')?.getAttribute('href'),
+        alternates: [...doc.querySelectorAll('link[rel="alternate"][type="text/markdown"]')].map(link => link.href),
+        assistantIndex: doc.querySelector('head link[rel="describedby"]')?.getAttribute('href'),
         shareURL: doc.querySelector('meta[property="og:url"]')?.content,
         image: doc.querySelector('meta[property="og:image"]')?.content,
         card: doc.querySelector('meta[name="twitter:card"]')?.content, headings: doc.querySelectorAll('main h1, header h1').length }
     }), pages)
     assert.equal(new Set(metadata.map(m => m.title)).size, urls.length)
     assert.equal(new Set(metadata.map(m => m.summary)).size, urls.length)
+    const markdownURLs = []
     for (const [i, m] of metadata.entries()) {
       assert.equal(m.canonical, urls[i])
       assert.equal(m.shareURL, urls[i])
+      const markdownURL = new URL('index.md', urls[i]).href
+      assert.deepEqual(m.alternates, [markdownURL], urls[i])
+      assert.equal(new URL(m.assistantIndex, published).href, new URL('llms.txt', published).href)
+      markdownURLs.push(markdownURL)
       assert.ok(m.summary && m.title.includes('Loom') && m.headings === 1, urls[i])
       assert.equal(m.card, 'summary_large_image')
       assert.ok(m.image.startsWith(published.href))
     }
+    assert.deepEqual([...indexText.matchAll(/\]\((https:[^)]+\/index\.md)\)/g)].map(m => m[1]).sort(), markdownURLs.slice().sort())
+    await Promise.all(markdownURLs.map(async url => {
+      const response = await request.get(new URL(new URL(url).pathname, base).href)
+      assert.equal(response.status(), 200, url)
+      const contents = await response.text()
+      assert.match(contents, /^# /, url)
+      assert.ok(fullText.includes(contents.trim()), url)
+    }))
     for (const image of new Set(metadata.map(m => m.image))) {
       const preview = await request.head(new URL(new URL(image).pathname, base).href)
       assert.equal(preview.status(), 200, image)
@@ -77,15 +98,20 @@ export async function searchPages(browser, home) {
       await page.goto(new URL('examples/' + slug + '/', home).href)
       const rows = page.locator('.article-groups li a')
       assert.equal(await rows.count(), articles)
+      const markdown = await request.get(new URL('examples/' + slug + '/index.md', base).href)
+      assert.equal((await markdown.text()).match(/outgoing links\)/g)?.length, articles)
       assert.ok((await rows.evaluateAll(links => links.map(a => a.search))).every(query => new URLSearchParams(query).get('example') === slug))
       assert.equal(await page.getByRole('link', { name: 'CC BY-SA 4.0' }).getAttribute('href'), 'https://creativecommons.org/licenses/by-sa/4.0/')
     }
+    await page.goto(new URL('studio/?example=bauhaus&article=Anni_Albers', base).href)
+    assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), new URL('studio/', published).href)
+    assert.ok(urls.every(url => !new URL(url).search), 'Studio view state must not create sitemap URLs')
     await page.goto(new URL('studio/wikispeedia/', base).href)
     await page.getByText(/4,604 articles and 119,882 hyperlinks/).waitFor()
     assert.equal(await page.getByRole('region', { name: 'Follow a Wikipedia link' }).getByRole('link').count(), 3)
     await page.getByRole('link', { name: 'Build a streaming Wikipedia atlas' }).click()
     await page.getByRole('heading', { level: 1, name: 'Stream a Wikipedia atlas' }).waitFor()
-    return { canonicalPages: urls.length, previewImages: new Set(metadata.map(m => m.image)).size }
+    return { canonicalPages: urls.length, markdownAlternates: markdownURLs.length, previewImages: new Set(metadata.map(m => m.image)).size }
   } finally { await context.close() }
 }
 

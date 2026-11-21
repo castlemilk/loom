@@ -4,12 +4,13 @@ import bauhaus from '../../../../demo/atlases/bauhaus.json'
 import solar from '../../../../demo/atlases/outer-solar-system.json'
 import { GuideFrame } from '../../guide-frame'
 import { pageMetadata } from '../../../metadata'
+import { collectionSlugs } from '../../../public-pages'
 import { docsURL, homeURL, studioURL } from '../../../site'
 
 const graphs = { bauhaus, 'outer-solar-system': solar }
 const startingPoints = { bauhaus: 'Anni_Albers', 'outer-solar-system': 'Voyager_2' }
 export const dynamicParams = false
-export function generateStaticParams() { return Object.keys(graphs).map(collection => ({ collection })) }
+export function generateStaticParams() { return collectionSlugs.map(collection => ({ collection })) }
 
 export async function generateMetadata({ params }) {
   const { collection } = await params
