@@ -58,15 +58,19 @@ function projectHTML(name, language) {
 `
 }
 
+export function starterManifest(name, dependency, typescript) {
+  return {
+    name, private: true, type: 'module',
+    scripts: { dev: 'vite', build: (typescript ? 'tsc --noEmit && ' : '') + 'vite build --base=./', preview: 'vite preview' },
+    dependencies: { 'loom-core': dependency }, devDependencies: { vite: '7.3.8', ...(typescript && { typescript: '5.9.3' }) },
+  }
+}
+
 /** Build the archive only on download. The preview and ZIP share the same mount code and SDK release. */
 export async function projectZip({ name, scene, language, dependency }) {
   const { strToU8, zip } = await import('fflate')
   const typescript = language === 'ts'
-  const manifest = {
-    name: 'loom-graph-export', private: true, type: 'module',
-    scripts: { dev: 'vite', build: (typescript ? 'tsc --noEmit && ' : '') + 'vite build --base=./', preview: 'vite preview' },
-    dependencies: { 'loom-core': dependency }, devDependencies: { vite: '7.3.8', ...(typescript && { typescript: '5.9.3' }) },
-  }
+  const manifest = starterManifest('loom-graph-export', dependency, typescript)
   const readme = `# Your Loom graph
 
 Use Node.js 22.12 or newer. From this folder, install the dependencies and start the development server.

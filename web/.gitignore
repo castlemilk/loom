@@ -2,6 +2,8 @@
 .generated/
 out/
 public/graphs/
+public/playground/notebook-*.js
+public/playground/typescript-LICENSE.txt
 public/loom-core-*.tgz
 public/loom-graph-mcp-*.tgz
 public/layout-worker.js

@@ -6,9 +6,16 @@
 function work() {
   self.onmessage = ({ data }) => {
     try {
-      const run = new Function('ring', '"use strict";\n' + data.source + '\nreturn pattern(ring)')
-      const ring = new Function('return (' + data.helper + ')')()
-      const value = run(ring)
+      let value
+      if (data.entry === 'graph') {
+        const exports = Object.create(null)
+        new Function('exports', data.source)(exports)
+        value = exports.graph
+      } else {
+        const run = new Function('ring', '"use strict";\n' + data.source + '\nreturn pattern(ring)')
+        const ring = new Function('return (' + data.helper + ')')()
+        value = run(ring)
+      }
       if (!Array.isArray(value?.nodes) || !Array.isArray(value?.links)) throw new Error('Return an object with nodes and links arrays.')
       if (value.nodes.length > 256 || value.links.length > 2048) throw new Error('This pinboard fits up to 256 nodes and 2,048 links.')
       self.postMessage({ value })
@@ -21,6 +28,7 @@ window.addEventListener('message', event => {
   if (self.origin !== 'null' || self === parent || event.source !== parent ||
       event.origin !== new URL(location.href).origin || !event.ports[0]) return
   const port = event.ports[0]
+  const entry = event.data?.entry === 'graph' ? 'graph' : 'pattern'
   let worker, url, timer
   function finish(message) {
     clearTimeout(timer)
@@ -33,8 +41,8 @@ window.addEventListener('message', event => {
     url = URL.createObjectURL(new Blob(['(' + work.toString() + ')()'], { type: 'text/javascript' }))
     worker = new Worker(url)
     worker.onmessage = ({ data }) => finish(data)
-    worker.onerror = event => { event.preventDefault(); finish({ error: 'The pattern could not run.' }) }
-    timer = setTimeout(() => finish({ error: 'This pattern took too long. Try a shorter loop.' }), 1200)
+    worker.onerror = event => { event.preventDefault(); finish({ error: 'The ' + entry + ' could not run.' }) }
+    timer = setTimeout(() => finish({ error: 'This ' + entry + ' took too long. Try a shorter loop.' }), 1200)
     worker.postMessage(event.data)
   } catch {
     finish({ error: 'The browser could not start the pattern runner. Try again.' })

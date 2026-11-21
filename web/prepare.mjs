@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { copyFile, cp, mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { writeSpecimens } from './specimen-art.mjs'
+import { prepareNotebook } from './prepare-notebook.mjs'
 import { writeAssistantDocs } from './docs/markdown.mjs'
 import { publishedIntegrity, studioDependency } from '../scripts/npm-registry.mjs'
 import { siteOrigin } from './site.js'
@@ -14,6 +15,7 @@ execFileSync('npm', ['run', 'build'], { cwd: fileURLToPath(root), stdio: 'inheri
 execFileSync('npm', ['run', 'size'], { cwd: fileURLToPath(root), stdio: 'inherit' })
 await mkdir(target('./public/graphs/art/'), { recursive: true })
 await mkdir(target('./.generated/'), { recursive: true })
+await prepareNotebook()
 await mkdir(target('./public/docs/'), { recursive: true })
 await mkdir(target('./public/benchmarks/'), { recursive: true })
 const publicDir = fileURLToPath(target('./public/'))

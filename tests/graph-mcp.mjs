@@ -90,7 +90,10 @@ export async function graphMcpJourney(context, home, { touch = false, live = fal
     const pause = panel.getByRole('button', { name: 'Pause Graph Studio walkthrough' })
     const layout = touch ? 'compact' : 'wide'
     assert.ok(await play.isVisible())
-    assert.ok(await panel.locator('img').evaluate((img, suffix) => img.currentSrc.endsWith(suffix), 'studio-' + layout + '.webp'))
+    const poster = panel.locator('img')
+    await poster.scrollIntoViewIfNeeded()
+    await poster.evaluate(img => img.decode())
+    assert.ok(await poster.evaluate((img, suffix) => img.currentSrc.endsWith(suffix), 'studio-' + layout + '.webp'))
     assert.deepEqual(clips, [], 'Reduced motion should show the poster without fetching films')
     await activate(play)
     await pause.waitFor()

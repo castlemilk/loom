@@ -100,7 +100,7 @@ export default function FieldGuide() {
         <div className="guide-width library-grid">
           <div><h2 id="library-title">Build with Loom</h2>
             <p>Start with an array of nodes and links. Mount the graph on a sized canvas, then choose a layout, handle a selection or connect an AI editing tool.</p>
-            <div className="library-links"><a href="#live-code">Edit a live graph</a><a href={apiURL}>TypeScript API <span aria-hidden="true">↗</span></a>
+            <div className="library-links"><a href="#node-playground">Edit a TypeScript graph</a><a href={apiURL}>TypeScript API <span aria-hidden="true">↗</span></a>
               <a href={docsURL + 'ai-tooling/'}>Build an AI graph tool</a>
               <a href={docsURL + 'performance/'}>Measure graph performance</a>
               <a href={homeURL + sdk.filename} download>Download package <span aria-hidden="true">↓</span></a></div>

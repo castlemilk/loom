@@ -35,6 +35,7 @@ Double-click a node to focus it. Call `graph.destroy()` when removing the canvas
 | Live example | What to try | SDK guide |
 | --- | --- | --- |
 | [String patterns](https://castlemilk.github.io/loom/#live-code) | Edit the JavaScript to change which pins connect, then drag a pin to pull its threads. | [Draw your first graph](https://castlemilk.github.io/loom/docs/) |
+| [Orbital atlas](https://castlemilk.github.io/loom/#node-playground) | Edit TypeScript records, follow a moon’s orbit, inspect NASA image credits and download your working project. | [Model nodes with metadata and images](https://castlemilk.github.io/loom/docs/navigation/#model-nodes-with-metadata-and-images) |
 | [Music → Sound on Wikipedia](https://castlemilk.github.io/loom/studio/wikispeedia/?connections=music,science&edge=74%3A2863) | Inspect the archived passage, then show both articles on the map. | [Stream topics with SQLite/WASM](https://castlemilk.github.io/loom/docs/atlas/#inspect-links-across-topics) |
 | [Canva’s relationship cards](https://castlemilk.github.io/loom/studio/cards/) | Select a founder or investor and follow the evidence for their connection. | [Build relationship cards](https://castlemilk.github.io/loom/docs/navigation/#open-relationship-cards) |
 | [Weighted connections](https://castlemilk.github.io/loom/studio/?example=wires#settings-style) | Change a wire’s stroke and animate the direction of travel. | [Draw and style connections](https://castlemilk.github.io/loom/docs/drawing/#draw-a-connection) |

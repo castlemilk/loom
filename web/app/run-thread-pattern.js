@@ -3,6 +3,10 @@ import { readPattern, ring } from './thread-pattern'
 
 // A fresh frame and worker for each run isolate edits from the page and each other.
 export function runPattern(source, signal) {
+  return runPlayground({ source, helper: ring.toString() }, signal).then(readPattern)
+}
+
+export function runPlayground(input, signal) {
   return new Promise((resolve, reject) => {
     const frame = document.createElement('iframe')
     const channel = new MessageChannel()
@@ -28,10 +32,10 @@ export function runPattern(source, signal) {
       dispose()
       try {
         if (typeof data?.error === 'string') throw new Error(data.error)
-        resolve(readPattern(data?.value))
+        resolve(data?.value)
       } catch (error) { reject(error) }
     }
-    frame.onload = () => frame.contentWindow?.postMessage({ source, helper: ring.toString() }, '*', [channel.port2])
+    frame.onload = () => frame.contentWindow?.postMessage(input, '*', [channel.port2])
     document.body.append(frame)
   })
 }

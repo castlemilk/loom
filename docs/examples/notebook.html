@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbital notebook · Loom</title>
+<style>
+  body { max-width: 56rem; margin: auto; padding: 1rem; font: 16px/1.5 system-ui,sans-serif; background: #f6f3e9; color: #26342b }
+  svg { width: 100%; height: 48vh; border: 1px solid #a6ac9f }
+  section { display: grid; grid-template-columns: minmax(0, 10rem) 1fr; gap: 1rem; align-items: start }
+  figure { margin: 0 } img { width: 100%; display: block } figcaption { font-size: .8rem } pre { white-space: pre-wrap; overflow-wrap: anywhere }
+</style>
+<h1>Orbital notebook</h1>
+<svg role="group" aria-label="Select a graph node"></svg>
+<section aria-live="polite">
+  <figure><figcaption></figcaption></figure>
+  <div><h2></h2><pre></pre></div>
+</section>
+<script type="module">
+  import { graph } from './notebook.ts'
+  import { mountNotebook } from './mount-notebook.ts'
+  const base = new URL('./images/', document.baseURI)
+  function inspect(node) {
+    document.querySelector('h2').textContent = node.label
+    document.querySelector('pre').textContent = JSON.stringify(node.metadata ?? {}, null, 2)
+    const ref = node.art && graph.images[node.art]
+    const figure = document.querySelector('figure')
+    figure.querySelector('img')?.remove()
+    if (ref) {
+      const img = new Image()
+      img.alt = ref.alt
+      img.src = new URL(ref.src, base).href
+      img.onerror = () => img.remove()
+      figure.prepend(img)
+    }
+    document.querySelector('figcaption').textContent = ref?.credit ?? ''
+  }
+  const view = mountNotebook(document.querySelector('svg'), graph, base, inspect)
+  if (graph.nodes.length) inspect(graph.nodes[0])
+  addEventListener('pagehide', event => { if (!event.persisted) view.destroy() })
+</script>
+</html>

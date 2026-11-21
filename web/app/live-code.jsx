@@ -1,30 +1,47 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { patterns, patternSource, startingPattern } from './thread-pattern'
 import { runPattern } from './run-thread-pattern'
 import { ThreadPlot } from './thread-plot'
+import { PlaygroundSource } from './playground-source'
 import './live-code.css'
 
 const originals = patterns.map(patternSource)
 const firstDraft = { source: originals[0], preset: 0 }
-const tokens = /(\/\/[^\n]*|'[^'\n]*'?|"[^"\n]*"?|\b(?:function|const|return|ring|pattern|\d+)\b)/g
-
-function Highlight({ source }) {
-  return source.split(tokens).map((part, i) => {
-    if (i % 2 === 0) return part
-    const kind = /^['"\d]/.test(part) ? 'literal' : part.startsWith('//') ? 'comment' : ['ring', 'pattern'].includes(part) ? 'call' : 'keyword'
-    return <span className={'thread-' + kind} key={i}>{part}</span>
-  })
-}
+const NotebookPlayground = lazy(() => import('./notebook-playground'))
 
 export function LiveCode() {
+  const [notebook, setNotebook] = useState(false), [opened, setOpened] = useState(false)
+  useEffect(() => {
+    function route() {
+      if (location.hash === '#node-playground') { setNotebook(true); setOpened(true) }
+      else if (location.hash === '#live-code' || !location.hash) setNotebook(false)
+    }
+    route()
+    window.addEventListener('hashchange', route)
+    return () => window.removeEventListener('hashchange', route)
+  }, [])
+  return <section className="thread-study" id="live-code" aria-label="Live code playgrounds">
+    <div id="node-playground" className="playground-anchor" />
+    <div className="guide-width">
+      <nav className="playground-switch" aria-label="Live code examples">
+        <a href="#live-code" aria-current={!notebook ? 'page' : undefined}>String patterns <small>JS</small></a>
+        <a href="#node-playground" aria-current={notebook ? 'page' : undefined}>Nodes &amp; images <small>TS</small></a>
+      </nav>
+      <div hidden={notebook}><StringPatterns /></div>
+      {opened && <div hidden={!notebook}><Suspense fallback={<p role="status">Opening the orbital atlas…</p>}><NotebookPlayground /></Suspense></div>}
+    </div>
+  </section>
+}
+
+function StringPatterns() {
   const [draft, setDraft] = useState(firstDraft)
   const { source, preset } = draft
   const [model, setModel] = useState(startingPattern)
   const [status, setStatus] = useState('ready')
   const [error, setError] = useState('')
-  const editor = useRef(null), mirror = useRef(null)
+  const editor = useRef(null)
   const skip = /(\bconst[ \t]+skip[ \t]*=[ \t]*)(-?\d+)(?=[ \t]*(?:;|\/\/|$))/m.exec(source)
   const suggestion = Number(skip?.[2]) === patterns[preset].trySkip ? patterns[preset].skip : patterns[preset].trySkip
   useEffect(() => {
@@ -33,7 +50,6 @@ export function LiveCode() {
     if (draft.restore) {
       editor.current.setSelectionRange(0, 0)
       editor.current.scrollTo(0, 0)
-      mirror.current.scrollTo(0, 0)
     }
     const timer = setTimeout(async () => {
       try {
@@ -57,8 +73,7 @@ export function LiveCode() {
     editor.current.focus()
     editor.current.setSelectionRange(start, start + skip[2].length)
   }
-  return <section className="thread-study" id="live-code" aria-labelledby="thread-title">
-    <div className="guide-width">
+  return <>
       <header className="thread-heading">
         <h2 id="thread-title">Weave a <em>graph.</em></h2>
         <p id="thread-hint">Edit the JavaScript and watch the threads move. {skip ? <>Try changing <button type="button"
@@ -75,16 +90,8 @@ export function LiveCode() {
         <div className="thread-editor">
           <div className="thread-file"><label htmlFor="thread-source">pattern.js</label>
             <button type="button" title={'Restore the ' + patterns[preset].name + ' code and pins'} onClick={() => edit(originals[preset], preset)}>Reset</button></div>
-          <div className="thread-input">
-            <pre aria-hidden="true" ref={mirror}><Highlight source={source} />{'\n'}</pre>
-            <textarea ref={editor} id="thread-source" value={source} onChange={event => edit(event.target.value)}
-              aria-label="Edit pattern JavaScript" aria-describedby="thread-hint thread-status" aria-invalid={status === 'error'}
-              spellCheck={false} autoCorrect="off" autoCapitalize="off" autoComplete="off" wrap="off"
-              onScroll={event => {
-                mirror.current.scrollTop = event.currentTarget.scrollTop
-                mirror.current.scrollLeft = event.currentTarget.scrollLeft
-              }} />
-          </div>
+          <PlaygroundSource inputRef={editor} id="thread-source" source={source} edit={edit} label="Edit pattern JavaScript"
+            describedBy="thread-hint thread-status" invalid={status === 'error'} />
           <div className="thread-status" id="thread-status" role="status" data-state={status}>
             <i aria-hidden="true" /><span>{error ? error + ' Showing the last drawing.' : status === 'editing' ? 'Updating…' : 'Live preview'}</span>
           </div>
@@ -92,6 +99,5 @@ export function LiveCode() {
         <ThreadPlot model={model} />
       </div>
       <noscript><p>Enable JavaScript to edit the pattern and redraw its threads.</p></noscript>
-    </div>
-  </section>
+  </>
 }

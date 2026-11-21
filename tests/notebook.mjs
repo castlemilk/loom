@@ -1,0 +1,148 @@
+import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
+import { archiveName } from '../scripts/npm-registry.mjs'
+import { serveExport } from '../scripts/serve-export.mjs'
+
+const run = promisify(execFile)
+async function tryDownload(context, download, source, live) {
+  const dir = await mkdtemp(join(tmpdir(), 'loom-notebook-'))
+  const page = await context.newPage()
+  let server
+  try {
+    await run('unzip', ['-q', await download.path(), '-d', dir])
+    assert.equal(await readFile(join(dir, 'notebook.ts'), 'utf8'), source)
+    const manifest = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'))
+    const localArchive = fileURLToPath(new URL('../web/out/' + archiveName, import.meta.url))
+    const archive = !live && manifest.dependencies['loom-core'].startsWith('https:') ? [localArchive] : []
+    await run('npm', ['install', '--no-audit', '--no-fund', ...archive], { cwd: dir, timeout: 90000 })
+    await run('npm', ['run', 'build'], { cwd: dir, timeout: 45000 })
+    server = await serveExport('/notebook/', 0, join(dir, 'dist'))
+    await page.goto(server.url)
+    await page.getByRole('button', { name: 'Ring world · Planet' }).waitFor()
+    await page.getByRole('button', { name: 'Titan · Moon' }).press('Space')
+    await page.getByRole('heading', { name: 'Titan' }).waitFor()
+    assert.match(await page.locator('pre').textContent(), /Amber cloud/)
+    const img = page.locator('figure img')
+    await img.evaluate(el => el.decode())
+    assert.match(await img.getAttribute('src'), /\/notebook\/images\/enceladus\.webp$/)
+  } finally { await page.close(); server?.close(); await rm(dir, { recursive: true, force: true }) }
+}
+
+export async function notebookJourney(context, home, { touch = false, live = false, install = false } = {}) {
+  const page = await context.newPage(), failures = [], compiler = []
+  page.setDefaultTimeout(16000)
+  page.on('pageerror', e => failures.push(e.message))
+  page.on('request', req => { if (/\/playground\/notebook-[\da-f]+\.js$/.test(req.url())) compiler.push(req.url()) })
+  const press = button => touch ? button.tap() : button.click()
+  try {
+    await page.goto(touch ? home + '#node-playground' : home + '#live-code')
+    if (!touch) await press(page.getByRole('link', { name: /Nodes & images/ }))
+    const book = page.locator('.notebook-bench'), diagram = book.getByRole('group', { name: 'Orbital relationship graph' })
+    const record = book.getByRole('article', { name: 'Selected node' }), edit = book.getByRole('textbox', { name: 'Edit notebook TypeScript' })
+    const status = book.locator('#notebook-status'), download = book.getByRole('button', { name: 'Download project' })
+    const mode = async which => { if (touch) await press(book.getByRole('button', { name: which, exact: true })) }
+    const picture = record.locator('img')
+    await diagram.getByRole('button', { name: 'Saturn · Planet' }).waitFor()
+    await picture.evaluate(el => el.decode())
+    assert.match(await picture.getAttribute('src'), /saturn\.webp$/)
+    assert.match(await record.getByRole('link', {name:/SSI\/Cornell/}).getAttribute('href'), /jewel-of-the-solar-system/)
+    assert.equal(compiler.length, 0, 'Inspecting a notebook should leave the compiler unloaded')
+    const shots = new URL('../artifacts/studio/', import.meta.url)
+    await mkdir(shots, { recursive: true })
+    await page.evaluate(() => document.fonts.ready)
+    await book.screenshot({ path: fileURLToPath(new URL('orbital-atlas-' + (touch ? 'mobile' : 'desktop') + '.png', shots)) })
+
+    await press(diagram.getByRole('button', { name: 'Titan · Moon' }))
+    await record.getByRole('heading', { name: 'Titan', exact: true }).waitFor()
+    await picture.evaluate(el => el.decode())
+    assert.match(await picture.getAttribute('alt'), /amber/)
+    await press(record.locator('summary'))
+    await record.getByText('Titan is the largest moon of Saturn.').waitFor()
+    await press(record.getByRole('button', { name: 'Follow Saturn' }))
+    await record.getByRole('heading', { name: 'Saturn', exact: true }).waitFor()
+    await press(record.getByRole('button', { name: 'Edit this node' }))
+    await page.waitForFunction(() => document.activeElement.id === 'notebook-source')
+    assert.equal(await edit.evaluate(el => el.value.slice(el.selectionStart, el.selectionEnd)), 'Saturn')
+    const original = await edit.inputValue()
+    const custom = original.replace("label: 'Saturn'", "label: 'Ring world'").replace("art: 'haze'", "art: 'ice'")
+      .replace("Atmosphere: 'Dense haze'", "Atmosphere: 'Amber cloud', Layers: { outer: ['mist', 'ice'] }")
+      .replace("kind: 'orbits'", "kind: 'circles'")
+    await edit.fill(custom)
+    await diagram.getByRole('button', { name: 'Ring world · Planet' }).waitFor()
+    assert.equal(await status.getAttribute('data-state'), 'ready')
+    await press(diagram.getByRole('button', { name: 'Titan · Moon' }))
+    await record.getByText('Amber cloud').waitFor()
+    assert.match(await record.getByText(/outer/).innerText(), /mist/)
+    await picture.evaluate(el => el.decode())
+    assert.match(await picture.getAttribute('src'), /enceladus\.webp$/)
+    await press(record.locator('summary'))
+    await record.getByText('circles', { exact: true }).waitFor()
+    await press(record.getByRole('button', { name: 'Edit image key ice' }))
+    await page.waitForFunction(() => document.activeElement.id === 'notebook-source')
+    assert.equal(await edit.evaluate(el => el.value.slice(el.selectionStart, el.selectionEnd)), 'ice')
+    const grown = custom.replace('  ],\n  links:', "    { id: 'huygens', label: 'Huygens', kind: 'Probe', metadata: { Landed: true } },\n  ],\n  links:")
+      .replace('  ],\n  images:', "    { source: 'huygens', target: 'titan', kind: 'landed on' },\n  ],\n  images:")
+    await edit.fill(grown)
+    await diagram.getByRole('button', { name: 'Huygens · Probe' }).waitFor()
+    await press(diagram.getByRole('button', { name: 'Huygens · Probe' }))
+    await record.getByText('No image attached').waitFor()
+    await press(record.locator('summary'))
+    await record.getByText('landed on', { exact: true }).waitFor()
+    await mode('Edit TypeScript')
+    await edit.fill(custom)
+    await diagram.getByRole('button', { name: 'Huygens · Probe' }).waitFor({ state: 'detached' })
+    assert.equal(await diagram.getByRole('button', { name: 'Ring world · Planet' }).getAttribute('aria-pressed'), 'true')
+    await press(diagram.getByRole('button', { name: 'Titan · Moon' }))
+    await mode('Edit TypeScript')
+    await edit.fill(custom.replace("label: 'Ring world'", "label: 77"))
+    await status.getByText(/Line \d+, column \d+.*number.*string/).waitFor()
+    assert.ok(await download.isDisabled())
+    assert.ok(await diagram.getByRole('button', { name: 'Ring world · Planet' }).isVisible())
+    await edit.fill(custom.replace("art: 'rings'", "art: 'missing'"))
+    await status.getByText(/Unknown image key/).waitFor()
+    await edit.fill(custom.replace("target: 'saturn'", "target: 'missing'"))
+    await status.getByText(/Unknown link endpoint/).waitFor()
+    await edit.fill(custom.replace("src: 'enceladus.webp'", "src: 'absent-image.webp'"))
+    await status.getByText('TypeScript ready', { exact: true }).waitFor()
+    await mode('Node details')
+    await record.getByText('Image unavailable').waitFor()
+    await record.getByText('Amber cloud').waitFor()
+    await mode('Edit TypeScript')
+    // Restore the same selected node and image on a valid edit.
+    await edit.fill(custom)
+    await status.getByText('TypeScript ready', { exact: true }).waitFor()
+    if (install) {
+      const [file] = await Promise.all([page.waitForEvent('download'), press(download)])
+      assert.equal(file.suggestedFilename(), 'loom-saturn.zip')
+      await tryDownload(context, file, custom, live)
+    }
+    await press(book.getByRole('button', { name: 'Cassini flybys' }))
+    await record.getByRole('heading', { name: 'Cassini', exact: true }).waitFor()
+    await mode('Edit TypeScript')
+    await edit.fill((await edit.inputValue()).replace("'Targeted flybys': 127", "'Targeted flybys': 128"))
+    await status.getByText('TypeScript ready', { exact: true }).waitFor()
+    await press(diagram.getByRole('button', { name: 'Titan · Moon' }))
+    await press(record.locator('summary'))
+    await record.getByText('Cassini made 128 targeted flybys of Titan.').waitFor()
+    await press(book.getByRole('button', { name: 'Saturn system' }))
+    await record.getByRole('heading', { name: 'Titan', exact: true }).waitFor()
+    assert.ok(await diagram.getByRole('button', { name: 'Ring world · Planet' }).isVisible())
+    await mode('Edit TypeScript')
+    await press(book.getByRole('button', { name: 'Reset' }))
+    assert.equal(await edit.inputValue(), original)
+    await diagram.getByRole('button', { name: 'Saturn · Planet' }).waitFor()
+    await press(page.getByRole('link', { name: /String patterns JS/ }))
+    await page.getByRole('textbox', { name: 'Edit pattern JavaScript' }).waitFor()
+    await page.goBack()
+    await diagram.getByRole('button', { name: 'Saturn · Planet' }).waitFor()
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    assert.equal(new Set(compiler).size, 1)
+    assert.deepEqual(failures, [])
+    return { device: touch ? 'touch' : 'desktop', typed: true, downloadBuilt: install }
+  } finally { await page.close() }
+}
