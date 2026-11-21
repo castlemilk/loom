@@ -1,12 +1,11 @@
 import { chapters, chapterURL } from '../docs/catalog.js'
 import { absoluteURL } from '../metadata.js'
-import { homeURL, mcpURL, studioURL } from '../site.js'
-import atlases from '../../demo/atlases/catalog.json'
+import { homeURL } from '../site.js'
+import { publicPagePaths } from '../public-pages.js'
 
 export const dynamic = 'force-static'
 
 export default function sitemap() {
-  return [homeURL, studioURL, studioURL + 'wikispeedia/', studioURL + 'cards/', homeURL + 'artwork/', mcpURL,
-    ...Object.keys(atlases).map(slug => homeURL + 'examples/' + slug + '/'),
+  return [...publicPagePaths.map(path => homeURL + path),
     ...chapters.map(chapter => chapterURL(chapter.slug))].map(path => ({ url: absoluteURL(path) }))
 }

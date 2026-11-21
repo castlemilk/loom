@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import { GuideFrame } from '../app/guide-frame'
-import { homeURL } from '../site'
 import { pageMetadata } from '../metadata'
 import { chapters, chapterURL, markdownURL } from './catalog'
 import { CopyButton } from './copy-button'
@@ -34,7 +33,6 @@ export function Guide({ slug }) {
   if (i < 0) notFound()
   const chapter = chapters[i], Content = pages[slug]
   return <GuideFrame docs>
-    <link rel="describedby" href={homeURL + 'llms.txt'} />
     <div className="guide-width docs-shell">
       <aside className="docs-sidebar"><Contents slug={slug} /></aside>
       <details className="docs-mobile-index"><summary>Browse SDK docs</summary><Contents slug={slug} /></details>
