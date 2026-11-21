@@ -4,4 +4,4 @@
 :HL["/loom/_next/static/css/3d7d3609b284552b.css","style"]
 :HL["/loom/illustrations/graph-mcp.png","image"]
 :HL["/loom/illustrations/loom-logo.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"mcp","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"FH515a5Qcsp5Dil4rkMET"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"mcp","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"48di8zlB8x0t4O5ssV7D9"}

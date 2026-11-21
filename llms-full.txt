@@ -4,7 +4,7 @@
 
 Loom is an MIT-licensed TypeScript SDK for interactive network diagrams and knowledge graphs. Use its WebGL2 renderer to draw and explore nodes and links or its headless editor to preview and apply revision-checked commands.
 
-Graph Studio is the visual editor and demo application. Graph MCP is a separate read-only server for searching graph data, tracing paths, and retrieving indexed source evidence when available. The public Pages site hosts documentation and demos, not an authenticated MCP endpoint.
+Graph Studio is the visual editor. The live OAuth demo on GitHub Pages connects to the hosted Graph MCP server to search public graph data, trace paths and retrieve indexed source evidence.
 
 [Build your first graph](https://castlemilk.github.io/loom/docs/) · [Open Graph Studio](https://castlemilk.github.io/loom/studio/) · [Connect Graph MCP](https://castlemilk.github.io/loom/mcp/) · [Source and license](https://github.com/castlemilk/loom)
 
@@ -55,6 +55,18 @@ Explore the historical Wikispeedia dataset of 4,604 articles and 119,882 directe
 The on-demand version reads clusters through SQLite/WASM over HTTP byte ranges. The all-at-once option loads the equivalent data from JSON.
 
 [Build a streaming atlas](https://castlemilk.github.io/loom/docs/atlas/) · [Query it with Graph MCP](https://castlemilk.github.io/loom/mcp/) · [Stanford dataset citation](https://snap.stanford.edu/data/wikispeedia.html)
+
+---
+
+# Try a live OAuth graph query
+
+[Open the canonical Loom page](https://castlemilk.github.io/loom/mcp/live/)
+
+Choose Connect over HTTP, review the requested graph:read permission, and continue as a guest. Loom Guest asks for consent and returns to GitHub Pages. The browser exchanges its authorization code using PKCE for five minutes of read access.
+
+Choose List graph tools, then Run get_connection. The result shows the archived passage linking Music to Sound. Open graph browser to explore other public graphs with the same grant. Cancel returns to the walkthrough without granting access.
+
+[MCP setup, providers and tools](https://castlemilk.github.io/loom/mcp/)
 
 ---
 
@@ -141,7 +153,7 @@ Start in an empty directory with Node.js 22.12 or newer and npm. Vite serves the
 
 ```bash
 npm init -y
-npm install https://castlemilk.github.io/loom/packages/fefc26694aa624fcac51c4b3668b7cc7e287df0d/loom-core-0.1.0.tgz
+npm install https://castlemilk.github.io/loom/packages/73717af5e17db6f11651ea5e9c4d5e93986ccc7b/loom-core-0.1.0.tgz
 npm install --save-dev vite
 ```
 
@@ -1532,7 +1544,9 @@ Hosts that support the OpenAI MCP Extensions global entrypoint can open **Loom g
 
 ## Connect over HTTP
 
-The marketplace installation runs locally and needs no sign-in. For remote access, run Graph MCP as an HTTP service and configure an OAuth issuer. The MCP client opens your provider’s sign-in page in the browser, receives the authorization code at its registered callback and uses the resulting access token to query the server. GitHub Pages serves the static walkthrough and downloads. For a real local sign-in, `task mcp:demo PROVIDER=local` starts both services on your computer after `task setup`.
+Open the hosted demo, choose **Connect over HTTP**, continue as a guest and approve **Allow graph access**. Your browser returns to GitHub Pages, exchanges its authorization code using PKCE, and receives five minutes of `graph:read` access to the public graphs. Choose **List graph tools**, then **Run get_connection** to read the archived Music → Sound passage. [Try the live OAuth demo](https://castlemilk.github.io/loom/mcp/live/)
+
+The public MCP endpoint is `https://loom-graph.apps.deephost.benebsworth.com/mcp`. Loom Guest issues tokens for that resource, with the Pages walkthrough registered as a public client. The marketplace plugin uses local stdio. For your own HTTP deployment, register your clients with your chosen issuer. [Public resource metadata](https://loom-graph.apps.deephost.benebsworth.com/.well-known/oauth-protected-resource/mcp)
 
 After `task setup` in a repository checkout, run the following command. In your MCP client, choose Streamable HTTP and enter `http://127.0.0.1:7341/mcp`. To use the installable package, copy the release-specific start command from the component page. [Client setup](https://castlemilk.github.io/loom/mcp/#connect)
 

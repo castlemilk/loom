@@ -11,6 +11,7 @@ These guides describe loom-core 0.1.0. The roadmap describes proposed additions.
 - [Loom Graph Studio](https://castlemilk.github.io/loom/studio/index.md)
 - [Around Canva: relationship cards](https://castlemilk.github.io/loom/studio/cards/index.md)
 - [Wikispeedia: Wikipedia topic map](https://castlemilk.github.io/loom/studio/wikispeedia/index.md)
+- [Try a live OAuth graph query](https://castlemilk.github.io/loom/mcp/live/index.md)
 - [Bauhaus Wikipedia graph](https://castlemilk.github.io/loom/examples/bauhaus/index.md)
 - [Outer Solar System Wikipedia graph](https://castlemilk.github.io/loom/examples/outer-solar-system/index.md)
 
