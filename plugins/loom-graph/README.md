@@ -30,7 +30,9 @@ Hosts that support the OpenAI MCP Extensions global entrypoint can open **Loom g
 
 ## Connect over HTTP
 
-The marketplace installation runs locally and needs no sign-in. For remote access, run Graph MCP as an HTTP service and configure an OAuth issuer. The MCP client opens your provider’s sign-in page in the browser, receives the authorization code at its registered callback and uses the resulting access token to query the server. GitHub Pages serves the static walkthrough and downloads. For a real local sign-in, `task mcp:demo PROVIDER=local` starts both services on your computer after `task setup`.
+Open the hosted demo, choose **Connect over HTTP**, continue as a guest and approve **Allow graph access**. Your browser returns to GitHub Pages, exchanges its authorization code using PKCE, and receives five minutes of `graph:read` access to the public graphs. Choose **List graph tools**, then **Run get_connection** to read the archived Music → Sound passage. [Try the live OAuth demo](https://castlemilk.github.io/loom/mcp/live/)
+
+The public MCP endpoint is `https://loom-graph.apps.deephost.benebsworth.com/mcp`. Loom Guest issues tokens for that resource, with the Pages walkthrough registered as a public client. The marketplace plugin uses local stdio. For your own HTTP deployment, register your clients with your chosen issuer. [Public resource metadata](https://loom-graph.apps.deephost.benebsworth.com/.well-known/oauth-protected-resource/mcp)
 
 After `task setup` in a repository checkout, run the following command. In your MCP client, choose Streamable HTTP and enter `http://127.0.0.1:7341/mcp`. To use the installable package, copy the release-specific start command from the component page. [Client setup](https://castlemilk.github.io/loom/mcp/#connect)
 

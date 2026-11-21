@@ -62,5 +62,6 @@ jobs:
             web/package-lock.json
       - run: npm ci && npm --prefix mcp ci && npm --prefix web ci
       - run: node scripts/build-mcp.mjs artifacts/mcp && npm --prefix mcp test && node mcp/tests/installers.mjs artifacts/mcp
+      - run: node tests/mcp-hosted.mjs
       - run: LOOM_DEMO_PROFILE=local sh mcp/demo/start.sh --test
       - run: sh mcp/demo/start.sh --test

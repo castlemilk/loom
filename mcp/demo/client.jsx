@@ -6,8 +6,8 @@ import { GraphApp } from './graph-app.jsx'
 import { InstallOptions } from '../../web/app/mcp/install.jsx'
 import './client.css'
 
-const pendingKey = 'loom.mcp.oauth.pending'
-const redirectUrl = location.origin + '/demo/'
+const redirectUrl = location.origin + location.pathname
+const pendingKey = 'loom.mcp.oauth.pending:' + location.pathname
 
 function connection(config) {
   let tokens, authorizeUrl, browserUri, toolResult
@@ -46,7 +46,7 @@ function connection(config) {
       try { await client.connect(transport) }
       catch (error) { if (!(error instanceof UnauthorizedError) || !authorizeUrl) throw error }
       if (!authorizeUrl || !pending.discovery?.resourceMetadata || pending.challenge !== 401) {
-        throw new Error('Expected an OAuth challenge from the local Graph MCP server.')
+        throw new Error('Expected an OAuth challenge from the Graph MCP server.')
       }
       pending.pkce = authorizeUrl.searchParams.get('code_challenge_method')
       pending.scope = authorizeUrl.searchParams.get('scope')
@@ -134,7 +134,9 @@ function LiveDemo({ config, callback }) {
     finally { setBusy(false) }
   }
   return <><header><span>Loom / Graph MCP</span><h1>Connect over HTTP</h1>
-    <p>Connect to your local graph server, sign in with {config.provider}, then ask how Music links to Sound.</p></header>
+    <p>{config.hosted ? 'Continue as a guest, approve five minutes of read access, then ask how Music links to Sound.' :
+      'Connect to your local graph server, sign in with ' + config.provider + ', then ask how Music links to Sound.'}</p>
+    {config.hosted && <a href="../#http">Back to the MCP guide</a>}</header>
     <ConnectionFrames live step={step} record={record} onNext={next} busy={busy} error={error} />
     {step === 5 && <section className="demo-extension"><button type="button" aria-haspopup="dialog" onClick={() => setShowApp(true)}>
       Open graph browser</button>
@@ -148,5 +150,5 @@ const params = new URLSearchParams(location.search)
 const callback = params.has('code') || params.has('error') ? params : null
 if (callback) history.replaceState(null, '', redirectUrl)
 const root = createRoot(document.getElementById('demo'))
-fetch('/demo/config.json').then(r => r.json()).then(config => root.render(<LiveDemo config={config} callback={callback} />))
-  .catch(() => root.render(<p>Could not load the local demo configuration. Reload to retry.</p>))
+fetch(new URL('config.json', redirectUrl)).then(r => r.json()).then(config => root.render(<LiveDemo config={config} callback={callback} />))
+  .catch(() => root.render(<p>Could not load the connection settings. Reload to retry.</p>))

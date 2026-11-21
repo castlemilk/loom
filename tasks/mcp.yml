@@ -1,6 +1,16 @@
 version: '3'
 
 tasks:
+  hosted:pack:
+    desc: Package the committed public graph service and its locked dependencies
+    cmds: [sh deploy/hosted/pack.sh]
+  hosted:deploy:
+    desc: Publish the checked runtime and verify its exact revision on omega-ha
+    cmds: [sh deploy/hosted/deploy.sh]
+  test:hosted:
+    desc: Run a cross-origin guest authorization and graph query in a real browser
+    deps: [build]
+    cmds: [node tests/mcp-hosted.mjs]
   demo:
     desc: Walk through live OAuth sign-in with Keycloak or PROVIDER=local for oidc-provider
     env:

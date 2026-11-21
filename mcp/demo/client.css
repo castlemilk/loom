@@ -4,6 +4,7 @@ body { margin: 0; background: #f5f3ea; color: #202721; font: 16px/1.5 system-ui,
 #demo header span { font: 13px ui-monospace, monospace; color: #506155; }
 #demo h1 { margin: 16px 0 8px; font: 400 clamp(42px, 6vw, 78px)/1 Georgia, serif; letter-spacing: -.035em; }
 #demo header p { max-width: 55ch; margin: 0; }
+#demo header a { display: inline-block; margin-top: 8px; color: #824026; text-underline-offset: .2em; }
 .demo-extension { margin-top: 16px; }
 .demo-extension > button { padding: 11px 18px; background: #243c2f; color: #fff9eb; border: 0; border-radius: 3px; font: inherit; cursor: pointer; }
 .demo-graph-app { width: min(820px, calc(100vw - 28px)); max-width: none; max-height: 92dvh; padding: 0; border: 1px solid #8a9d8f; color: #20362a; background: #f8f6ee; }

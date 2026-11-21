@@ -34,7 +34,7 @@ Double-click a node to focus it. Call `graph.destroy()` when removing the canvas
 
 | Live example | What to try | SDK guide |
 | --- | --- | --- |
-| [Graph MCP over HTTP](https://castlemilk.github.io/loom/mcp/#http) | Follow a Keycloak sign-in, inspect the six graph tools and retrieve the archived Music → Sound passage. | [Run the OAuth demo or configure a provider](mcp/README.md#try-a-real-sign-in) |
+| [Graph MCP over HTTP](https://castlemilk.github.io/loom/mcp/live/) | Approve read access as a guest, list the six tools and retrieve the archived Music → Sound passage from the hosted graph. | [HTTP walkthrough and local providers](mcp/README.md#try-a-real-sign-in) |
 | [Install Loom Graph](https://castlemilk.github.io/loom/mcp/#install) | Add `castlemilk/loom` as a marketplace in Codex or Claude Code, or install the Claude Desktop extension. | [Install commands and interactive graph browser](mcp/README.md#install-the-plugin-or-desktop-extension) |
 | [String patterns](https://castlemilk.github.io/loom/#live-code) | Edit the JavaScript to change which pins connect, then drag a pin to pull its threads. | [Draw your first graph](https://castlemilk.github.io/loom/docs/) |
 | [Orbital atlas](https://castlemilk.github.io/loom/#node-playground) | Edit TypeScript records, follow a moon’s orbit, inspect NASA image credits and download your working project. | [Model nodes with metadata and images](https://castlemilk.github.io/loom/docs/navigation/#model-nodes-with-metadata-and-images) |

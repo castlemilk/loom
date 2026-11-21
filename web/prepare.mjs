@@ -9,6 +9,8 @@ import { publishedIntegrity, studioDependency } from '../scripts/npm-registry.mj
 import { siteOrigin } from './site.js'
 import mcpPackage from '../mcp/package.json' with { type: 'json' }
 import { desktopFile, marketplaceFile } from '../mcp/distribution.mjs'
+import { demoAssets } from '../mcp/demo/page.mjs'
+import { guestConfig } from '../mcp/hosted/config.mjs'
 
 const root = new URL('../', import.meta.url)
 const target = (path) => new URL(path, import.meta.url)
@@ -35,6 +37,11 @@ const revision = process.env.GITHUB_SHA
 const prefix = /^[a-f0-9]{40}$/.test(revision) ? 'packages/' + revision + '/' : ''
 const site = new URL((process.env.PAGES_BASE_PATH ?? '/loom') + '/', siteOrigin)
 execFileSync(process.execPath, ['scripts/build-mcp.mjs', publicDir], { cwd: root, stdio: 'inherit' })
+const liveDir = target('./public/mcp/live/')
+await mkdir(liveDir, { recursive: true })
+const liveAssets = await demoAssets()
+liveAssets.set('config.json', JSON.stringify({ ...guestConfig(), marketplaceURL: '../../' + marketplaceFile, desktopURL: '../../' + desktopFile }))
+await Promise.all([...liveAssets].map(([name, contents]) => writeFile(new URL(name, liveDir), contents)))
 // The catalog imports the SDK index copied by build-mcp above.
 const { writeLightStudies } = await import('./light-study.mjs')
 const light = await writeLightStudies(target('./public/graphs/light-path/v1/'))

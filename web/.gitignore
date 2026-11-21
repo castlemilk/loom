@@ -17,6 +17,7 @@ public/docs/api-index.json
 public/docs/**/index.md
 public/llms.txt
 public/mcp/index.md
+public/mcp/live/
 public/llms-full.txt
 public/benchmarks/m2-max.json
 public/examples/bauhaus.json

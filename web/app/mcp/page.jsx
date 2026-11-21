@@ -29,7 +29,9 @@ export default function GraphMcpPage() {
       <figcaption><span>Graph MCP</span><code>loom-graph-mcp</code></figcaption></figure></div></header>
     <section id="http" className="guide-width mcp-section" aria-labelledby="http-title">
       <div className="section-heading"><h2 id="http-title">Connect over HTTP</h2>
-        <p>Choose a provider and follow a recorded sign-in from the first HTTP request to the passage where Music links to Sound.</p></div>
+        <div><p>Connect to the hosted graph as a guest. Approve read access, then run a query and open its archived source.</p>
+          <a className="guide-primary" href={mcpURL + 'live/'}>Try the live OAuth demo ↗</a></div></div>
+      <p>Follow the same stages in a recorded session with Keycloak or oidc-provider.</p>
       <RecordedConnection />
     </section>
     <PluginInstall marketplaceURL={homeURL + archive.marketplaceFile} desktopURL={homeURL + archive.desktopFile}
@@ -42,7 +44,7 @@ export default function GraphMcpPage() {
     </section>
     <section className="mcp-install-surface" id="connect" aria-labelledby="connect-title"><div className="guide-width mcp-install-grid">
       <div><h2 id="connect-title">Connect a client</h2><p>The marketplace plugin runs on your computer over stdio. For a shared graph, run the HTTP server behind an HTTPS endpoint and configure an OAuth provider. Your browser signs in with that provider and returns to your MCP client.</p>
-        <p>GitHub Pages serves this guide. To run a real sign-in on your computer, follow the <a href="#http">live OAuth demo instructions</a>.</p>
+        <p>The <a href={mcpURL + 'live/'}>hosted walkthrough</a> connects this Pages site to the public Graph MCP service. You can also run either demo provider on your computer.</p>
         <p>Start with Wikispeedia, the knowledge console or either curated Wikipedia graph. For your own data, download <code>scene.json</code> from Studio and choose <strong>My Studio export</strong>.</p>
         <p>Try asking <em>“How does Music connect to Sound in Wikispeedia? Show me the source.”</em></p>
         <a className="guide-text-link" href={repositoryURL + '/tree/main/mcp'}>Server source and API ↗</a></div>

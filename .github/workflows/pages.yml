@@ -99,7 +99,7 @@ jobs:
   verify:
     needs: deploy
     runs-on: ubuntu-24.04
-    timeout-minutes: 7
+    timeout-minutes: 10
     env:
       PAGES_URL: ${{ needs.deploy.outputs.url }}
     steps:
@@ -128,3 +128,5 @@ jobs:
         run: |
           npm --prefix mcp ci
           node mcp/tests/install.mjs "${PAGES_URL%/}/packages/$GITHUB_SHA/" artifacts/mcp/studio-scene.json
+      - name: Authorize a guest and query the public MCP service from Pages
+        run: node tests/mcp-hosted.mjs --live

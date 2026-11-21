@@ -13,7 +13,7 @@ export function RecordedConnection() {
     <option value="keycloak">Keycloak</option><option value="local">oidc-provider</option>
   </select></label>
   return <><ConnectionFrames record={docker ? keycloak : local} step={step} onStep={setStep} onNext={setStep} providerControl={providerControl} />
-    <details className="mcp-demo-launch"><summary>Run the live OAuth demo</summary>
+    <details className="mcp-demo-launch"><summary>Run a provider locally</summary>
       <p>{docker ? 'From a Loom checkout with Docker running, start the graph server and a temporary Keycloak realm.' :
         'From a Loom checkout, start the graph server and an in-memory OpenID Connect provider with Node.js.'}</p>
       <figure className="mcp-config"><figcaption>In the repository <CopyButton name="live demo commands" /></figcaption>

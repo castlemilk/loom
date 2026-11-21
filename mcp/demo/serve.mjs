@@ -1,8 +1,7 @@
 import { createServer } from 'node:http'
 import { once } from 'node:events'
-import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
-import { build } from 'esbuild'
+import { demoAssets } from './page.mjs'
 import { createLoomMcpServerFactory, loadBuiltinGraphs } from '../server.js'
 import { graphHttpHandler } from '../http.js'
 import { buildInstallers, desktopFile, marketplaceFile } from '../distribution.mjs'
@@ -21,14 +20,7 @@ const config = { resource: resourceUrl, issuer, clientId: process.env.LOOM_DEMO_
   localRealm: !process.env.LOOM_DEMO_ISSUER,
   marketplaceURL: '/demo/downloads/' + marketplaceFile, desktopURL: '/demo/downloads/' + desktopFile }
 
-const bundle = await build({
-  entryPoints: [fileURLToPath(new URL('./client.jsx', import.meta.url))], outfile: 'client.js',
-  nodePaths: [fileURLToPath(new URL('../../web/node_modules', import.meta.url))],
-  bundle: true, write: false, jsx: 'automatic', format: 'esm', minify: true,
-  define: { 'process.env.NODE_ENV': '"production"' },
-})
-const assets = new Map(bundle.outputFiles.map(file => [file.path.endsWith('.css') ? '/demo/client.css' : '/demo/client.js', file.contents]))
-const page = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Loom · Live MCP connection</title><link rel="stylesheet" href="/demo/client.css"><main id="demo"></main><script type="module" src="/demo/client.js"></script></html>'
+const assets = await demoAssets()
 
 const localProvider = useLocal ? await (await import('./local-provider.mjs')).startLocalProvider(config) : null
 if (config.localRealm && !useLocal) {
@@ -54,7 +46,7 @@ const server = createServer((req, res) => {
     }, () => res.writeHead(500).end('Could not build the installers. Retry the download.'))
     return
   }
-  const body = path === '/demo/' ? page : path === '/demo/config.json' ? JSON.stringify(config) : assets.get(path)
+  const body = path === '/demo/config.json' ? JSON.stringify(config) : assets.get(path.slice('/demo/'.length) || 'index.html')
   if (body === undefined) { res.writeHead(404).end(); return }
   const type = path.endsWith('.js') ? 'text/javascript' : path.endsWith('.css') ? 'text/css' :
     path.endsWith('.json') ? 'application/json' : 'text/html; charset=utf-8'

@@ -1,0 +1,31 @@
+apiVersion: pipelines.paprika.io/v1alpha1
+kind: Pipeline
+metadata:
+  name: release-__SHORT__
+  namespace: loom-graph
+spec:
+  steps:
+    - name: check-public-service
+      image: node:22-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee
+      timeout: 120
+      retry: 2
+      script: |
+        node --input-type=module <<'NODE'
+        import assert from 'node:assert/strict'
+        const issuer = 'https://loom-graph.apps.deephost.benebsworth.com'
+        const get = async path => {
+          const response = await fetch(issuer + path, { signal: AbortSignal.timeout(15000) })
+          assert.equal(response.status, 200)
+          return response.json()
+        }
+        assert.equal((await get('/healthz')).revision, '__REVISION__')
+        const challenge = await fetch(issuer + '/mcp', { method: 'POST', signal: AbortSignal.timeout(15000) })
+        assert.equal(challenge.status, 401)
+        const metadata = await get('/.well-known/oauth-protected-resource/mcp')
+        assert.deepEqual(metadata.authorization_servers, [issuer])
+        assert.equal(metadata.resource, issuer + '/mcp')
+        const provider = await get('/.well-known/oauth-authorization-server')
+        assert.equal(provider.issuer, issuer)
+        assert.ok(provider.code_challenge_methods_supported.includes('S256'))
+        console.log('Protected MCP endpoint and OAuth issuer healthy at __REVISION__')
+        NODE

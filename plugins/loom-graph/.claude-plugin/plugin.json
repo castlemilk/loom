@@ -1,6 +1,6 @@
 {
   "name": "loom-graph",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol.",
   "author": {
     "name": "Loom"

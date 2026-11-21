@@ -2,7 +2,7 @@ import { toNodeHandler } from '@modelcontextprotocol/node'
 import {
   createMcpHandler, getOAuthProtectedResourceMetadataUrl, OAuthError, OAuthErrorCode, oauthMetadataResponse, requireBearerAuth,
 } from '@modelcontextprotocol/server'
-import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { createLocalJWKSet, createRemoteJWKSet, jwtVerify } from 'jose'
 
 const readScope = 'graph:read'
 const loopback = hostname => ['localhost', '127.0.0.1', '[::1]'].includes(hostname)
@@ -29,13 +29,15 @@ async function discoverIssuer(issuer) {
 }
 
 // One read-only index serves both current and legacy Streamable HTTP clients.
-export async function graphHttpHandler(factory, { resourceUrl, issuer }) {
+export async function graphHttpHandler(factory, { resourceUrl, issuer, issuerJwks, browserOrigin }) {
   const resource = endpoint(resourceUrl, 'Resource URL')
   if (!issuer && !loopback(resource.hostname)) throw new Error('A public resource URL requires an OAuth issuer.')
   const mcp = createMcpHandler(factory)
   let gate, metadataOptions
   if (issuer !== undefined) {
-    const { metadata, keys } = await discoverIssuer(issuer)
+    const { metadata, keys } = issuerJwks
+      ? { metadata: { issuer }, keys: createLocalJWKSet(issuerJwks) }
+      : await discoverIssuer(issuer)
     metadataOptions = { resourceServerUrl: resource, oauthMetadata: metadata, resourceName: 'Loom Graph MCP', scopesSupported: [readScope],
       dangerouslyAllowInsecureIssuerUrl: new URL(issuer).hostname === '[::1]' }
     gate = requireBearerAuth({
@@ -58,11 +60,7 @@ export async function graphHttpHandler(factory, { resourceUrl, issuer }) {
       } },
     })
   }
-  return toNodeHandler({ async fetch(request) {
-    const origin = request.headers.get('origin')
-    if (request.headers.get('host') !== resource.host || (origin !== null && origin !== resource.origin)) {
-      return new Response('Unrecognized host or origin', { status: 403 })
-    }
+  async function respond(request) {
     if (metadataOptions) {
       const document = oauthMetadataResponse(request, metadataOptions)
       if (document) return document
@@ -70,5 +68,20 @@ export async function graphHttpHandler(factory, { resourceUrl, issuer }) {
     if (new URL(request.url).pathname !== resource.pathname) return new Response('Not found', { status: 404 })
     const authInfo = await gate?.(request)
     return authInfo instanceof Response ? authInfo : mcp.fetch(request, { authInfo })
+  }
+  return toNodeHandler({ async fetch(request) {
+    const origin = request.headers.get('origin')
+    if (request.headers.get('host') !== resource.host || (origin !== null && origin !== resource.origin && origin !== browserOrigin)) {
+      return new Response('Unrecognized host or origin', { status: 403 })
+    }
+    if (!browserOrigin || origin !== browserOrigin) return respond(request)
+    const reply = request.method === 'OPTIONS' ? new Response(null, { status: 204 }) : await respond(request)
+    const headers = new Headers(reply.headers)
+    headers.set('Access-Control-Allow-Origin', browserOrigin)
+    headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+    headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID, MCP-Method, MCP-Name')
+    headers.set('Access-Control-Expose-Headers', 'WWW-Authenticate, MCP-Protocol-Version, MCP-Session-Id')
+    headers.append('Vary', 'Origin')
+    return new Response(reply.body, { status: reply.status, headers })
   } })
 }

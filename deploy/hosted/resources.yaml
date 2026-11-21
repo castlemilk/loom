@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oauth
+  namespace: loom-graph
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: vultr-block-storage
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loom-graph
+  namespace: loom-graph
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: loom-graph}}
+  template:
+    metadata:
+      labels: {app: loom-graph}
+      annotations: {loom.github.io/source: "__REVISION__", loom.github.io/archive-sha256: "__CHECKSUM__"}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      volumes:
+        - name: code
+          emptyDir: {sizeLimit: 240Mi}
+        - name: state
+          persistentVolumeClaim: {claimName: oauth}
+      initContainers:
+        - name: install-release
+          image: &runtime node:22-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee
+          securityContext: &restricted {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 50m, memory: 72Mi}, limits: {cpu: '1', memory: 256Mi}}
+          volumeMounts: [{name: code, mountPath: /app}]
+          workingDir: /app
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              node --input-type=module <<'NODE'
+              import { createHash } from 'node:crypto'
+              import { writeFile } from 'node:fs/promises'
+              const url = 'https://github.com/castlemilk/loom/releases/download/hosted-mcp-__REVISION__/loom-graph-hosted.tgz'
+              const response = await fetch(url, { signal: AbortSignal.timeout(60000) })
+              if (!response.ok) throw new Error('Release download returned HTTP ' + response.status)
+              const archive = Buffer.from(await response.arrayBuffer())
+              if (createHash('sha256').update(archive).digest('hex') !== '__CHECKSUM__') throw new Error('Release checksum mismatch')
+              await writeFile('release.tgz', archive)
+              NODE
+              tar --no-same-owner -xzf release.tgz
+              rm release.tgz
+      containers:
+        - name: server
+          image: *runtime
+          command: [node, /app/hosted/start.mjs]
+          ports: [{name: http, containerPort: 8080}]
+          env: [{name: NODE_ENV, value: production}]
+          securityContext: *restricted
+          resources: {requests: {cpu: 50m, memory: 160Mi}, limits: {cpu: '1', memory: 384Mi}}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 30, periodSeconds: 30}
+          volumeMounts:
+            - {name: code, mountPath: /app, readOnly: true}
+            - {name: state, mountPath: /var/lib/loom}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: loom-graph, namespace: loom-graph}
+spec:
+  selector: {app: loom-graph}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: loom-graph, namespace: loom-graph}
+spec:
+  parentRefs: [{name: paprika, namespace: envoy-gateway-system, sectionName: https}]
+  hostnames: [loom-graph.apps.deephost.benebsworth.com]
+  rules:
+    - backendRefs: [{name: loom-graph, port: 80}]
