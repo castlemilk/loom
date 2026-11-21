@@ -23,6 +23,6 @@ export function GuideFrame({ artwork = false, docs = false, mcp = false, childre
     <GuideMast docs={docs} mcp={mcp} />
     {children}
     <footer className="guide-width guide-footer"><a className="guide-brand" href={homeURL}><img src={artURL('loom-logo.png')} width="24" height="24" alt="" />Loom</a>
-      <div><a href={homeURL + 'artwork/'} aria-current={artwork ? 'page' : undefined}>Artwork</a><a href={repositoryURL}>GitHub <span aria-hidden="true">↗</span></a><a href="#top">Back to top <span aria-hidden="true">↑</span></a></div></footer>
+      <div><a href={homeURL + 'artwork/'} aria-current={artwork ? 'page' : undefined}>Artwork</a><a href={homeURL + 'llms.txt'}>Markdown index</a><a href={repositoryURL}>GitHub <span aria-hidden="true">↗</span></a><a href="#top">Back to top <span aria-hidden="true">↑</span></a></div></footer>
   </div>
 }

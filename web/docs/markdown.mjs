@@ -3,6 +3,7 @@ import { createProcessor } from '@mdx-js/mdx'
 import { toMarkdown } from 'mdast-util-to-markdown'
 import { chapters, chapterFile } from './catalog.js'
 import { readExample } from './examples.mjs'
+import { publicMarkdown } from './public-markdown.mjs'
 import { siteOrigin } from '../site.js'
 
 const parser = createProcessor({ format: 'mdx' })
@@ -70,11 +71,19 @@ export async function writeAssistantDocs(publicDir, indexFile, installCommands) 
     await writeFile(target, body)
     return body
   }))
+  const publicPages = await publicMarkdown(site)
+  await Promise.all(publicPages.map(async page => {
+    const target = new URL(page.path + 'index.md', publicDir)
+    await mkdir(new URL('./', target), { recursive: true })
+    await writeFile(target, page.body)
+  }))
   const connector = await readFile(new URL('../../mcp/README.md', import.meta.url), 'utf8')
   await mkdir(new URL('mcp/', publicDir), { recursive: true })
   await writeFile(new URL('mcp/index.md', publicDir), connector)
   const lines = ['# Loom SDK', '', '> Loom draws interactive graphs in WebGL2 and provides a headless, revision-checked graph editor.',
-    '', 'These guides describe loom-core ' + index.version + '. The roadmap describes proposed additions.', '']
+    '', 'These guides describe loom-core ' + index.version + '. The roadmap describes proposed additions.', '',
+    '## Product and examples', '',
+    ...publicPages.map(page => '- [' + page.title + '](' + new URL(page.path + 'index.md', site) + ')'), '']
   for (const group of new Set(chapters.map(c => c.group))) {
     lines.push('## ' + group, '')
     for (const c of chapters.filter(c => c.group === group)) lines.push('- [' + c.title + '](' + new URL('docs/' + chapterFile(c.slug), site) + ')')
@@ -87,5 +96,5 @@ export async function writeAssistantDocs(publicDir, indexFile, installCommands) 
     '- [M2 Max benchmark samples and test conditions](' + new URL('benchmarks/m2-max.json', site) + ')',
     '- [All chapters with their code examples](' + new URL('llms-full.txt', site) + ')', '')
   await writeFile(new URL('llms.txt', publicDir), lines.join('\n'))
-  await writeFile(new URL('llms-full.txt', publicDir), [...pages, connector].join('\n---\n\n'))
+  await writeFile(new URL('llms-full.txt', publicDir), [...publicPages.map(page => page.body), ...pages, connector].join('\n---\n\n'))
 }
