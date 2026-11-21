@@ -1,6 +1,6 @@
 {
   "name": "loom-graph-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol.",
   "license": "MIT",
   "type": "module",

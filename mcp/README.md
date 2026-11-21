@@ -4,33 +4,33 @@ Search a Loom knowledge graph, follow its directed links and read the passage be
 
 ## Install the plugin or desktop extension
 
-Download the Loom marketplace ZIP for Codex or Claude Code, or the desktop extension for Claude Desktop. Both packages include the server, the four example graphs and their source evidence. The marketplace plugin uses Node.js 22.14 or later and runs locally over stdio. [Choose your installer](https://castlemilk.github.io/loom/mcp/#install)
-
-Extract the ZIP into a permanent location. From the directory containing `loom-marketplace`, use the pair of commands for your client.
+Add this GitHub repository as a marketplace, then install `loom-graph@loom`. With Node.js 22.14 or later on your path, your client launches the included MCP server over stdio. The four graphs and source evidence are available offline after installation. [Choose your installer](https://castlemilk.github.io/loom/mcp/#install)
 
 **Codex**
 
 ```sh
-codex plugin marketplace add ./loom-marketplace
+codex plugin marketplace add castlemilk/loom
 codex plugin add loom-graph@loom
 ```
 
 **Claude Code**
 
 ```sh
-claude plugin marketplace add ./loom-marketplace
+claude plugin marketplace add castlemilk/loom
 claude plugin install loom-graph@loom
 ```
 
 **Claude Desktop** — Open Extensions in desktop settings, choose **Advanced settings → Install Extension**, and select the downloaded `.mcpb` file. Then ask how Music connects to Sound in Wikispeedia. [Claude Desktop extension guide](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop)
 
-In a checkout, `task setup` followed by `task mcp:pack` builds all three downloads in `artifacts/mcp/`. With both CLIs installed, `task mcp:test:plugins` installs the marketplace in temporary profiles and checks the registered servers.
+For an offline marketplace, extract the ZIP into a permanent location and use its folder path in the first command. In a source checkout, `task setup` followed by `task mcp:pack` builds the downloads in `artifacts/mcp/`. After changing the server or its data, run `task mcp:marketplace` to regenerate the catalogs and bundled plugin in the repository. `task mcp:test:plugins` checks local installs. After publication, `task mcp:test:github` installs directly from GitHub in fresh Codex and Claude Code profiles and queries both servers.
 
 ### Open the graph browser
 
 Hosts that support the OpenAI MCP Extensions global entrypoint can open **Loom graph browser** from navigation. Choose a graph, search for a node, then select an outgoing neighbor. MCP Apps hosts can also display the connection inline when `get_connection` returns. Both views use the same `ui://loom/graph-browser.html` resource and the host’s active MCP connection. Other clients can read the structured result and source URL directly. [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) · [OpenAI MCP Extensions](https://github.com/openai/mcp-extensions/blob/main/docs/spec.md#mcp-app-entrypoints)
 
 ## Connect over HTTP
+
+The marketplace installation runs locally and needs no sign-in. For remote access, run Graph MCP as an HTTP service and configure an OAuth issuer. The MCP client opens your provider’s sign-in page in the browser, receives the authorization code at its registered callback and uses the resulting access token to query the server. GitHub Pages serves the static walkthrough and downloads. For a real local sign-in, `task mcp:demo PROVIDER=local` starts both services on your computer after `task setup`.
 
 After `task setup` in a repository checkout, run the following command. In your MCP client, choose Streamable HTTP and enter `http://127.0.0.1:7341/mcp`. To use the installable package, copy the release-specific start command from the component page. [Client setup](https://castlemilk.github.io/loom/mcp/#connect)
 

@@ -41,7 +41,8 @@ export default function GraphMcpPage() {
       <p className="example-credit">English Wikipedia contributors · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> · <a href={studioURL + '?example=bauhaus'}>Open this graph in Studio ↗</a></p>
     </section>
     <section className="mcp-install-surface" id="connect" aria-labelledby="connect-title"><div className="guide-width mcp-install-grid">
-      <div><h2 id="connect-title">Connect a client</h2><p>Use Node.js 22.14 or later. Start an HTTP endpoint for your client, or let the client launch the server over stdio.</p>
+      <div><h2 id="connect-title">Connect a client</h2><p>The marketplace plugin runs on your computer over stdio. For a shared graph, run the HTTP server behind an HTTPS endpoint and configure an OAuth provider. Your browser signs in with that provider and returns to your MCP client.</p>
+        <p>GitHub Pages serves this guide. To run a real sign-in on your computer, follow the <a href="#http">live OAuth demo instructions</a>.</p>
         <p>Start with Wikispeedia, the knowledge console or either curated Wikipedia graph. For your own data, download <code>scene.json</code> from Studio and choose <strong>My Studio export</strong>.</p>
         <p>Try asking <em>“How does Music connect to Sound in Wikispeedia? Show me the source.”</em></p>
         <a className="guide-text-link" href={repositoryURL + '/tree/main/mcp'}>Server source and API ↗</a></div>

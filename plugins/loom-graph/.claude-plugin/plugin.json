@@ -1,0 +1,18 @@
+{
+  "name": "loom-graph",
+  "version": "0.2.1",
+  "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol.",
+  "author": {
+    "name": "Loom"
+  },
+  "homepage": "https://castlemilk.github.io/loom/mcp/",
+  "license": "MIT",
+  "mcpServers": {
+    "loom": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/server/index.mjs"
+      ]
+    }
+  }
+}

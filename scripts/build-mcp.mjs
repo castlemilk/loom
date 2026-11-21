@@ -2,7 +2,7 @@ import { build } from 'esbuild'
 import { execFileSync } from 'node:child_process'
 import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { dependencyNotices, writeInstallers } from '../mcp/distribution.mjs'
+import { dependencyNotices, writeInstallers, writeRepositoryMarketplace } from '../mcp/distribution.mjs'
 
 const root = new URL('../', import.meta.url)
 const data = new URL('mcp/data/', root)
@@ -28,7 +28,9 @@ await Promise.all([
   copyFile(new URL('LICENSE', root), new URL('mcp/LICENSE', root)),
 ])
 const destination = process.argv[2]
-if (destination) {
+if (destination === '--marketplace') {
+  await writeRepositoryMarketplace()
+} else if (destination) {
   const { resolve } = await import('node:path')
   await mkdir(destination, { recursive: true })
   await writeInstallers(resolve(destination))

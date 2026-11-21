@@ -1,0 +1,16 @@
+{
+  "name": "loom",
+  "interface": {
+    "displayName": "Loom"
+  },
+  "plugins": [
+    {
+      "name": "loom-graph",
+      "source": {
+        "source": "local",
+        "path": "./plugins/loom-graph"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

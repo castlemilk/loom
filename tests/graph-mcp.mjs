@@ -190,9 +190,9 @@ export async function graphMcpJourney(context, home, { touch = false, live = fal
       assert.deepEqual([...(await reply.body()).subarray(0, 4)], [80, 75, 3, 4])
     }
     await checkDownload('Download Loom marketplace', '.zip')
-    assert.match(await install.locator('pre').innerText(), /codex plugin add loom-graph@loom/)
+    assert.equal(await install.locator('pre').innerText(), 'codex plugin marketplace add castlemilk/loom\ncodex plugin add loom-graph@loom')
     await activate(install.getByLabel('Claude Code', { exact: true }))
-    assert.match(await install.locator('pre').innerText(), /claude plugin install loom-graph@loom/)
+    assert.equal(await install.locator('pre').innerText(), 'claude plugin marketplace add castlemilk/loom\nclaude plugin install loom-graph@loom')
     await activate(install.getByLabel('Claude Desktop', { exact: true }))
     await checkDownload('Download desktop extension', '.mcpb')
     await activate(install.getByLabel('Codex', { exact: true }))

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "loom-graph",
+  "version": "0.2.1",
+  "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol.",
+  "author": {
+    "name": "Loom"
+  },
+  "homepage": "https://castlemilk.github.io/loom/mcp/",
+  "license": "MIT",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Loom Graph",
+        "shortDescription": "Explore knowledge graphs",
+        "longDescription": "Search four offline graphs, follow links and read the archived passage behind a connection.",
+        "developerName": "Loom",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Interactive"
+        ],
+        "websiteURL": "https://castlemilk.github.io/loom/mcp/",
+        "logo": "./server/data/icon.png",
+        "composerIcon": "./server/data/icon.png",
+        "brandColor": "#254131",
+        "defaultPrompt": [
+          "How does Music connect to Sound in Wikispeedia? Show me the source."
+        ]
+      }
+    }
+  }
+}

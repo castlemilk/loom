@@ -28,10 +28,17 @@ tasks:
   pack:
     desc: Build the npm package, plugin marketplace ZIP and desktop extension in artifacts/mcp
     cmds: [node scripts/build-mcp.mjs artifacts/mcp]
+  marketplace:
+    desc: Regenerate the GitHub marketplace catalogs and self-contained plugin for Codex and Claude Code
+    cmds: [node scripts/build-mcp.mjs --marketplace]
   test:plugins:
     desc: Install the packaged plugin in fresh Codex and Claude Code profiles and verify graph queries
     deps: [pack]
     cmds: [node mcp/tests/installers.mjs artifacts/mcp --hosts]
+  test:github:
+    desc: Install castlemilk/loom from GitHub in clean Codex and Claude Code profiles and query both installs
+    deps: [pack]
+    cmds: [node mcp/tests/installers.mjs artifacts/mcp --hosts --source castlemilk/loom]
   test:
     desc: Exercise Graph MCP with a real client, a Studio export and a clean archive install
     cmds:

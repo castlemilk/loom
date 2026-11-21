@@ -5,8 +5,8 @@ import { CopyButton } from '../../docs/copy-button'
 
 const clients = ['Codex', 'Claude Code', 'Claude Desktop']
 const commands = {
-  Codex: 'codex plugin marketplace add ./loom-marketplace\ncodex plugin add loom-graph@loom',
-  'Claude Code': 'claude plugin marketplace add ./loom-marketplace\nclaude plugin install loom-graph@loom',
+  Codex: 'codex plugin marketplace add castlemilk/loom\ncodex plugin add loom-graph@loom',
+  'Claude Code': 'claude plugin marketplace add castlemilk/loom\nclaude plugin install loom-graph@loom',
 }
 
 export function PluginInstall({ marketplaceURL, desktopURL, version, iconURL }) {
@@ -32,12 +32,12 @@ export function InstallOptions({ marketplaceURL, desktopURL }) {
     <fieldset><legend>Install for</legend><div>{clients.map(name => <label key={name}>
       <input type="radio" name="install-client" checked={client === name} onChange={() => setClient(name)} />{name}
     </label>)}</div></fieldset>
-    <a className="guide-primary" href={desktop ? desktopURL : marketplaceURL} download>
-      {desktop ? 'Download desktop extension' : 'Download Loom marketplace'} <span aria-hidden="true">↓</span></a>
-    {desktop ? <p>In Claude Desktop settings, open <strong>Extensions</strong>, then <strong>Advanced settings</strong>. Choose <strong>Install Extension</strong> and select the downloaded <code>.mcpb</code> file.</p> :
-      <><p>Use Node.js 22.14 or later. Extract the ZIP to a folder you’ll keep, then run these commands from the directory containing <code>loom-marketplace</code>.</p>
+    {desktop ? <><a className="guide-primary" href={desktopURL} download>Download desktop extension <span aria-hidden="true">↓</span></a>
+      <p>In Claude Desktop settings, open <strong>Extensions</strong>, then <strong>Advanced settings</strong>. Choose <strong>Install Extension</strong> and select the downloaded <code>.mcpb</code> file.</p></> :
+      <><p>With Node.js 22.14 or later installed, run these commands in your terminal. {client} fetches Loom Graph from GitHub and starts the graph server locally.</p>
       <figure className="mcp-config"><figcaption>{client}<CopyButton name={client + ' plugin install'} /></figcaption>
-        <pre tabIndex={0}><code>{commands[client]}</code></pre></figure></>}
+        <pre tabIndex={0}><code>{commands[client]}</code></pre></figure>
+      <p>For an offline install, extract the ZIP and use <code>./loom-marketplace</code> in place of <code>castlemilk/loom</code> in the first command. <a className="guide-text-link" href={marketplaceURL} download>Download Loom marketplace <span aria-hidden="true">↓</span></a></p></>}
     <p className="plugin-prompt">Try asking <em>“How does Music connect to Sound in Wikispeedia? Show me the source.”</em></p>
   </div>
 }

@@ -1,0 +1,3 @@
+plugins/loom-graph/** -text
+plugins/loom-graph/server/** linguist-generated=true
+plugins/loom-graph/server/index.mjs -whitespace

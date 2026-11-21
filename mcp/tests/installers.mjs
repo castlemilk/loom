@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve, sep } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { unzipSync } from 'fflate'
 import { Client } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
@@ -15,9 +16,25 @@ const base = resolve(process.argv[2])
 const temp = await mkdtemp(join(tmpdir(), 'loom plugin test '))
 const market = join(temp, 'loom-marketplace'), desktop = join(temp, 'desktop')
 const expected = 'loom-graph@loom'
+const repo = fileURLToPath(new URL('../../', import.meta.url))
+
+async function checkRepositoryMarketplace(entries) {
+  const plugin = 'plugins/loom-graph/'
+  const filenames = Object.keys(entries).map(name => name.slice('loom-marketplace/'.length)).sort()
+  const directory = await readdir(join(repo, plugin), { recursive: true, withFileTypes: true })
+  const shipped = directory.filter(entry => !entry.isDirectory()).map(entry =>
+    relative(repo, join(entry.parentPath, entry.name)).split(sep).join('/')).sort()
+  assert.deepEqual(shipped, filenames.filter(name => name.startsWith(plugin)), 'The Git plugin and marketplace ZIP must contain the same files')
+  for (const filename of filenames) {
+    const copy = await readFile(join(repo, filename))
+    assert.ok(copy.equals(entries['loom-marketplace/' + filename]), 'Regenerate ' + filename + ' with task mcp:marketplace')
+  }
+}
 
 async function extract(filename, target) {
-  for (const [name, bytes] of Object.entries(unzipSync(await readFile(join(base, filename))))) {
+  const entries = unzipSync(await readFile(join(base, filename)))
+  if (filename === marketplaceFile) await checkRepositoryMarketplace(entries)
+  for (const [name, bytes] of Object.entries(entries)) {
     const path = resolve(target, name)
     assert.ok(path.startsWith(target + sep), 'Package entry must stay inside the install directory')
     await mkdir(dirname(path), { recursive: true })
@@ -70,22 +87,29 @@ try {
   console.log('Verified both marketplace launchers and the desktop extension, including the MCP App and archived evidence.')
 
   if (process.argv.includes('--hosts')) {
+    const index = process.argv.indexOf('--source')
+    const source = index === -1 ? market : process.argv[index + 1]
+    assert.ok(source, 'Pass a marketplace directory or owner/repo after --source')
     const codexHome = join(temp, 'codex'), claudeHome = join(temp, 'claude')
     await Promise.all([mkdir(codexHome), mkdir(claudeHome)])
     function run(cli, ...args) {
       return execFileSync(cli, args, { cwd: temp, encoding: 'utf8', timeout: 90_000,
         env: { ...process.env, CODEX_HOME: codexHome, CLAUDE_CONFIG_DIR: claudeHome } })
     }
-    run('codex', 'plugin', 'marketplace', 'add', market, '--json')
+    run('codex', 'plugin', 'marketplace', 'add', source, '--json')
     const installed = JSON.parse(run('codex', 'plugin', 'add', expected, '--json'))
     assert.equal(installed.version, pkg.version)
     const server = JSON.parse(run('codex', 'mcp', 'list', '--json')).find(s => s.name === 'loom')
     assert.ok(server.enabled && server.transport.args[0].startsWith(installed.installedPath + sep))
     await verify(server.transport)
-    run('claude', 'plugin', 'marketplace', 'add', market, '--json')
+    run('claude', 'plugin', 'marketplace', 'add', source, '--json')
     run('claude', 'plugin', 'install', expected, '--json')
     assert.match(run('claude', 'mcp', 'list'), /plugin:loom-graph:loom:.*Connected/)
-    console.log('Codex and Claude Code installed Loom Graph from the ZIP in clean profiles and connected to the registered servers.')
+    const [{ installPath, version }] = (await readJSON(join(claudeHome, 'plugins/installed_plugins.json'))).plugins[expected]
+    assert.equal(version, pkg.version)
+    const manifest = await readJSON(join(installPath, '.claude-plugin/plugin.json'))
+    await verify(manifest.mcpServers.loom, installPath, '${CLAUDE_PLUGIN_ROOT}')
+    console.log('Codex and Claude Code installed ' + expected + ' ' + version + ' from ' + source + ' in fresh profiles and returned the archived Music to Sound passage.')
   }
 } finally {
   await rm(temp, { recursive: true, force: true })

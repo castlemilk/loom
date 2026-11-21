@@ -1,0 +1,13 @@
+{
+  "name": "loom",
+  "owner": {
+    "name": "Loom"
+  },
+  "plugins": [
+    {
+      "name": "loom-graph",
+      "source": "./plugins/loom-graph",
+      "description": "Explore Loom knowledge graphs, follow directed links and read Wikipedia source passages through the Model Context Protocol."
+    }
+  ]
+}
