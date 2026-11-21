@@ -1,0 +1,23 @@
+body { margin: 0; background: #f5f3ea; color: #202721; font: 16px/1.5 system-ui, sans-serif; }
+#demo { width: min(1080px, calc(100% - 32px)); margin: clamp(24px, 6vw, 84px) auto; }
+#demo header { margin-bottom: 26px; }
+#demo header span { font: 13px ui-monospace, monospace; color: #506155; }
+#demo h1 { margin: 16px 0 8px; font: 400 clamp(42px, 6vw, 78px)/1 Georgia, serif; letter-spacing: -.035em; }
+#demo header p { max-width: 55ch; margin: 0; }
+.demo-extension { margin-top: 16px; }
+.demo-extension > button { padding: 11px 18px; background: #243c2f; color: #fff9eb; border: 0; border-radius: 3px; font: inherit; cursor: pointer; }
+.demo-graph-app { width: min(820px, calc(100vw - 28px)); max-width: none; max-height: 92dvh; padding: 0; border: 1px solid #8a9d8f; color: #20362a; background: #f8f6ee; }
+.demo-graph-app::backdrop { background: #15251dd9; }
+.graph-app-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 5px 12px; border-bottom: 1px solid #a3b1a2; font: 12px ui-monospace, monospace; }
+.graph-app-toolbar button { padding: 8px; border: 1px solid #a3b1a2; color: inherit; background: transparent; font: inherit; cursor: pointer; }
+.demo-graph-app iframe { display: block; width: 100%; height: min(580px, 72dvh); border: 0; }
+.demo-install { border-block: 1px solid #a3b1a2; margin: 18px 0; padding: 8px 0; }
+.demo-install summary { width: fit-content; padding: 8px 0; font-weight: 600; cursor: pointer; }
+.demo-install .plugin-instructions { max-width: 64ch; padding: 8px 0; }
+.demo-install fieldset { margin: 0 0 8px; padding: 0; border: 0; }
+.demo-install label { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; margin-right: 16px; }
+.demo-install a { color: #824026; font-weight: 600; }
+.demo-install figure { margin: 0; background: #1b3025; color: #faf6ec; padding: 14px; }
+.demo-install figcaption, .demo-install .docs-copy { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.demo-install .docs-copy { background: transparent; color: inherit; border: 1px solid #8c9d8e; padding: 6px; cursor: pointer; }
+.demo-install pre { white-space: pre-wrap; overflow-wrap: anywhere; }

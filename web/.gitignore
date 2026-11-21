@@ -6,6 +6,8 @@ public/playground/notebook-*.js
 public/playground/typescript-LICENSE.txt
 public/loom-core-*.tgz
 public/loom-graph-mcp-*.tgz
+public/loom-marketplace-*.zip
+public/loom-graph-*.mcpb
 public/layout-worker.js
 public/atlas-runtime/
 public/editor.schema.json

@@ -31,7 +31,7 @@ The shared masthead floats over the page in a paper capsule. Its pine Studio but
 
 The field guide uses pine (`#1d3028`) for the work surface and a light copper (`#f1ac7c`) for display accents on pine. Paper sections carry diagrams, reading and examples. The shared component stylesheet defines surface colours, rules, section spacing, small type and control height. Use the serif for display titles, the sans face for actions and the monospaced face for real code or measurements.
 
-Graph MCP’s mark is a copper branch with three ivory terminals on pine. Use the same square asset on the website, in the artwork catalogue and in MCP server discovery. Keep the adjacent text label at navigation sizes. The component page offers a real browser query and a separate configuration for the local server.
+Graph MCP’s mark is a copper branch with three ivory terminals on pine. Use the same square asset on the website, in the artwork catalogue and in MCP server discovery. Keep the adjacent text label at navigation sizes. The component page follows a Streamable HTTP connection through discovery, consent, the token exchange, tool listing and a cited graph result. Its wireframes replay recorded Keycloak and oidc-provider sessions. The local demo uses the same frames to show live responses. The page also offers the Bauhaus browser query and client setup for HTTP and stdio.
 
 ## Graph studio
 

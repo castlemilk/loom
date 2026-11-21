@@ -8,6 +8,7 @@ import { writeAssistantDocs } from './docs/markdown.mjs'
 import { publishedIntegrity, studioDependency } from '../scripts/npm-registry.mjs'
 import { siteOrigin } from './site.js'
 import mcpPackage from '../mcp/package.json' with { type: 'json' }
+import { desktopFile, marketplaceFile } from '../mcp/distribution.mjs'
 
 const root = new URL('../', import.meta.url)
 const target = (path) => new URL(path, import.meta.url)
@@ -23,6 +24,8 @@ const [archive] = JSON.parse(execFileSync('npm', ['pack', '--ignore-scripts', '-
   { cwd: fileURLToPath(root), encoding: 'utf8' }))
 const mcpFile = mcpPackage.name + '-' + mcpPackage.version + '.tgz'
 for (const filename of await readdir(publicDir)) {
+  if ((/^loom-marketplace-[\d.]+\.zip$/.test(filename) && filename !== marketplaceFile) ||
+      (/^loom-graph-[\d.]+\.mcpb$/.test(filename) && filename !== desktopFile)) await unlink(target('./public/' + filename))
   if ([archive.name, mcpPackage.name].some(name => filename.startsWith(name + '-')) && filename.endsWith('.tgz') &&
     filename !== archive.filename && filename !== mcpFile) {
     await unlink(target('./public/' + filename))
@@ -36,7 +39,8 @@ execFileSync(process.execPath, ['scripts/build-mcp.mjs', publicDir], { cwd: root
 const { writeLightStudies } = await import('./light-study.mjs')
 const light = await writeLightStudies(target('./public/graphs/light-path/v1/'))
 await writeFile(target('./.generated/light-study.json'), JSON.stringify(light))
-await writeFile(target('./.generated/graph-mcp.json'), JSON.stringify({ filename: mcpFile, archiveURL: new URL(prefix + mcpFile, site).href }))
+await writeFile(target('./.generated/graph-mcp.json'), JSON.stringify({ filename: mcpFile, archiveURL: new URL(prefix + mcpFile, site).href,
+  marketplaceFile, desktopFile, version: mcpPackage.version }))
 const archiveURL = new URL(prefix + archive.filename, site).href
 let published
 try { published = await publishedIntegrity() }

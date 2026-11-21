@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
+import { once } from 'node:events'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { createInterface } from 'node:readline'
 import { fileURLToPath } from 'node:url'
-import { Client } from '@modelcontextprotocol/client'
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import pkg from '../package.json' with { type: 'json' }
 
@@ -13,6 +16,33 @@ const archive = pkg.name + '-' + pkg.version + '.tgz'
 const spec = /^https?:/.test(base) ? new URL(archive, base).href : resolve(base, archive)
 const cwd = await mkdtemp(join(tmpdir(), 'loom-installed-mcp-'))
 const client = new Client({ name: 'loom-package-consumer', version: '1' })
+
+async function installedHttp() {
+  const reservation = createServer().listen(0, '127.0.0.1')
+  await once(reservation, 'listening')
+  const port = reservation.address().port
+  await new Promise(resolve => reservation.close(resolve))
+  const endpoint = new URL('http://127.0.0.1:' + port + '/mcp')
+  const child = spawn(join(cwd, 'node_modules/.bin/loom-graph-mcp'), ['--http', '--port', String(port)], { cwd, stdio: ['ignore', 'ignore', 'pipe'] })
+  const lines = createInterface({ input: child.stderr })
+  const exited = once(child, 'exit')
+  const http = new Client({ name: 'installed-http', version: '1' })
+  const timeout = setTimeout(() => child.kill(), 20_000)
+  try {
+    for await (const line of lines) {
+      if (line.includes(endpoint.href)) break
+    }
+    await http.connect(new StreamableHTTPClientTransport(endpoint))
+    const link = await http.callTool({ name: 'get_connection', arguments: { graph: 'wikispeedia', from: 'article:74', to: 'article:2863' } })
+    assert.match(link.structuredContent.evidence.excerpt, /audible sounds/)
+    console.log('Verified the installed HTTP command and the archived source over Streamable HTTP.')
+  } finally {
+    clearTimeout(timeout)
+    await http.close()
+    child.kill()
+    await exited
+  }
+}
 try {
   execFileSync('npm', ['install', '--no-audit', '--no-fund', '--ignore-scripts', spec], { cwd, stdio: 'inherit' })
   await writeFile(join(cwd, 'consumer.mts'), `
@@ -38,6 +68,7 @@ createLoomMcpServer([{ id: 'x', name: 'Invalid', data: { nodes: [{ id: 123 }], l
   const { structuredContent } = await client.callTool({ name: 'get_connection', arguments: { graph: 'wikispeedia', from: 'article:74', to: 'article:2863' } })
   assert.match(structuredContent.evidence.excerpt, /audible sounds/)
   console.log('Installed Graph MCP and verified the Music → Sound source passage over stdio.')
+  await installedHttp()
   const studioScene = process.argv[3]
   if (studioScene) {
     const sceneClient = new Client({ name: 'loom-studio-export', version: '1' })

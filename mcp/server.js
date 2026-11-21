@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 import { indexGraph, searchNodes, getNeighbors, getConnection, shortestPath } from './query.js'
@@ -7,6 +8,12 @@ import pkg from './package.json' with { type: 'json' }
 export { loadBuiltinGraphs, loadGraphFile } from './catalog.js'
 
 const icons = [{ src: 'data:image/png;base64,' + readFileSync(new URL('./data/icon.png', import.meta.url)).toString('base64'), mimeType: 'image/png', sizes: ['256x256'] }]
+const browserUri = 'ui://loom/graph-browser.html'
+const browserMime = 'text/html;profile=mcp-app'
+const browserMeta = { ui: { resourceUri: browserUri } }
+const entrypointMeta = { ...browserMeta, 'openai/ui': { entrypoints: [{ type: 'global' }] } }
+const resourceMeta = { ui: { csp: { connectDomains: [], resourceDomains: [] } },
+  'openai/ui': { availableDisplayModes: ['inline', 'fullscreen'] } }
 const graph = z.string().min(1).describe('Graph ID from list_graphs')
 const nodeId = z.string().min(1).describe('Exact node ID from search_nodes or get_neighbors')
 const count = z.number().int().nonnegative()
@@ -47,15 +54,16 @@ export function createLoomMcpServer(sources) {
 function registerServer(catalog, collection) {
   const server = new McpServer({ name: pkg.name, version: pkg.version, title: 'Loom Graph MCP', websiteUrl: pkg.homepage, icons },
     { instructions: 'List the available graphs, search for exact node IDs, then follow directed links. Cite source URLs when reporting article evidence.' })
-  function tool(name, title, description, shape, query) {
+  function tool(name, title, description, shape, query, meta) {
     server.registerTool(name, { title, description, inputSchema: z.object(shape), outputSchema: z.object(outputs[name]),
+      ...(meta && { _meta: meta }),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } },
       async args => {
         const result = await query(args)
         return { structuredContent: result, content: [{ type: 'text', text: JSON.stringify(result) }] }
       })
   }
-  tool('list_graphs', 'List graphs', 'List available graph IDs, sizes and source attribution.', {}, () => catalog)
+  tool('list_graphs', 'Loom graph browser', 'List available graph IDs, sizes and source attribution.', {}, () => catalog, entrypointMeta)
   tool('search_nodes', 'Search nodes', 'Search labels, IDs, sections, kinds and summaries. Exact labels rank first.', {
     graph, query: z.string().trim().min(1), ...pagination,
   }, args => searchNodes(collection(args.graph), args))
@@ -66,12 +74,15 @@ function registerServer(catalog, collection) {
   }, args => getNeighbors(collection(args.graph), args))
   tool('get_connection', 'Inspect a connection', 'Read directed edges between two nodes and the archived Wikipedia passage when available. A missing passage is returned as null.', {
     graph, from: nodeId, to: nodeId, ...pagination,
-  }, args => getConnection(collection(args.graph), args))
+  }, args => getConnection(collection(args.graph), args), browserMeta)
   tool('find_path', 'Trace a path', 'Find a shortest directed path within the maxHops limit. Use get_connection to inspect any step.', {
     graph, from: nodeId, to: nodeId, maxHops: z.number().int().min(0).max(8).default(4),
   }, args => shortestPath(collection(args.graph), args.from, args.to, args.maxHops))
   const resource = (uri, result) => ({ contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(result) }] })
   server.registerResource('graph-catalog', 'loom://graphs/catalog', { title: 'Loom graph catalog', mimeType: 'application/json' }, uri => resource(uri, catalog))
+  server.registerResource('graph-browser', browserUri, { title: 'Loom graph browser', mimeType: browserMime, _meta: resourceMeta },
+    async uri => ({ contents: [{ uri: uri.href, mimeType: browserMime, _meta: resourceMeta,
+      text: await readFile(new URL('./data/graph-browser.html', import.meta.url), 'utf8') }] }))
   server.registerResource('graph-node', new ResourceTemplate('loom://graphs/node?graph={graph}&id={id}', { list: undefined }),
     { title: 'Loom graph node', mimeType: 'application/json' }, uri => resource(uri, collection(uri.searchParams.get('graph')).details(uri.searchParams.get('id'))))
   return server

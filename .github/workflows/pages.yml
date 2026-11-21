@@ -37,6 +37,7 @@ jobs:
           NEXT_TELEMETRY_DISABLED: '1'
       - run: npm run test:site
       - run: npm --prefix mcp test && node mcp/tests/install.mjs web/out artifacts/mcp/studio-scene.json
+      - run: node mcp/tests/installers.mjs web/out
       - run: npm run test:dev
       - uses: actions/upload-artifact@v4
         if: always()

@@ -45,3 +45,22 @@ jobs:
         with:
           name: hardware-performance
           path: artifacts/performance.json
+  mcp-oauth:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      LOOM_BROWSER_CHANNEL: chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mcp/package-lock.json
+            web/package-lock.json
+      - run: npm ci && npm --prefix mcp ci && npm --prefix web ci
+      - run: node scripts/build-mcp.mjs artifacts/mcp && npm --prefix mcp test && node mcp/tests/installers.mjs artifacts/mcp
+      - run: LOOM_DEMO_PROFILE=local sh mcp/demo/start.sh --test
+      - run: sh mcp/demo/start.sh --test

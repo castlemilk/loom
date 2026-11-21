@@ -60,6 +60,31 @@
 .mcp-install-grid { display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); align-items: start; gap: clamp(28px,6vw,95px); padding-block: var(--section-space); }
 .mcp-install-grid p, .mcp-reference p { max-width: 54ch; margin-top: 16px; }
 .mcp-connect { min-width: 0; }
+.mcp-demo-launch { margin-top: 16px; border-bottom: var(--guide-rule); padding-bottom: 12px; }
+.mcp-demo-launch summary { display: list-item; width: fit-content; cursor: pointer; padding-block: 8px; font-weight: 600; }
+.mcp-demo-launch p { margin-block: 8px; max-width: 68ch; }
+.mcp-demo-launch .mcp-config { max-width: 600px; }
+.mcp-demo-launch a, .http-setup p a { color: var(--copper); text-decoration: underline; text-underline-offset: 3px; }
+.http-setup .graph-file-label { display: block; }
+.http-setup select { display: block; width: 100%; min-height: 44px; padding: 5px 8px; margin: 8px 0 16px; font: inherit; color: var(--ink); background: #fffdf5; border: 1px solid #809182; }
+.http-setup p { font-size: 14px; margin-block: 12px; }
+.plugin-install { display: grid; grid-template-columns: minmax(200px, .7fr) minmax(0, 1.3fr); border: var(--guide-rule); }
+.plugin-edition, .plugin-instructions { padding: clamp(18px, 3vw, 38px); min-width: 0; }
+.plugin-edition { background: var(--mineral); }
+.plugin-edition img { border-radius: 6px; }
+.plugin-edition h3 { font: 400 clamp(28px, 3vw, 40px)/1.15 var(--guide-serif, Georgia), serif; margin-block: 12px 8px; }
+.plugin-install p { max-width: 58ch; line-height: 1.55; }
+.plugin-edition dl { margin-block: 20px; }
+.plugin-edition dl > div { display: flex; justify-content: space-between; gap: 10px; border-top: var(--guide-rule); padding-block: 6px; font: 12px/1.5 var(--measure); }
+.plugin-edition dd { margin: 0; }
+.plugin-instructions fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+.plugin-instructions legend { font-weight: 600; }
+.plugin-instructions fieldset div { display: flex; flex-wrap: wrap; column-gap: 18px; }
+.plugin-instructions label { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; cursor: pointer; }
+.plugin-instructions input { accent-color: var(--pine); }
+.plugin-instructions p { margin-block: 14px; }
+.plugin-instructions .plugin-prompt { border-top: var(--guide-rule); padding-top: 14px; margin-bottom: 0; }
+#http + #install, #install + #try { border-top: var(--guide-rule); }
 .mcp-connect fieldset { display: flex; flex-wrap: wrap; gap: 8px 22px; border: 0; padding: 0; margin: 0 0 16px; }
 .mcp-connect legend { margin-bottom: 7px; }
 .mcp-connect fieldset label { display: flex; align-items: center; gap: 6px; min-height: 36px; cursor: pointer; font-size: 14px; }
@@ -75,6 +100,7 @@
 .mcp-reference dd { margin: 0; }
 .field-guide :is(input,summary,[role=tabpanel]):focus-visible { outline: 3px solid var(--copper); outline-offset: 3px; }
 @media (max-width: 740px) {
+  .plugin-install { grid-template-columns: minmax(0,1fr); }
   .mcp-install-grid { grid-template-columns: minmax(0,1fr); }
   .section-heading { display: grid; gap: 7px; }
   .mcp-intro-inner { grid-template-columns: minmax(0,1fr) 64px; align-items: start; gap: 14px; }

@@ -9,7 +9,7 @@ const parts = [
     alt: 'The Music topic expanded into a map of 96 articles, with Jazz selected.' },
   { id: 'sdk', title: 'TypeScript SDK', heading: 'Query the same graph', href: docsURL + 'navigation/#inspect-a-connection', action: 'Read the SDK example',
     alt: 'An outgoing-neighbor query on Music returns 24 articles. Sound appears in the Science topic.' },
-  { id: 'mcp', title: 'Graph MCP', heading: 'Trace a link to its source', href: mcpURL, action: 'Explore Graph MCP',
+  { id: 'mcp', title: 'Graph MCP', heading: 'Trace a link to its source', href: mcpURL + '#http', action: 'Explore Graph MCP',
     alt: 'The get_connection tool returns the passage where Music links to Sound and identifies the archived source.' },
 ]
 
@@ -131,7 +131,8 @@ function TourPlayer({ part, passage, source }) {
       {part.id === 'studio' ? <p>Open Music in the Wikispeedia atlas. Its 96 articles spread around the topic while Art and Science stay in place. Select Jazz to inspect the article.</p> :
         part.id === 'sdk' ? <><p>Search for Music and follow its 24 outgoing links. Scroll through the results to Sound, an article in the Science topic.</p><pre><code>{sdkExample}</code></pre></> :
         <><p>Ask how Music connects to Sound. The <code>get_connection</code> tool returns the link with this passage from the introduction to Music.</p>
-          <blockquote>{passage}</blockquote><a href={source}>Read the 2007 Schools Wikipedia source <span aria-hidden="true">↗</span></a></>}
+          <blockquote>{passage}</blockquote><a href={source}>Read the 2007 Schools Wikipedia source <span aria-hidden="true">↗</span></a>
+          <p><a href={mcpURL + '#http'}>Follow the HTTP connection and OAuth sign-in <span aria-hidden="true">↗</span></a></p></>}
     </div></details>
   </>
 }

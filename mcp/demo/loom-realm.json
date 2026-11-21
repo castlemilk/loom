@@ -1,0 +1,48 @@
+{
+  "realm": "loom",
+  "displayName": "Loom demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 300,
+  "users": [{
+    "username": "reader",
+    "firstName": "Demo",
+    "lastName": "Reader",
+    "email": "reader@example.test",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [{ "type": "password", "value": "loom-demo", "temporary": false }]
+  }],
+  "clientScopes": [{
+    "name": "graph:read",
+    "protocol": "openid-connect",
+    "attributes": {
+      "include.in.token.scope": "true",
+      "display.on.consent.screen": "true",
+      "consent.screen.text": "Read Loom graphs and their source passages"
+    },
+    "protocolMappers": [{
+      "name": "Graph MCP audience",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-audience-mapper",
+      "config": {
+        "included.custom.audience": "http://127.0.0.1:7341/mcp",
+        "access.token.claim": "true",
+        "id.token.claim": "false"
+      }
+    }]
+  }],
+  "clients": [{
+    "clientId": "loom-walkthrough",
+    "name": "Loom walkthrough",
+    "protocol": "openid-connect",
+    "publicClient": true,
+    "standardFlowEnabled": true,
+    "directAccessGrantsEnabled": false,
+    "consentRequired": true,
+    "redirectUris": ["http://127.0.0.1:7341/demo/"],
+    "webOrigins": ["http://127.0.0.1:7341"],
+    "optionalClientScopes": ["graph:read"],
+    "attributes": { "pkce.code.challenge.method": "S256" }
+  }]
+}

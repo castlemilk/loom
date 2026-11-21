@@ -1,0 +1,30 @@
+{
+  "provider": "oidc-provider",
+  "resource": "http://127.0.0.1:7341/mcp",
+  "issuer": "http://127.0.0.1:8181",
+  "scope": "graph:read",
+  "challenge": 401,
+  "metadataUrl": "http://127.0.0.1:7341/.well-known/oauth-protected-resource/mcp",
+  "pkce": "S256",
+  "tokenStatus": 200,
+  "tokenEndpoint": "http://127.0.0.1:8181/token",
+  "tokenType": "Bearer",
+  "toolsStatus": 200,
+  "tools": [
+    "list_graphs",
+    "search_nodes",
+    "get_node",
+    "get_neighbors",
+    "get_connection",
+    "find_path"
+  ],
+  "resultStatus": 200,
+  "from": "Music",
+  "to": "Sound",
+  "evidence": {
+    "section": "Introduction",
+    "anchor": "sounds",
+    "excerpt": "Music is a form of art and entertainment or other human activity that involves organized and audible sounds and silence.",
+    "sourceUrl": "https://dlab.epfl.ch/wikispeedia/wpcd/wp/m/Music.htm"
+  }
+}

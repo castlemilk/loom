@@ -1,6 +1,18 @@
 version: '3'
 
 tasks:
+  demo:
+    desc: Walk through live OAuth sign-in with Keycloak or PROVIDER=local for oidc-provider
+    env:
+      LOOM_DEMO_PROFILE: '{{.PROVIDER | default "keycloak"}}'
+    deps: [build]
+    cmds: [sh mcp/demo/start.sh]
+  test:oauth:
+    desc: Verify browser sign-in, consent, denial and the graph result with both providers
+    deps: [build]
+    cmds:
+      - env LOOM_DEMO_PROFILE=local sh mcp/demo/start.sh --test
+      - env LOOM_DEMO_PROFILE=keycloak sh mcp/demo/start.sh --test
   build:
     desc: Prepare the standalone Graph MCP server’s offline data and search index
     cmds: [node scripts/build-mcp.mjs]
@@ -14,13 +26,18 @@ tasks:
         if [ -n "$LOOM_GRAPH_FILE" ]; then exec node mcp/cli.js --graph "$LOOM_GRAPH_FILE"; fi
         exec node mcp/cli.js
   pack:
-    desc: Build the installable Graph MCP archive in artifacts/mcp
+    desc: Build the npm package, plugin marketplace ZIP and desktop extension in artifacts/mcp
     cmds: [node scripts/build-mcp.mjs artifacts/mcp]
+  test:plugins:
+    desc: Install the packaged plugin in fresh Codex and Claude Code profiles and verify graph queries
+    deps: [pack]
+    cmds: [node mcp/tests/installers.mjs artifacts/mcp --hosts]
   test:
     desc: Exercise Graph MCP with a real client, a Studio export and a clean archive install
     cmds:
       - task: pack
       - npm --prefix mcp test
+      - node mcp/tests/installers.mjs artifacts/mcp
       - node mcp/tests/install.mjs artifacts/mcp "$LOOM_STUDIO_SCENE"
     env:
       LOOM_STUDIO_SCENE: '{{.SCENE | default ""}}'
