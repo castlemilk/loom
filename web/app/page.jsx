@@ -6,6 +6,7 @@ import { ModelPlate } from './model-plate'
 import { GuideFrame } from './guide-frame'
 import { ComponentShowcase } from './component-showcase'
 import { LightPath } from './light-path'
+import { LiveCode } from './live-code'
 import lightStudy from '../.generated/light-study.json'
 import wikiEvidence from '../public/examples/wikispeedia/evidence/1-9.json'
 import atlases from '../../demo/atlases/catalog.json'
@@ -39,6 +40,7 @@ export default function FieldGuide() {
     <GuideFrame>
     <main id="guide-main">
       <LightPath study={lightStudy} />
+      <LiveCode />
       <section className="guide-tour-section" aria-labelledby="tour-title"><div className="guide-width tour-spread">
         <div className="tour-intro">
           <h2 id="tour-title">Inside the <em>Music</em> cluster.</h2>
@@ -98,7 +100,7 @@ export default function FieldGuide() {
         <div className="guide-width library-grid">
           <div><h2 id="library-title">Build with Loom</h2>
             <p>Start with an array of nodes and links. Mount the graph on a sized canvas, then choose a layout, handle a selection or connect an AI editing tool.</p>
-            <div className="library-links"><a href={apiURL}>TypeScript API <span aria-hidden="true">↗</span></a>
+            <div className="library-links"><a href="#live-code">Edit a live graph</a><a href={apiURL}>TypeScript API <span aria-hidden="true">↗</span></a>
               <a href={docsURL + 'ai-tooling/'}>Build an AI graph tool</a>
               <a href={docsURL + 'performance/'}>Measure graph performance</a>
               <a href={homeURL + sdk.filename} download>Download package <span aria-hidden="true">↓</span></a></div>

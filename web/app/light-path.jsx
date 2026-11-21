@@ -194,6 +194,7 @@ export function LightPath({ study: initial }) {
       <div className="light-actions guide-actions">
         <a className="guide-primary" href={docsURL}>Build your first graph <span aria-hidden="true">→</span></a>
         <a className="guide-text-link" href={studioURL}>Open graph studio <span aria-hidden="true">↗</span></a>
+        <a className="guide-text-link" href="#live-code">Try live code <span aria-hidden="true">↓</span></a>
       </div>
     </div>
   </section>

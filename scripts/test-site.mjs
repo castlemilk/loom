@@ -10,6 +10,7 @@ import { studioDrilldown } from '../tests/studio-drilldown.mjs'
 import { fieldGuide } from '../tests/field-guide.mjs'
 import { guideMast } from '../tests/guide-mast.mjs'
 import { lightPathJourney } from '../tests/light-path.mjs'
+import { liveCodeJourney } from '../tests/live-code.mjs'
 import { graphMcpJourney } from '../tests/graph-mcp.mjs'
 import { sdkDocs } from '../tests/sdk-docs.mjs'
 import { exampleJourney, searchPages } from '../tests/site-discovery.mjs'
@@ -45,6 +46,8 @@ try {
   await guideMast(mobile, home, true)
   await lightPathJourney(context, home)
   await lightPathJourney(mobile, home, true)
+  console.log({ liveCode: await liveCodeJourney(context, home), touchCode: await liveCodeJourney(mobile, home, { touch: true }),
+    paperCode: await liveCodeJourney(context, home, { paper: true }) })
   console.log(await graphMcpJourney(context, home, { live: !!liveURL }), await graphMcpJourney(mobile, home, { touch: true, live: !!liveURL }))
   await exampleJourney(context, home)
   await exampleJourney(mobile, home, true)

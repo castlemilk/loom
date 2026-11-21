@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Loom pattern runner</title></head><body><script>
+// This frame has an opaque origin. Only the dedicated worker runs editor text.
+function work() {
+  self.onmessage = ({ data }) => {
+    try {
+      const run = new Function('ring', '"use strict";\n' + data.source + '\nreturn pattern(ring)')
+      const ring = new Function('return (' + data.helper + ')')()
+      const value = run(ring)
+      if (!Array.isArray(value?.nodes) || !Array.isArray(value?.links)) throw new Error('Return an object with nodes and links arrays.')
+      if (value.nodes.length > 256 || value.links.length > 2048) throw new Error('This pinboard fits up to 256 nodes and 2,048 links.')
+      self.postMessage({ value })
+    } catch (error) {
+      self.postMessage({ error: String(error?.message || error).slice(0, 240) })
+    }
+  }
+}
+window.addEventListener('message', event => {
+  if (self.origin !== 'null' || self === parent || event.source !== parent ||
+      event.origin !== new URL(location.href).origin || !event.ports[0]) return
+  const port = event.ports[0]
+  let worker, url, timer
+  function finish(message) {
+    clearTimeout(timer)
+    worker?.terminate()
+    if (url) URL.revokeObjectURL(url)
+    port.postMessage(message)
+    port.close()
+  }
+  try {
+    url = URL.createObjectURL(new Blob(['(' + work.toString() + ')()'], { type: 'text/javascript' }))
+    worker = new Worker(url)
+    worker.onmessage = ({ data }) => finish(data)
+    worker.onerror = event => { event.preventDefault(); finish({ error: 'The pattern could not run.' }) }
+    timer = setTimeout(() => finish({ error: 'This pattern took too long. Try a shorter loop.' }), 1200)
+    worker.postMessage(event.data)
+  } catch {
+    finish({ error: 'The browser could not start the pattern runner. Try again.' })
+  }
+})
+</script></body></html>

@@ -1,0 +1,126 @@
+.thread-study {
+  padding-block: var(--section-space);
+  background: var(--soft-paper);
+  border-bottom: var(--guide-rule);
+}
+.thread-heading {
+  display: flex; justify-content: space-between; align-items: end; gap: 24px;
+  margin-bottom: clamp(20px, 2.4vw, 32px);
+}
+.thread-heading h2 em { color: var(--copper); }
+.thread-heading p { max-width: 45ch; color: var(--muted); }
+.thread-heading code { font: .9em var(--measure); color: var(--ink); }
+.thread-heading button {
+  padding: 2px; border: 0; background: transparent; cursor: pointer; color: var(--copper);
+  font: .93em var(--measure); text-decoration: underline; text-underline-offset: 3px;
+}
+.thread-bench {
+  display: grid; grid-template-columns: minmax(0, .93fr) minmax(0, 1.07fr);
+  grid-template-areas: "bar bar" "editor plot"; border: 1px solid #aaafa0;
+  border-radius: 12px; overflow: clip; background: #f8f5e9;
+}
+.thread-bar, .thread-file, .thread-plot figcaption {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.thread-bar {
+  grid-area: bar; flex-wrap: wrap; padding: 8px clamp(14px, 2vw, 26px);
+  border-bottom: 1px solid #b6bbad; background: #f5f3e9;
+}
+.thread-bar-title { font-family: var(--guide-serif), Georgia, serif; font-size: 26px; line-height: 1.1; }
+.thread-presets { display: inline-flex; gap: 2px; align-items: center; }
+.thread-bench button { cursor: pointer; font: 550 13px/1.25 Inter, system-ui, sans-serif; }
+.thread-presets button {
+  min-height: 38px; padding: 6px 14px; border-radius: 100px; color: #445246;
+  background: transparent; border: 1px solid transparent;
+}
+.thread-presets button:hover { background: #e4e8dc; }
+.thread-presets button[aria-pressed=true] { color: #fff8eb; background: var(--pine); }
+.thread-bench button:focus-visible { outline-offset: 1px; }
+.thread-editor {
+  grid-area: editor; display: flex; flex-direction: column; min-width: 0;
+  background: #1e2c26; color: #f5efdc; color-scheme: dark;
+}
+.thread-file, .thread-status { padding-inline: clamp(15px, 2.1vw, 30px); }
+.thread-file { min-height: 44px; border-bottom: 1px solid #425048; }
+.thread-file label { font: 13px var(--measure); color: #e3dccc; cursor: text; }
+.thread-file button { min-height: 36px; background: none; color: #ecbc96; border: 0; padding: 4px 2px; }
+.thread-file button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.thread-input {
+  position: relative; min-width: 0; flex: 1 0 auto;
+  height: clamp(305px, 25vw, 365px); --code-pad: clamp(15px, 2.1vw, 30px);
+}
+.thread-input :is(pre, textarea) {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0;
+  padding: 13px var(--code-pad); border: none; border-radius: 0;
+  font: 14px/1.6 var(--measure); font-variant-ligatures: none; letter-spacing: normal;
+  text-align: left; text-transform: none; text-indent: 0; tab-size: 2; white-space: pre;
+}
+.thread-input pre { overflow: hidden; pointer-events: none; color: #edeadb; background: transparent; }
+.thread-input textarea {
+  overflow: auto; resize: none; color: transparent; -webkit-text-fill-color: transparent;
+  background: transparent; caret-color: #ffe7b7; outline: 0;
+  scrollbar-color: #738478 #1e2c26;
+}
+.thread-input textarea::selection { background: #8ba9ca55; }
+.thread-input:focus-within { outline: 2px solid #e5ae79; outline-offset: -3px; }
+.thread-keyword { color: #afcdbc; }
+.thread-call { color: #f0ce8e; }
+.thread-literal { color: #f0ad84; }
+.thread-comment { color: #abb6a8; }
+.thread-status {
+  display: flex; align-items: baseline; gap: 8px; min-height: 39px; padding-block: 9px;
+  border-top: 1px solid #425048; color: #c7d1bf; font: 12px/1.55 var(--measure); overflow-wrap: anywhere;
+}
+.thread-status i, .thread-pigment i {
+  flex: none; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #acd5ad;
+}
+.thread-status[data-state=editing] i { background: #e2c88d; }
+.thread-status[data-state=error] { color: #ffd1ad; }
+.thread-status[data-state=error] i { background: #f1a175; }
+.thread-plot {
+  grid-area: plot; display: flex; flex-direction: column; min-width: 0; border-left: 1px solid #a9ad9c;
+}
+.thread-surface {
+  position: relative; flex: 1; min-height: 0;
+  background-color: #f8f3e6;
+  background-image: radial-gradient(#b3a58b80 .75px, transparent .9px);
+  background-size: 15px 15px; background-position: center;
+}
+.thread-surface :is(canvas, svg) { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.thread-surface canvas { touch-action: none; cursor: grab; outline-offset: -4px !important; }
+.thread-surface canvas:active { cursor: grabbing; }
+.thread-plot[data-renderer=paper] canvas { visibility: hidden; }
+.thread-empty { position: absolute; inset: 0; display: grid; place-content: center; color: var(--muted); font-size: 14px; pointer-events: none; }
+.thread-plot figcaption {
+  flex-wrap: wrap; min-height: 39px; padding: 8px clamp(14px, 2vw, 26px); border-top: 1px solid #c1bdad;
+  color: #554e42; font: 12px/1.5 var(--measure);
+}
+.thread-counts { font-variant-numeric: tabular-nums; }
+.thread-selection { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thread-pigment { display: inline-flex; align-items: center; gap: 7px; max-width: 60%; overflow-wrap: anywhere; }
+.thread-pigment i { width: 10px; height: 10px; border: 1px solid #0003; }
+@media (max-width: 740px) {
+  .thread-heading { display: grid; gap: 9px; }
+  .thread-heading p { font-size: 15px; }
+  .thread-bench { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "plot" "editor"; }
+  .thread-bar { gap: 4px 8px; padding: 6px 9px 6px 13px; }
+  .thread-bar-title { font-size: 22px; }
+  .thread-presets button { min-height: 40px; padding-inline: 10px; }
+  .thread-plot { border-left: 0; }
+  .thread-surface { flex: none; height: clamp(155px, 25svh, 235px); }
+  .thread-plot figcaption { min-height: 33px; padding-block: 6px; }
+  .thread-file { min-height: 39px; }
+  .thread-input { height: clamp(150px, 24svh, 205px); }
+  .thread-input :is(pre, textarea) { font-size: 16px; line-height: 1.48; }
+  .thread-status { min-height: 34px; padding-block: 6px; }
+}
+@media (max-width: 365px) {
+  .thread-bar-title { font-size: 20px; }
+  .thread-presets button { padding-inline: 7px; }
+  .thread-plot figcaption { gap: 6px; font-size: 11px; }
+}
+@media (forced-colors: active) {
+  .thread-input pre { display: none; }
+  .thread-input textarea { color: CanvasText; -webkit-text-fill-color: CanvasText; }
+  .thread-presets button[aria-pressed=true] { border-color: Highlight; }
+}

@@ -32,8 +32,9 @@ Double-click a node to focus it. Call `graph.destroy()` when removing the canvas
 
 ## Try a demo, then build it
 
-| Explore in the studio | What to try | SDK guide |
+| Live example | What to try | SDK guide |
 | --- | --- | --- |
+| [String patterns](https://castlemilk.github.io/loom/#live-code) | Edit the JavaScript to change which pins connect, then drag a pin to pull its threads. | [Draw your first graph](https://castlemilk.github.io/loom/docs/) |
 | [Music → Sound on Wikipedia](https://castlemilk.github.io/loom/studio/wikispeedia/?connections=music,science&edge=74%3A2863) | Inspect the archived passage, then show both articles on the map. | [Stream topics with SQLite/WASM](https://castlemilk.github.io/loom/docs/atlas/#inspect-links-across-topics) |
 | [Canva’s relationship cards](https://castlemilk.github.io/loom/studio/cards/) | Select a founder or investor and follow the evidence for their connection. | [Build relationship cards](https://castlemilk.github.io/loom/docs/navigation/#open-relationship-cards) |
 | [Weighted connections](https://castlemilk.github.io/loom/studio/?example=wires#settings-style) | Change a wire’s stroke and animate the direction of travel. | [Draw and style connections](https://castlemilk.github.io/loom/docs/drawing/#draw-a-connection) |
