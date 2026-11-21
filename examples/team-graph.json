@@ -1,0 +1,12 @@
+{
+  "name": "Service ownership",
+  "nodes": [
+    { "id": "checkout", "label": "Checkout", "kind": "service" },
+    { "id": "payments", "label": "Payments team", "kind": "team" },
+    { "id": "runbook", "label": "Payment recovery", "kind": "runbook" }
+  ],
+  "links": [
+    { "source": "checkout", "target": "payments", "kind": "owned_by" },
+    { "source": "payments", "target": "runbook", "kind": "maintains" }
+  ]
+}

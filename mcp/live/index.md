@@ -6,4 +6,4 @@ Choose Connect over HTTP, review the requested graph:read permission, and contin
 
 Choose List graph tools, then Run get_connection. The result shows the archived passage linking Music to Sound. Open graph browser to explore other public graphs with the same grant. Cancel returns to the walkthrough without granting access.
 
-[MCP setup, providers and tools](https://castlemilk.github.io/loom/mcp/)
+[Connect your own graph to an assistant](https://castlemilk.github.io/loom/mcp/#connect)
