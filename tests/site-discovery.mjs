@@ -44,7 +44,7 @@ export async function searchPages(browser, home) {
       .querySelectorAll('urlset > url > loc')].map(loc => loc.textContent), await sitemap.text())
     await page.getByRole('link', { name: 'Build your first graph' }).click()
     const chapters = await page.locator('.docs-sidebar nav li a').evaluateAll(links => links.map(a => a.pathname))
-    const expected = ['', 'artwork/', 'mcp/', 'studio/', 'studio/cards/', 'studio/wikispeedia/', 'examples/bauhaus/', 'examples/outer-solar-system/'].map(path => new URL(path, published).href)
+    const expected = ['', 'artwork/', 'mcp/', 'mcp/live/', 'studio/', 'studio/cards/', 'studio/wikispeedia/', 'examples/bauhaus/', 'examples/outer-solar-system/'].map(path => new URL(path, published).href)
     assert.deepEqual(urls.slice().sort(), [...expected, ...chapters.map(path => new URL(path, published).href)].sort())
     const pages = await Promise.all(urls.map(async url => {
       const response = await request.get(new URL(new URL(url).pathname, base).href)

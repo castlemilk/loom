@@ -39,7 +39,7 @@ const site = new URL((process.env.PAGES_BASE_PATH ?? '/loom') + '/', siteOrigin)
 execFileSync(process.execPath, ['scripts/build-mcp.mjs', publicDir], { cwd: root, stdio: 'inherit' })
 const liveDir = target('./public/mcp/live/')
 await mkdir(liveDir, { recursive: true })
-const liveAssets = await demoAssets()
+const liveAssets = await demoAssets(site)
 liveAssets.set('config.json', JSON.stringify({ ...guestConfig(), marketplaceURL: '../../' + marketplaceFile, desktopURL: '../../' + desktopFile }))
 await Promise.all([...liveAssets].map(([name, contents]) => writeFile(new URL(name, liveDir), contents)))
 // The catalog imports the SDK index copied by build-mcp above.

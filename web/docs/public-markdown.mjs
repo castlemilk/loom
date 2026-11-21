@@ -9,9 +9,14 @@ export async function publicMarkdown(site) {
   const link = (label, path) => namedLink(label, new URL(path, site))
   const docs = (label, chapter = '') => link(label, 'docs/' + (chapter ? chapter + '/' : ''))
   const pages = {
+    'mcp/live/': ['Try a live OAuth graph query', paragraph([
+      'Choose Connect over HTTP, review the requested graph:read permission, and continue as a guest. Loom Guest asks for consent and returns to GitHub Pages. The browser exchanges its authorization code using PKCE for five minutes of read access.',
+      'Choose List graph tools, then Run get_connection. The result shows the archived passage linking Music to Sound. Open graph browser to explore other public graphs with the same grant. Cancel returns to the walkthrough without granting access.',
+      link('MCP setup, providers and tools', 'mcp/'),
+    ])],
     '': ['Loom: interactive graph visualization in TypeScript', paragraph([
       'Loom is an MIT-licensed TypeScript SDK for interactive network diagrams and knowledge graphs. Use its WebGL2 renderer to draw and explore nodes and links or its headless editor to preview and apply revision-checked commands.',
-      'Graph Studio is the visual editor and demo application. Graph MCP is a separate read-only server for searching graph data, tracing paths, and retrieving indexed source evidence when available. The public Pages site hosts documentation and demos, not an authenticated MCP endpoint.',
+      'Graph Studio is the visual editor. The live OAuth demo on GitHub Pages connects to the hosted Graph MCP server to search public graph data, trace paths and retrieve indexed source evidence.',
       docs('Build your first graph') + ' · ' + link('Open Graph Studio', 'studio/') + ' · ' + link('Connect Graph MCP', 'mcp/') + ' · ' + namedLink('Source and license', 'https://github.com/castlemilk/loom'),
     ])],
     'artwork/': ['Loom artwork', paragraph([

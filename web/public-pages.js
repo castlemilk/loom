@@ -1,4 +1,4 @@
 // Public canonical routes. Query-selected examples are Studio state, not separate pages.
 export const collectionSlugs = ['bauhaus', 'outer-solar-system']
-export const publicPagePaths = ['', 'artwork/', 'studio/', 'studio/cards/', 'studio/wikispeedia/', 'mcp/',
+export const publicPagePaths = ['', 'artwork/', 'studio/', 'studio/cards/', 'studio/wikispeedia/', 'mcp/', 'mcp/live/',
   ...collectionSlugs.map(slug => 'examples/' + slug + '/')]
