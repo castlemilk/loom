@@ -185,9 +185,9 @@ export async function graphMcpJourney(context, home, { touch = false, live = fal
       const link = install.getByRole('link', { name })
       const url = new URL(await link.getAttribute('href'), home)
       assert.ok(url.pathname.endsWith(suffix))
-      const reply = await context.request.get(url.href, { headers: { Range: 'bytes=0-3' } })
-      assert.ok(reply.ok())
-      assert.deepEqual([...(await reply.body()).subarray(0, 4)], [80, 75, 3, 4])
+      const reply = await context.request.get(url.href)
+      assert.equal(reply.status(), 200, 'Download ' + url.pathname)
+      assert.deepEqual([...(await reply.body()).subarray(0, 4)], [80, 75, 3, 4], 'ZIP signature for ' + url.pathname)
     }
     await checkDownload('Download Loom marketplace', '.zip')
     assert.equal(await install.locator('pre').innerText(), 'codex plugin marketplace add castlemilk/loom\ncodex plugin add loom-graph@loom')
