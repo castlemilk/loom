@@ -2,6 +2,6 @@
 :HL["/loom/_next/static/media/ecd59a4f1610f257-s.p.woff","font",{"crossOrigin":"","type":"font/woff"}]
 :HL["/loom/_next/static/css/b9a48c473f448f02.css","style"]
 :HL["/loom/_next/static/css/a4b89bbf11a5bd68.css","style"]
-:HL["/loom/_next/static/css/c5cf4f4e41847dbd.css","style"]
+:HL["/loom/_next/static/css/15e68b4ce0001f31.css","style"]
 :HL["/loom/illustrations/loom-logo.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"xT4E0oXnAPCKl_yzI9Rkm"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"CqiLaBPcXHUP5D-GUSMjv"}
