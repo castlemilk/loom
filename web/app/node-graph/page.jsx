@@ -33,9 +33,9 @@ export default function NodeGraphGuide() {
         <h3>{example.label}</h3>
         <p>{example.description}</p>
         <ul aria-label={example.label + ' formats'}>
-          <li><a href={homeURL + example.html}>Open example<span className="sr-only">: {example.label}</span></a></li>
-          <li><a href={homeURL + example.markdown}>Read Markdown<span className="sr-only">: {example.label}</span></a></li>
-          <li><a href={homeURL + example.data}>Get JSON<span className="sr-only">: {example.label}</span></a></li>
+          <li><a href={homeURL + example.html} aria-label={'Open example: ' + example.label}>Open example</a></li>
+          <li><a href={homeURL + example.markdown} aria-label={'Read Markdown: ' + example.label}>Read Markdown</a></li>
+          <li><a href={homeURL + example.data} aria-label={'Get JSON: ' + example.label}>Get JSON</a></li>
           {example.source && <li><a href={example.source}>Read original source</a></li>}
         </ul>
       </li>)}</ul>

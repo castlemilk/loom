@@ -109,6 +109,9 @@ export async function searchPages(browser, home) {
     }
     await page.goto(new URL('node-graph/', base).href)
     await page.getByRole('heading', { level: 1, name: 'Node graph library for TypeScript' }).waitFor()
+    const musicExample = page.getByRole('link', { name: 'Open example: Trace Music to Sound' })
+    assert.equal(await musicExample.innerText(), 'Open example')
+    assert.equal(new URL(await musicExample.getAttribute('href'), base).searchParams.get('edge'), '74:2863')
     const indexResponse = await request.get(new URL('node-graph/agent-guide.json', base).href)
     assert.equal(indexResponse.status(), 200)
     const index = await indexResponse.json()

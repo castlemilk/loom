@@ -5,7 +5,7 @@
 .node-graph-guide h3 { font-size: clamp(21px, 2.15vw, 30px); line-height: 1.12; }
 .node-graph-guide #graph-examples { border-top: var(--guide-rule); }
 .node-graph-details summary:focus-visible { outline: 3px solid var(--copper); outline-offset: 4px; }
-.node-graph-examples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; padding: 0; margin-block: 1.5rem; list-style: none; }
+.node-graph-guide .node-graph-examples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; padding: 0; margin-block: 1.5rem; list-style: none; }
 .node-graph-examples > li { border-top: var(--guide-rule); padding-top: 1rem; }
 .node-graph-examples h3 { margin: 0; }
 .node-graph-examples > li p { margin-top: .5rem; }
@@ -14,4 +14,4 @@
 .node-graph-details { border-block: var(--guide-rule); padding-block: 1rem; }
 .node-graph-details summary { cursor: pointer; font-weight: 600; }
 .node-graph-details li, .node-graph-guide .mcp-reference li { padding-block: .3rem; }
-@media (max-width: 640px) { .node-graph-examples { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .node-graph-guide .node-graph-examples { grid-template-columns: 1fr; } }
