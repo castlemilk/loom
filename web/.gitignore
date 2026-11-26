@@ -26,3 +26,7 @@ public/index.md
 public/artwork/index.md
 public/studio/**/index.md
 public/examples/**/index.md
+
+# Generated with the public agent guide
+/public/node-graph/index.md
+/public/node-graph/agent-guide.json

@@ -22,3 +22,6 @@ body { margin: 0; background: #f5f3ea; color: #202721; font: 16px/1.5 system-ui,
 .demo-install figcaption, .demo-install .docs-copy { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .demo-install .docs-copy { background: transparent; color: inherit; border: 1px solid #8c9d8e; padding: 6px; cursor: pointer; }
 .demo-install pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.readable-walkthrough { width: min(46rem, calc(100% - 2rem)); margin: 2rem auto 3rem; }
+.readable-walkthrough a { text-decoration: underline; text-underline-offset: .18em; }

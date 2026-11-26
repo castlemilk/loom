@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { collectionSlugs, publicPagePaths } from '../public-pages.js'
+import { nodeGraphTitle, nodeGraphIntro, nodeGraphBoundary, nodeGraphExamples, nodeGraphReferences } from '../node-graph.js'
 
 const readJSON = async path => JSON.parse(await readFile(new URL(path, import.meta.url), 'utf8'))
 const namedLink = (label, url) => '[' + label + '](' + url + ')'
@@ -14,10 +15,21 @@ export async function publicMarkdown(site) {
       'Choose List graph tools, then Run get_connection. The result shows the archived passage linking Music to Sound. Open graph browser to explore other public graphs with the same grant. Cancel returns to the walkthrough without granting access.',
       link('Connect your own graph to an assistant', 'mcp/#connect'),
     ])],
-    '': ['Loom: interactive graph visualization in TypeScript', paragraph([
-      'Loom is an MIT-licensed TypeScript SDK for interactive network diagrams and knowledge graphs. Use its WebGL2 renderer to draw and explore nodes and links or its headless editor to preview and apply revision-checked commands.',
+    '': ['Loom Graph SDK: knowledge graph library for TypeScript', paragraph([
+      'Loom is an MIT-licensed knowledge graph library for TypeScript and JavaScript. Use its WebGL2 renderer to draw and explore nodes and links or its headless editor to preview and apply revision-checked commands.',
       'Graph Studio is the visual editor. Graph MCP turns your nodes-and-links JSON or Studio scene into an MCP server that assistants can query locally or through a shared HTTP endpoint.',
-      docs('Build your first graph') + ' · ' + link('Open Graph Studio', 'studio/') + ' · ' + link('Connect Graph MCP', 'mcp/') + ' · ' + namedLink('Source and license', 'https://github.com/castlemilk/loom'),
+      docs('Build your first graph') + ' · ' + link('Open Graph Studio', 'studio/') + ' · ' + link('Node graph library guide', 'node-graph/') + ' · ' + link('Connect Graph MCP', 'mcp/') + ' · ' + namedLink('Source and license', 'https://github.com/castlemilk/loom'),
+    ])],
+    'node-graph/': [nodeGraphTitle, paragraph([
+      nodeGraphIntro, '## Public examples',
+      ...nodeGraphExamples.map(example => paragraph([
+        '### ' + example.label, example.description,
+        link('Open example', example.html) + ' · ' + link('Read Markdown', example.markdown) + ' · ' +
+          link('Get JSON', example.data) + (example.source ? ' · ' + namedLink('Read original source', example.source) : ''),
+      ])),
+      '## Use Loom from an agent', nodeGraphBoundary,
+      link('Agent guide JSON', 'node-graph/agent-guide.json'),
+      nodeGraphReferences.map(entry => '- ' + link(entry.label, entry.href)).join('\n'),
     ])],
     'artwork/': ['Loom artwork', paragraph([
       'The artwork archive includes graphite illustrations for Explore, Layout, Groups and Style, the Loom mark, its social preview and Graph MCP icon.',

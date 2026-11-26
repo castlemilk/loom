@@ -5,6 +5,7 @@ import { chapters, chapterFile } from './catalog.js'
 import { readExample } from './examples.mjs'
 import { publicMarkdown } from './public-markdown.mjs'
 import { siteOrigin } from '../site.js'
+import { graphAgentIndex } from '../node-graph.js'
 
 const parser = createProcessor({ format: 'mdx' })
 const text = value => ({ type: 'text', value })
@@ -77,6 +78,7 @@ export async function writeAssistantDocs(publicDir, indexFile, installCommands) 
     await mkdir(new URL('./', target), { recursive: true })
     await writeFile(target, page.body)
   }))
+  await writeFile(new URL('node-graph/agent-guide.json', publicDir), JSON.stringify(graphAgentIndex(site), null, 2) + '\n')
   const connector = await readFile(new URL('../../mcp/README.md', import.meta.url), 'utf8')
   await mkdir(new URL('mcp/', publicDir), { recursive: true })
   await writeFile(new URL('mcp/index.md', publicDir), connector)
@@ -91,6 +93,7 @@ export async function writeAssistantDocs(publicDir, indexFile, installCommands) 
   }
   lines.push('## Machine-readable reference', '',
     '- [Give your knowledge graph an MCP server](' + new URL('mcp/index.md', site) + ')',
+    '- [Public graph examples and agent entry points (JSON)](' + new URL('node-graph/agent-guide.json', site) + ')',
     '- [Public imports, types and controller methods](' + new URL('docs/api-index.json', site) + ')',
     '- [Editor transaction schema](' + new URL('editor.schema.json', site) + ')',
     '- [M2 Max benchmark samples and test conditions](' + new URL('benchmarks/m2-max.json', site) + ')',

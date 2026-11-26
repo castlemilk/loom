@@ -9,6 +9,10 @@ export async function searchPages(browser, home) {
   try {
     await page.goto(home)
     await page.getByRole('heading', { level: 1, name: /Interactive graphs.*TypeScript/ }).waitFor()
+    assert.match(await page.title(), /Knowledge graph library for TypeScript/)
+    const nodeGuide = page.getByRole('link', { name: 'Node graph library guide' })
+    await nodeGuide.waitFor()
+    assert.equal(new URL(await nodeGuide.getAttribute('href'), base).pathname, new URL('node-graph/', base).pathname)
     const bench = page.getByRole('group', { name: 'Wikipedia paths through Light' })
     assert.equal(await bench.getByRole('link').count(), 7)
     assert.match(await page.locator('#light-path blockquote').innerText(), /rainbows/)
@@ -44,7 +48,7 @@ export async function searchPages(browser, home) {
       .querySelectorAll('urlset > url > loc')].map(loc => loc.textContent), await sitemap.text())
     await page.getByRole('link', { name: 'Build your first graph' }).click()
     const chapters = await page.locator('.docs-sidebar nav li a').evaluateAll(links => links.map(a => a.pathname))
-    const expected = ['', 'artwork/', 'mcp/', 'mcp/live/', 'studio/', 'studio/cards/', 'studio/wikispeedia/', 'examples/bauhaus/', 'examples/outer-solar-system/'].map(path => new URL(path, published).href)
+    const expected = ['', 'artwork/', 'mcp/', 'mcp/live/', 'node-graph/', 'studio/', 'studio/cards/', 'studio/wikispeedia/', 'examples/bauhaus/', 'examples/outer-solar-system/'].map(path => new URL(path, published).href)
     assert.deepEqual(urls.slice().sort(), [...expected, ...chapters.map(path => new URL(path, published).href)].sort())
     const pages = await Promise.all(urls.map(async url => {
       const response = await request.get(new URL(new URL(url).pathname, base).href)
@@ -103,6 +107,38 @@ export async function searchPages(browser, home) {
       assert.ok((await rows.evaluateAll(links => links.map(a => a.search))).every(query => new URLSearchParams(query).get('example') === slug))
       assert.equal(await page.getByRole('link', { name: 'CC BY-SA 4.0' }).getAttribute('href'), 'https://creativecommons.org/licenses/by-sa/4.0/')
     }
+    await page.goto(new URL('node-graph/', base).href)
+    await page.getByRole('heading', { level: 1, name: 'Node graph library for TypeScript' }).waitFor()
+    const musicExample = page.getByRole('link', { name: 'Open example: Trace Music to Sound' })
+    assert.equal(await musicExample.innerText(), 'Open example')
+    assert.equal(new URL(await musicExample.getAttribute('href'), base).searchParams.get('edge'), '74:2863')
+    const indexResponse = await request.get(new URL('node-graph/agent-guide.json', base).href)
+    assert.equal(indexResponse.status(), 200)
+    const index = await indexResponse.json()
+    assert.equal(index.version, 1)
+    assert.equal(index.guide, new URL('node-graph/', published).href)
+    assert.equal(index.examples.length, 4)
+    for (const { html, markdown, data } of index.examples) {
+      for (const target of [html, markdown, data]) {
+        const url = new URL(target)
+        assert.equal(url.origin, published.origin)
+        assert.ok(url.pathname.startsWith(published.pathname))
+        const fetched = await request.get(new URL(url.pathname + url.search, base).href)
+        assert.equal(fetched.status(), 200, target)
+        if (target === data) assert.ok(await fetched.json())
+      }
+    }
+    const relations = page.locator('.node-graph-details')
+    await relations.locator('summary').focus()
+    await page.keyboard.press('Enter')
+    assert.equal(await relations.getByRole('link', { name: /^Source for/ }).count(), 6)
+    await relations.getByRole('link', { name: /Airtree.*Canva/ }).waitFor()
+    assert.match(indexText, /node-graph\/agent-guide\.json/)
+    await page.goto(new URL('mcp/live/', base).href)
+    const walkthrough = page.getByRole('region', { name: 'Read the example without signing in' })
+    await walkthrough.getByText(/five minutes and cannot edit/).waitFor()
+    assert.equal(await walkthrough.getByRole('link', { name: 'Read the archived Music article' }).getAttribute('href'),
+      'https://dlab.epfl.ch/wikispeedia/wpcd/wp/m/Music.htm')
     await page.goto(new URL('studio/?example=bauhaus&article=Anni_Albers', base).href)
     assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), new URL('studio/', published).href)
     assert.ok(urls.every(url => !new URL(url).search), 'Studio view state must not create sitemap URLs')

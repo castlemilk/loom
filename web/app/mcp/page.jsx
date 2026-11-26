@@ -30,7 +30,7 @@ export default function GraphMcpPage() {
         <p>Preview a real MCP query here. To use the same graph in an assistant, copy its setup command and run it with Node.js 22.14 or later.</p></div>
       <McpConnect archiveURL={archive.archiveURL} downloadURL={homeURL + archive.filename} />
       <p className="example-credit">Building a graph in <a href={studioURL}>Loom Studio</a>? Choose <strong>Export graph → Graph MCP</strong> to save the file.
-        {' '}<a href={mcpURL + 'index.md'}>File format and server guide</a></p>
+        {' '}<a href={mcpURL + 'index.md'}>File format and server guide</a>{' · '}<a href={homeURL + 'node-graph/#agent-reference-title'}>Public examples and agent guide</a></p>
     </section>
     <section id="http" className="guide-width mcp-section" aria-labelledby="http-title">
       <div className="section-heading"><h2 id="http-title">Connect over HTTP</h2>
