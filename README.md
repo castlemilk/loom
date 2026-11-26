@@ -1,8 +1,8 @@
-# Loom
+# Loom Graph SDK
 
 [![Loom — Interactive graphs in TypeScript. A copper wire network with ceramic joints.](https://castlemilk.github.io/loom/illustrations/loom-social.jpg)](https://castlemilk.github.io/loom/)
 
-Loom is a TypeScript library for interactive network diagrams and knowledge graphs. Give its WebGL2 renderer nodes and links, or draw a graph in Studio and export a working JavaScript or TypeScript project. Readers can drag clusters, trace relationships to their source, and open topics on demand from SQLite/WASM.
+Loom is an open-source knowledge graph library for TypeScript and JavaScript. Use it for interactive network diagrams and node graphs. Give its WebGL2 renderer nodes and links, or draw a graph in Studio and export a working JavaScript or TypeScript project. Readers can drag clusters, trace relationships to their source, and open topics on demand from SQLite/WASM. Start with the [TypeScript graph quickstart](https://castlemilk.github.io/loom/docs/) or the [node graph library guide](https://castlemilk.github.io/loom/node-graph/) for public examples, JSON data and agent entry points.
 
 [Build your first graph](https://castlemilk.github.io/loom/docs/) · [Open a blank canvas](https://castlemilk.github.io/loom/studio/?example=blank) · [Explore Wikipedia](https://castlemilk.github.io/loom/studio/wikispeedia/) · [Browse the API](https://castlemilk.github.io/loom/docs/api/) · [MIT license](https://github.com/castlemilk/loom/blob/main/LICENSE)
 

@@ -20,6 +20,15 @@ export async function demoAssets(site) {
     <meta name="referrer" content="no-referrer"><title>${title}</title><meta name="description" content="${description}">${metadata}
     <link rel="stylesheet" href="./client.css"></head><body><main id="demo"><header><h1>Connect over HTTP</h1></header>
     <noscript>Enable JavaScript to connect to the graph.${site ? ' <a href="./index.md">Read the walkthrough</a>.' : ''}</noscript></main>
+    ${site ? `<section class="readable-walkthrough" aria-labelledby="readable-walkthrough">
+      <h2 id="readable-walkthrough">Read the example without signing in</h2>
+      <p>The historical Wikispeedia article on Music links to Sound in its opening definition.
+        <a href="https://dlab.epfl.ch/wikispeedia/wpcd/wp/m/Music.htm">Read the archived Music article</a> or
+        <a href="${new URL('node-graph/#wikispeedia', site)}">get the example data and permalink</a>.</p>
+      <p>To run the live query, connect over HTTP and review the <code>graph:read</code> permission.
+        The optional guest session lasts five minutes and cannot edit the graph.</p>
+      <p><a href="./index.md">Read the complete walkthrough as Markdown</a></p>
+    </section>` : ''}
     <script type="module" src="./client.js"></script></body></html>`)
   return assets
 }

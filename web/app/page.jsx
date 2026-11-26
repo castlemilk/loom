@@ -13,9 +13,9 @@ import atlases from '../../demo/atlases/catalog.json'
 import sdk from '../.generated/sdk-package.json'
 import manifest from '../../package.json'
 
-const description = 'Draw a knowledge graph in Loom Graph Studio, embed it with the TypeScript SDK, or give an assistant read access to its nodes, links and sources through Graph MCP.'
-export const metadata = pageMetadata({ title: 'Loom · TypeScript library for interactive graph visualization', description, path: homeURL })
-const library = { '@context': 'https://schema.org', '@type': 'SoftwareSourceCode', name: 'Loom', alternateName: manifest.name,
+const description = 'Loom is an open-source knowledge graph library for TypeScript. Render and edit interactive node graphs with WebGL2, or give an assistant read access through Graph MCP.'
+export const metadata = pageMetadata({ title: 'Loom Graph SDK · Knowledge graph library for TypeScript', description, path: homeURL })
+const library = { '@context': 'https://schema.org', '@type': 'SoftwareSourceCode', name: 'Loom Graph SDK', alternateName: manifest.name,
   description, programmingLanguage: 'TypeScript', codeRepository: repositoryURL, url: absoluteURL(homeURL),
   version: manifest.version, license: repositoryURL + '/blob/main/LICENSE', isAccessibleForFree: true,
   image: absoluteURL(brandImage.url), thumbnailUrl: absoluteURL(artURL('loom-logo.png')),
@@ -98,9 +98,10 @@ export default function FieldGuide() {
       </section>
       <section className="guide-library" id="typescript" aria-labelledby="library-title">
         <div className="guide-width library-grid">
-          <div><h2 id="library-title">Build with Loom</h2>
+          <div><h2 id="library-title">A knowledge graph library for TypeScript</h2>
             <p>Start with an array of nodes and links. Mount the graph on a sized canvas, then choose a layout, handle a selection or connect an AI editing tool.</p>
             <div className="library-links"><a href="#node-playground">Edit a TypeScript graph</a><a href={apiURL}>TypeScript API <span aria-hidden="true">↗</span></a>
+              <a href={homeURL + 'node-graph/'}>Node graph library guide</a>
               <a href={docsURL + 'ai-tooling/'}>Build an AI graph tool</a>
               <a href={docsURL + 'performance/'}>Measure graph performance</a>
               <a href={homeURL + sdk.filename} download>Download package <span aria-hidden="true">↓</span></a></div>
