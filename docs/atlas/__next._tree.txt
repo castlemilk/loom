@@ -3,4 +3,4 @@
 :HL["/loom/_next/static/css/c3f2df3b7d2bf219.css","style"]
 :HL["/loom/_next/static/css/1772185382d3d512.css","style"]
 :HL["/loom/illustrations/loom-logo.png","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"docs","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chapter","param":{"type":"d","key":"atlas","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"Tqljv9wkPM0IqkmfuL6uN"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"docs","param":null,"prefetchHints":4192,"slots":{"children":{"name":"chapter","param":{"type":"d","key":"atlas","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"kZQVDn1P4529VwL3qJTf0"}

@@ -6,11 +6,12 @@ These guides describe loom-core 0.1.0. The roadmap describes proposed additions.
 
 ## Product and examples
 
-- [Loom: interactive graph visualization in TypeScript](https://castlemilk.github.io/loom/index.md)
+- [Loom Graph SDK: knowledge graph library for TypeScript](https://castlemilk.github.io/loom/index.md)
 - [Loom artwork](https://castlemilk.github.io/loom/artwork/index.md)
 - [Loom Graph Studio](https://castlemilk.github.io/loom/studio/index.md)
 - [Around Canva: relationship cards](https://castlemilk.github.io/loom/studio/cards/index.md)
 - [Wikispeedia: Wikipedia topic map](https://castlemilk.github.io/loom/studio/wikispeedia/index.md)
+- [Node graph library for TypeScript](https://castlemilk.github.io/loom/node-graph/index.md)
 - [Try a live OAuth graph query](https://castlemilk.github.io/loom/mcp/live/index.md)
 - [Bauhaus Wikipedia graph](https://castlemilk.github.io/loom/examples/bauhaus/index.md)
 - [Outer Solar System Wikipedia graph](https://castlemilk.github.io/loom/examples/outer-solar-system/index.md)
@@ -43,6 +44,7 @@ These guides describe loom-core 0.1.0. The roadmap describes proposed additions.
 ## Machine-readable reference
 
 - [Give your knowledge graph an MCP server](https://castlemilk.github.io/loom/mcp/index.md)
+- [Public graph examples and agent entry points (JSON)](https://castlemilk.github.io/loom/node-graph/agent-guide.json)
 - [Public imports, types and controller methods](https://castlemilk.github.io/loom/docs/api-index.json)
 - [Editor transaction schema](https://castlemilk.github.io/loom/editor.schema.json)
 - [M2 Max benchmark samples and test conditions](https://castlemilk.github.io/loom/benchmarks/m2-max.json)

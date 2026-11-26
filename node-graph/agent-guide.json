@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "name": "Loom Graph SDK",
+  "guide": "https://castlemilk.github.io/loom/node-graph/",
+  "markdown": "https://castlemilk.github.io/loom/node-graph/index.md",
+  "assistantIndex": "https://castlemilk.github.io/loom/llms.txt",
+  "access": "Public example files need no account. The hosted MCP demo uses guest consent. This index does not grant access or authorize writes.",
+  "examples": [
+    {
+      "id": "around-canva",
+      "label": "Read the Canva relationship graph",
+      "description": "Inspect the example’s founder and portfolio relationships without opening the canvas. Each row links to its recorded evidence.",
+      "html": "https://castlemilk.github.io/loom/studio/cards/",
+      "markdown": "https://castlemilk.github.io/loom/studio/cards/index.md",
+      "data": "https://castlemilk.github.io/loom/examples/around-canva.json"
+    },
+    {
+      "id": "bauhaus",
+      "label": "Follow a Bauhaus article into Studio",
+      "description": "Open the HTML article index, follow a named article into Studio, or read the same nodes and links as JSON.",
+      "html": "https://castlemilk.github.io/loom/examples/bauhaus/",
+      "markdown": "https://castlemilk.github.io/loom/examples/bauhaus/index.md",
+      "data": "https://castlemilk.github.io/loom/examples/bauhaus.json"
+    },
+    {
+      "id": "outer-solar-system",
+      "label": "Explore the Outer Solar System graph",
+      "description": "Browse the article index in HTML or read the JSON. Choose an article to open the surrounding graph.",
+      "html": "https://castlemilk.github.io/loom/examples/outer-solar-system/",
+      "markdown": "https://castlemilk.github.io/loom/examples/outer-solar-system/index.md",
+      "data": "https://castlemilk.github.io/loom/examples/outer-solar-system.json"
+    },
+    {
+      "id": "wikispeedia",
+      "label": "Trace Music to Sound",
+      "description": "Follow the archived Music article’s hyperlink to Sound. The interactive permalink opens that exact connection.",
+      "source": "https://dlab.epfl.ch/wikispeedia/wpcd/wp/m/Music.htm",
+      "html": "https://castlemilk.github.io/loom/studio/wikispeedia/?connections=music,science&edge=74%3A2863",
+      "markdown": "https://castlemilk.github.io/loom/studio/wikispeedia/index.md",
+      "data": "https://castlemilk.github.io/loom/examples/wikispeedia/evidence/1-9.json"
+    }
+  ],
+  "references": [
+    {
+      "label": "Build your first graph",
+      "href": "https://castlemilk.github.io/loom/docs/"
+    },
+    {
+      "label": "Layouts and styling for nodes and edges",
+      "href": "https://castlemilk.github.io/loom/docs/drawing/"
+    },
+    {
+      "label": "Edit a graph document",
+      "href": "https://castlemilk.github.io/loom/docs/editing/"
+    },
+    {
+      "label": "Read the TypeScript API index (JSON)",
+      "href": "https://castlemilk.github.io/loom/docs/api-index.json"
+    },
+    {
+      "label": "Read the editor transaction schema (JSON)",
+      "href": "https://castlemilk.github.io/loom/editor.schema.json"
+    },
+    {
+      "label": "Query a graph with Graph MCP",
+      "href": "https://castlemilk.github.io/loom/mcp/"
+    }
+  ]
+}
